@@ -1,0 +1,4 @@
+UI_EN = {
+  UI_RespawnOption_RespawnOption = "XP rate",
+  UI_RespawnOption_RespawnOption_Tooltip = "Skill XPs are kept at this rate",
+}

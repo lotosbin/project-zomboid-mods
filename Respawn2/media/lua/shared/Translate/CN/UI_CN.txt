@@ -1,0 +1,4 @@
+UI_CN = {
+  UI_RespawnOption_RespawnOption = "经验百分比",
+  UI_RespawnOption_RespawnOption_Tooltip = "技能按照此百分比保留",
+}
