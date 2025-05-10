@@ -2,4 +2,4 @@ name=Keep XP When Respawn 2
 id=Respawn2
 description=Respawn character with reduced perk level
 poster=poster.png
-require=\modoptions
+require=modoptions

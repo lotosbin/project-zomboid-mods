@@ -1,5 +1,0 @@
-version=1
-title=keep XP When Respawn 2
-descriptipn=Respawn character with reduced perk level
-tags=
-visibility=public
