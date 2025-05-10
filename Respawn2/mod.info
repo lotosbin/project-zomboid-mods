@@ -2,6 +2,4 @@ name=Keep XP When Respawn 2
 id=Respawn2
 description=Respawn character with reduced perk level
 poster=poster.png
-url=https://github.com/lotosbin/project-zomboid-mod-respawn
-modversion=1.0.0
-pzversion=41.78
+require=\modoptions
