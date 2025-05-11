@@ -27,7 +27,7 @@ function UIAddXP.createMenu(_player, _context, _items)
     -- Adds context menu entry for single item.
     local deathTokenName = player:getDescriptor():getForename() .. "'s Death Token"
     if item then
-        if item:getType() == "DeathToken" and item.getName() == deathTokenName then
+        if item:getType() == "DeathToken" then
             local addXP = _context:addOption("Consume Death Token", clickedItems, UIAddXP.ADDXP2, _player, item);
         end
     end
@@ -38,7 +38,7 @@ function UIAddXP.createMenu(_player, _context, _items)
             -- print("this is a stack");
             local item = stack.items[i];
             if instanceof(item, "InventoryItem") then
-                if item:getType() == "DeathToken" and  and item.getName() == deathTokenName and player:getInventory():contains(item) then
+                if item:getType() == "DeathToken" and player:getInventory():contains(item) then
                     local addXP = _context:addOption("Consume Death Token", clickedItems, UIAddXP.ADDXP2, _player, item);
                 end
             end
