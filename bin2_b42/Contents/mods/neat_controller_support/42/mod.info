@@ -6,3 +6,4 @@ modversion=1.0
 versionMin=42.13
 require=\Neat_Crafting,\Neat_Building
 description=Adds joypad support to neat Crafting & Neat Building
+description= Close -- Use Button B to close the Neat Crafting or Neat Building interface.
