@@ -1,0 +1,5 @@
+版本 1.0.0 (2025-12-26)
+- 初始发布
+- 添加 Lingering Voices CN 中文化补丁，包含所有僵尸台词翻译
+- 添加 Neat_Controller_Support 手柄支持功能
+- 添加 bin2_B42_13_1 模组合集

@@ -1,0 +1,18 @@
+Sandbox_CN = {
+    Sandbox_LingeringVoices = "徘徊的声音",
+
+    Sandbox_LingeringVoices_RespondToSound = "僵尸被说话声吸引",
+    Sandbox_LingeringVoices_RespondToSound_tooltip = "僵尸对僵尸说话的反应就像玩家大喊一样",
+
+    Sandbox_LingeringVoices_CustomLines = "自定义台词",
+    Sandbox_LingeringVoices_CustomLines_tooltip = "是否使用 USERNAME/Zomboid/Lua/talkingDeadCustomLine.lua 中的自定义台词",
+
+    Sandbox_LingeringVoices_LowerLineLimit = "最小延迟",
+    Sandbox_LingeringVoices_LowerLineLimit_tooltip = "僵尸说出下一句台词前需要经过的最小秒数。",
+
+    Sandbox_LingeringVoices_UpperLineLimit = "最大延迟",
+    Sandbox_LingeringVoices_UpperLineLimit_tooltip = "僵尸说出下一句台词前需要经过的最大秒数。",
+
+    Sandbox_LingeringVoices_StaggerSpeakChance = "被击中时说话几率",
+    Sandbox_LingeringVoices_StaggerSpeakChance_tooltip = "僵尸被击中时说话的几率（每1000次）。",
+}

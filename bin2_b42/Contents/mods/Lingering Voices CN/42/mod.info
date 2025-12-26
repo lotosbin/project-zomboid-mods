@@ -1,6 +1,7 @@
 name=Lingering Voices CN
 id=Lingering Voices CN
-description=Description Of Mod Here
+description=将 Lingering Voices 模组的所有僵尸台词翻译为中文。包括扑击、踉跄、假死、敲门和攻击时的台词，让中文玩家获得更好的游戏体验。
 poster=poster.png
 versionMin=42.13.1
 require=\Lingering Voices
+modversion=1.0.1
