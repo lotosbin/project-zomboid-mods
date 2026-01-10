@@ -2,6 +2,7 @@
 -- 处理 Neat_Crafting 组件的手柄导航
 
 local NeatCraftingPatch = {}
+local JoypadUtil = require "NeatControllerSupport/JoypadUtil"
 
 -- 手柄按钮配置
 NeatCraftingPatch.closeButton = Joypad.BButton
@@ -17,6 +18,11 @@ local NC_RecipeList_Panel_Patch = require "NeatControllerSupport/NC_RecipeList_P
 -- 右摇杆上次检测时间（用于防抖）
 local lastRStickTime = 0
 local R_STICK_COOLDOWN = 100 -- 毫秒
+
+-- 从 JoypadData 对象提取方向
+local function getJoypadDirection(dirData)
+    return JoypadUtil.getJoypadDirection(dirData)
+end
 
 -- 从窗口获取 recipeListPanel
 local function getRecipeListPanel(window)
@@ -487,7 +493,9 @@ function NeatCraftingPatch:addRecipeListJoypad()
             end
         end
 
+        -- 从 JoypadData 对象提取方向
         local direction = getJoypadDirection(dir)
+
         print("[NCS-RecipeList] 方向=" .. tostring(direction))
 
         if not direction then
@@ -536,9 +544,9 @@ function NeatCraftingPatch:addRecipeListJoypad()
         local prevIndex = self.joypadSelectedIndex
         print("[NCS-ListNav] prevIndex=" .. tostring(prevIndex) .. " dir=" .. tostring(dir) .. " dataCount=" .. tostring(dataCount))
 
-        if dir == "DOWN" then
+        if dir == "down" then
             self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + 1, dataCount)
-        elseif dir == "UP" then
+        elseif dir == "up" then
             self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - 1, 1)
         end
 
@@ -565,18 +573,18 @@ function NeatCraftingPatch:addRecipeListJoypad()
 
         print("[NCS-GridNav] prevIndex=" .. tostring(prevIndex) .. " dir=" .. tostring(dir) .. " cols=" .. tostring(cols) .. " dataCount=" .. tostring(dataCount))
 
-        if dir == "DOWN" then
+        if dir == "down" then
             self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + cols, dataCount)
-        elseif dir == "UP" then
+        elseif dir == "up" then
             self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - cols, 1)
-        elseif dir == "RIGHT" then
+        elseif dir == "right" then
             local currentCol = self.joypadSelectedIndex % cols
             if currentCol == 0 then currentCol = cols end
             print("[NCS-GridNav] RIGHT currentCol=" .. tostring(currentCol))
             if currentCol < cols then
                 self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + 1, dataCount)
             end
-        elseif dir == "LEFT" then
+        elseif dir == "left" then
             local currentCol = self.joypadSelectedIndex % cols
             if currentCol == 0 then currentCol = cols end
             print("[NCS-GridNav] LEFT currentCol=" .. tostring(currentCol))

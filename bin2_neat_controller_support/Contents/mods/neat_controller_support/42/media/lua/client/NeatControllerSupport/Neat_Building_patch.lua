@@ -2,6 +2,12 @@
 -- 处理 Neat_Building 组件的手柄导航
 
 local NeatBuildingPatch = {}
+local JoypadUtil = require "NeatControllerSupport/JoypadUtil"
+
+-- 从 JoypadData 对象提取方向
+local function getJoypadDirection(dirData)
+    return JoypadUtil.getJoypadDirection(dirData)
+end
 
 -- 手柄按钮配置
 NeatBuildingPatch.closeButton = Joypad.BButton
@@ -312,10 +318,8 @@ function NeatBuildingPatch:addJoypad(windowClass)
 
         -- 处理建造模式: 使用方向键移动
         if self.buildEntity and direction then
-            -- 转换大写为小写
-            local moveDir = string.lower(direction)
-            print("[NCS-Building] 建造模式移动建筑: " .. moveDir)
-            if moveBuilding(self, moveDir) then
+            print("[NCS-Building] 建造模式移动建筑: " .. direction)
+            if moveBuilding(self, direction) then
                 print("[NCS-Building] 移动成功")
                 return true
             else
@@ -348,8 +352,11 @@ end
 
 -- 为 recipeListPanel 添加手柄支持
 function NeatBuildingPatch:addRecipeListJoypad()
-    local panel = NB_RecipeList_Panel
-    if not panel then return end
+    local panel = NB_BuildingRecipeList_Panel
+    if not panel then
+        print("[NCS-Building] NB_BuildingRecipeList_Panel 不存在")
+        return
+    end
 
     if not panel.joypadSelectedIndex then
         panel.joypadSelectedIndex = 1
@@ -358,7 +365,11 @@ function NeatBuildingPatch:addRecipeListJoypad()
     local originalOnJoypadDown = panel.onJoypadDown
     local originalOnJoypadDirDown = panel.onJoypadDirDown
 
-    function NB_RecipeList_Panel:onJoypadDown(button)
+    function NB_BuildingRecipeList_Panel:onJoypadDown(button)
+        print("[NCS-Building-List] onJoypadDown button=" .. tostring(button))
+        print("[NCS-Building-List] BuildingPanel=" .. tostring(self.BuildingPanel))
+        print("[NCS-Building-List] joypadSelectedIndex=" .. tostring(self.joypadSelectedIndex))
+
         if originalOnJoypadDown then
             local result = originalOnJoypadDown(self, button)
             if result then return true end
@@ -377,7 +388,7 @@ function NeatBuildingPatch:addRecipeListJoypad()
         return false
     end
 
-    function NB_RecipeList_Panel:onJoypadDirDown(dir)
+    function NB_BuildingRecipeList_Panel:onJoypadDirDown(dir)
         print("[NCS-Building-List] onJoypadDirDown dir=" .. tostring(dir))
 
         if originalOnJoypadDirDown then
@@ -385,11 +396,15 @@ function NeatBuildingPatch:addRecipeListJoypad()
             if result then return result end
         end
 
+        -- 从 JoypadData 对象提取方向
         local direction = getJoypadDirection(dir)
         print("[NCS-Building-List] 方向=" .. tostring(direction))
 
         if not direction then return false end
-        if not self.logic or not self.filteredRecipes then return false end
+        if not self.logic or not self.filteredRecipes then
+            print("[NCS-Building-List] logic 或 filteredRecipes 为空")
+            return false
+        end
 
         local dataCount = #self.filteredRecipes
         print("[NCS-Building-List] dataCount=" .. tostring(dataCount) .. " joypadSelectedIndex=" .. tostring(self.joypadSelectedIndex))
@@ -408,21 +423,21 @@ function NeatBuildingPatch:addRecipeListJoypad()
 
         if style == "grid" then
             local cols = self.gridColumnCount or 4
-            if self.currentScrollView and self.currentScrollView.cols then
-                cols = self.currentScrollView.cols
+            if self.scrollView and self.scrollView.cols then
+                cols = self.scrollView.cols
             end
 
-            if direction == "DOWN" then
+            if direction == "down" then
                 self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + cols, dataCount)
-            elseif direction == "UP" then
+            elseif direction == "up" then
                 self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - cols, 1)
-            elseif direction == "RIGHT" then
+            elseif direction == "right" then
                 local currentCol = self.joypadSelectedIndex % cols
                 if currentCol == 0 then currentCol = cols end
                 if currentCol < cols then
                     self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + 1, dataCount)
                 end
-            elseif direction == "LEFT" then
+            elseif direction == "left" then
                 local currentCol = self.joypadSelectedIndex % cols
                 if currentCol == 0 then currentCol = cols end
                 if currentCol > 1 then
@@ -431,9 +446,9 @@ function NeatBuildingPatch:addRecipeListJoypad()
             end
         else
             -- 列表模式
-            if direction == "DOWN" then
+            if direction == "down" then
                 self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + 1, dataCount)
-            elseif direction == "UP" then
+            elseif direction == "up" then
                 self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - 1, 1)
             end
         end
@@ -448,7 +463,7 @@ function NeatBuildingPatch:addRecipeListJoypad()
     end
 
     -- 选择当前项并触发选择逻辑
-    function NB_RecipeList_Panel:selectCurrentItem()
+    function NB_BuildingRecipeList_Panel:selectCurrentItem()
         print("[NCS-Building-List] selectCurrentItem joypadSelectedIndex=" .. tostring(self.joypadSelectedIndex))
 
         -- 直接从 filteredRecipes 获取配方并设置
@@ -465,8 +480,11 @@ function NeatBuildingPatch:addRecipeListJoypad()
     end
 
     -- 执行建造（和双击效果相同）
-    function NB_RecipeList_Panel:executeBuild()
-        print("[NCS-Building-List] executeBuild joypadSelectedIndex=" .. tostring(self.joypadSelectedIndex))
+    function NB_BuildingRecipeList_Panel:executeBuild()
+        print("[NCS-Building-List] executeBuild 开始")
+        print("[NCS-Building-List] self.BuildingPanel=" .. tostring(self.BuildingPanel))
+        print("[NCS-Building-List] self.filteredRecipes=" .. tostring(self.filteredRecipes))
+        print("[NCS-Building-List] self.joypadSelectedIndex=" .. tostring(self.joypadSelectedIndex))
 
         if not self.filteredRecipes then
             print("[NCS-Building-List] filteredRecipes 为空")
@@ -475,7 +493,8 @@ function NeatBuildingPatch:addRecipeListJoypad()
 
         local recipe = self.filteredRecipes[self.joypadSelectedIndex]
         if not recipe then
-            print("[NCS-Building-List] 未找到配方")
+            print("[NCS-Building-List] 未找到配方, index=" .. tostring(self.joypadSelectedIndex))
+            print("[NCS-Building-List] filteredRecipes size=" .. tostring(#self.filteredRecipes))
             return false
         end
 
@@ -484,16 +503,32 @@ function NeatBuildingPatch:addRecipeListJoypad()
         -- 获取 BuildingPanel
         local buildingPanel = self.BuildingPanel
         if not buildingPanel then
-            print("[NCS-Building-List] BuildingPanel 为空")
+            print("[NCS-Building-List] BuildingPanel 为空，尝试从 parent 获取")
+            -- 备选：从 parent 获取
+            if self.parent and self.parent.BuildingPanel then
+                buildingPanel = self.parent.BuildingPanel
+                print("[NCS-Building-List] 从 parent 获取 BuildingPanel: " .. tostring(buildingPanel))
+            end
+        end
+
+        if not buildingPanel then
+            print("[NCS-Building-List] BuildingPanel 仍为空")
             return false
         end
 
+        -- 检查 startBuild 方法
+        print("[NCS-Building-List] startBuild 方法存在: " .. tostring(buildingPanel.startBuild))
+
         -- 设置配方
         if buildingPanel.logic:getRecipe() ~= recipe then
+            print("[NCS-Building-List] 设置配方")
             buildingPanel.logic:setRecipe(recipe)
+        else
+            print("[NCS-Building-List] 配方已设置")
         end
 
         -- 开始建造（和双击效果相同）
+        print("[NCS-Building-List] 调用 startBuild")
         buildingPanel:startBuild()
 
         getSoundManager():playUISound("UIActivateButton")
@@ -501,10 +536,13 @@ function NeatBuildingPatch:addRecipeListJoypad()
     end
 
     -- 更新手柄选中可视化并滚动到选中项
-    function NB_RecipeList_Panel:updateJoypadSelection()
-        if not self.currentScrollView then return end
+    function NB_BuildingRecipeList_Panel:updateJoypadSelection()
+        if not self.scrollView then
+            print("[NCS-Building-List] scrollView 为空")
+            return
+        end
 
-        local scrollView = self.currentScrollView
+        local scrollView = self.scrollView
 
         if scrollView.scrollToIndex then
             scrollView:scrollToIndex(self.joypadSelectedIndex)
