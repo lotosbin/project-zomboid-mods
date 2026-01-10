@@ -480,6 +480,9 @@ function NeatCraftingPatch:addRecipeListJoypad()
     function NC_RecipeList_Panel:onJoypadDirDown(dir)
         print("[NCS-RecipeList] onJoypadDirDown dir=" .. tostring(dir))
 
+        -- 同步手柄索引到当前鼠标选择
+        self:syncJoypadIndexFromSelection()
+
         -- 使用调试函数打印详细信息
         if self.currentScrollView and self.currentScrollView.debug then
             debugScrollView(self.currentScrollView, "onJoypadDirDown")
@@ -496,7 +499,7 @@ function NeatCraftingPatch:addRecipeListJoypad()
         -- 从 JoypadData 对象提取方向
         local direction = getJoypadDirection(dir)
 
-        print("[NCS-RecipeList] 方向=" .. tostring(direction))
+        print("[NCS-RecipeList] 方向=" .. tostring(direction) .. " index=" .. tostring(self.joypadSelectedIndex))
 
         if not direction then
             print("[NCS-RecipeList] 未检测到有效方向")
@@ -650,6 +653,39 @@ function NeatCraftingPatch:addRecipeListJoypad()
 
         -- 刷新列表以更新高亮显示
         scrollView:refreshItems()
+    end
+
+    -- 从当前选中的配方同步手柄索引（鼠标点击后调用）
+    function NC_RecipeList_Panel:syncJoypadIndexFromSelection()
+        print("[NCS-RecipeList] syncJoypadIndexFromSelection")
+
+        if not self.filteredRecipes or not self.HandCraftPanel or not self.HandCraftPanel.logic then
+            print("[NCS-RecipeList] sync: 缺少必要数据")
+            return false
+        end
+
+        -- 获取当前选中的配方
+        local currentRecipe = self.HandCraftPanel.logic:getRecipe()
+        if not currentRecipe then
+            print("[NCS-RecipeList] sync: 当前没有选中配方")
+            return false
+        end
+
+        -- 在 filteredRecipes 中查找索引
+        for i, recipe in ipairs(self.filteredRecipes) do
+            if recipe == currentRecipe then
+                print("[NCS-RecipeList] sync: 找到配方索引 " .. tostring(i))
+                if self.joypadSelectedIndex ~= i then
+                    self.joypadSelectedIndex = i
+                    print("[NCS-RecipeList] sync: 更新 joypadSelectedIndex = " .. tostring(i))
+                    self:updateJoypadSelection()
+                end
+                return true
+            end
+        end
+
+        print("[NCS-RecipeList] sync: 未在 filteredRecipes 中找到当前配方")
+        return false
     end
 end
 

@@ -391,6 +391,9 @@ function NeatBuildingPatch:addRecipeListJoypad()
     function NB_BuildingRecipeList_Panel:onJoypadDirDown(dir)
         print("[NCS-Building-List] onJoypadDirDown dir=" .. tostring(dir))
 
+        -- 同步手柄索引到当前鼠标选择
+        self:syncJoypadIndexFromSelection()
+
         if originalOnJoypadDirDown then
             local result = originalOnJoypadDirDown(self, dir)
             if result then return result end
@@ -398,7 +401,7 @@ function NeatBuildingPatch:addRecipeListJoypad()
 
         -- 从 JoypadData 对象提取方向
         local direction = getJoypadDirection(dir)
-        print("[NCS-Building-List] 方向=" .. tostring(direction))
+        print("[NCS-Building-List] 方向=" .. tostring(direction) .. " index=" .. tostring(self.joypadSelectedIndex))
 
         if not direction then return false end
         if not self.logic or not self.filteredRecipes then
@@ -549,6 +552,39 @@ function NeatBuildingPatch:addRecipeListJoypad()
         end
 
         scrollView:refreshItems()
+    end
+
+    -- 从当前选中的配方同步手柄索引（鼠标点击后调用）
+    function NB_BuildingRecipeList_Panel:syncJoypadIndexFromSelection()
+        print("[NCS-Building-List] syncJoypadIndexFromSelection")
+
+        if not self.filteredRecipes or not self.BuildingPanel or not self.BuildingPanel.logic then
+            print("[NCS-Building-List] sync: 缺少必要数据")
+            return false
+        end
+
+        -- 获取当前选中的配方
+        local currentRecipe = self.BuildingPanel.logic:getRecipe()
+        if not currentRecipe then
+            print("[NCS-Building-List] sync: 当前没有选中配方")
+            return false
+        end
+
+        -- 在 filteredRecipes 中查找索引
+        for i, recipe in ipairs(self.filteredRecipes) do
+            if recipe == currentRecipe then
+                print("[NCS-Building-List] sync: 找到配方索引 " .. tostring(i))
+                if self.joypadSelectedIndex ~= i then
+                    self.joypadSelectedIndex = i
+                    print("[NCS-Building-List] sync: 更新 joypadSelectedIndex = " .. tostring(i))
+                    self:updateJoypadSelection()
+                end
+                return true
+            end
+        end
+
+        print("[NCS-Building-List] sync: 未在 filteredRecipes 中找到当前配方")
+        return false
     end
 end
 
