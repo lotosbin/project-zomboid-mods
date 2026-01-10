@@ -5,5 +5,10 @@ author=bin^2
 modversion=1.1
 versionMin=42.13
 require=\Neat_Crafting_AddonXP,\Neat_Building_AddonXP
-description=Adds joypad support to neat Crafting & Neat Building
-description= Close -- Use Button B to close the Neat Crafting or Neat Building interface.
+description=为 Neat Crafting 和 Neat Building 添加手柄控制支持。
+description=手柄控制支持：
+description=  B键 - 关闭界面
+description=  L1/R1 - 循环切换分类
+description=  A键 - 确认选择
+description=  方向键 - 导航列表
+

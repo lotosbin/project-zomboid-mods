@@ -1,21 +1,16 @@
-local NeatControllerSupport = {}
-NeatControllerSupport.MOD_ID = "Neat_Controller_Support"
-NeatControllerSupport.MOD_Name = "Neat Controller Support"
-NeatControllerSupport.closeButton = Joypad.BButton
-function NeatControllerSupport:addJoypad(windowClass)
-    if (windowClass == nil) then
-        return
-    end
-    local originalOnJoypadDown = windowClass.onJoypadDown
-    function windowClass:onJoypadDown(button)
-        if (originalOnJoypadDown) then
-            originalOnJoypadDown(self, button)
-        end
-        if button == NeatControllerSupport.closeButton then
-            self.close(self)
-        end
-    end
-end
+-- NeatControllerSupport: Main Entry Point
+-- Loads all component patches
 
-NeatControllerSupport:addJoypad(NC_HandcraftWindow)
-NeatControllerSupport:addJoypad(NB_BuildingPanel)
+local NeatControllerSupport = {}
+NeatControllerSupport.Crafting = require "NeatControllerSupport/Neat_Crafting_patch"
+NeatControllerSupport.Building = require "NeatControllerSupport/Neat_Building_patch"
+
+-- Register all patches on game boot
+Events.OnGameBoot.Add(function()
+    print("[NCS] OnGameBoot: applying patches")
+    NeatControllerSupport.Crafting:registerAll()
+    NeatControllerSupport.Building:registerAll()
+    print("[NCS] Patches applied")
+end)
+
+return NeatControllerSupport
