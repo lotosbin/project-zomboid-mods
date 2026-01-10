@@ -1,0 +1,5 @@
+版本 1.1
+- require=\Neat_Crafting_AddonXP,\Neat_Building_AddonXP (内置42.13.1修复)
+- 版本 1.0.0
+- 初始发布
+- 添加 Neat_Controller_Support 手柄支持功能
