@@ -26,38 +26,39 @@ function getJoypadDirection(dirData)
         return nil
     end
 
-    print("[NCS-Joypad] dirData type: " .. type(dirData))
-    print("[NCS-Joypad] dirData.controller: " .. tostring(dirData.controller))
-
     local ctrl = dirData.controller
     if not ctrl then
-        print("[NCS-Joypad] ctrl is nil, checking dirData fields...")
-        for k, v in pairs(dirData) do
-            print("[NCS-Joypad]   " .. tostring(k) .. " = " .. tostring(v))
-        end
+        print("[NCS-Joypad] ctrl is nil")
         return nil
     end
 
-    print("[NCS-Joypad] ctrl fields: dpd=" .. tostring(ctrl.dpd) .. " dpdown=" .. tostring(ctrl.dpdown) ..
-          " down=" .. tostring(ctrl.down) .. " dpu=" .. tostring(ctrl.dpu) .. " lsticky=" .. tostring(ctrl.lsticky))
+    -- Check controller buttons directly (boolean values)
+    print("[NCS-Joypad] ctrl.down=" .. tostring(ctrl.down) .. " ctrl.up=" .. tostring(ctrl.up))
+    print("[NCS-Joypad] ctrl.left=" .. tostring(ctrl.left) .. " ctrl.right=" .. tostring(ctrl.right))
+    print("[NCS-Joypad] Joypad values: DOWN=" .. tostring(Joypad.DOWN) .. " UP=" .. tostring(Joypad.UP))
 
-    -- Check D-pad buttons via controller
-    if ctrl.dpd or ctrl.dpdown or ctrl.down then return Joypad.DOWN end
-    if ctrl.dpu or ctrl.dpup or ctrl.up then return Joypad.UP end
-    if ctrl.dpr or ctrl.dpright or ctrl.right then return Joypad.RIGHT end
-    if ctrl.dpl or ctrl.dpleft or ctrl.left then return Joypad.LEFT end
+    -- Check D-pad buttons via controller (direct boolean check)
+    if ctrl.down then return "DOWN" end
+    if ctrl.up then return "UP" end
+    if ctrl.left then return "LEFT" end
+    if ctrl.right then return "RIGHT" end
+
+    -- Check D-pad (alternative field names)
+    if ctrl.dpd or ctrl.dpdown then return "DOWN" end
+    if ctrl.dpu or ctrl.dpup then return "UP" end
+    if ctrl.dpl or ctrl.dpleft then return "LEFT" end
+    if ctrl.dpr or ctrl.dpright then return "RIGHT" end
 
     -- Check axis values (left stick)
     if ctrl.lstickx and ctrl.lsticky then
         local threshold = 0.5
-        print("[NCS-Joypad] lstickx=" .. tostring(ctrl.lstickx) .. " lsticky=" .. tostring(ctrl.lsticky))
-        if ctrl.lsticky > threshold then return Joypad.DOWN end
-        if ctrl.lsticky < -threshold then return Joypad.UP end
-        if ctrl.lstickx > threshold then return Joypad.RIGHT end
-        if ctrl.lstickx < -threshold then return Joypad.LEFT end
+        if ctrl.lsticky > threshold then return "DOWN" end
+        if ctrl.lsticky < -threshold then return "UP" end
+        if ctrl.lstickx > threshold then return "RIGHT" end
+        if ctrl.lstickx < -threshold then return "LEFT" end
     end
 
-    print("[NCS-Joypad] No direction found, returning nil")
+    print("[NCS-Joypad] No direction found")
     return nil
 end
 

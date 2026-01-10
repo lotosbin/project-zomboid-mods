@@ -8,6 +8,7 @@ NeatCraftingPatch.closeButton = Joypad.BButton
 NeatCraftingPatch.L1Button = Joypad.LBumper or Joypad.L1Button
 NeatCraftingPatch.R1Button = Joypad.RBumper or Joypad.R1Button
 NeatCraftingPatch.AButton = Joypad.AButton
+NeatCraftingPatch.YButton = Joypad.YButton
 
 -- Import component patches
 local NC_RecipeList_Panel_Patch = require "NeatControllerSupport/NC_RecipeList_Panel_patch"
@@ -137,6 +138,20 @@ function NeatCraftingPatch:addJoypad(windowClass)
             end
         end
 
+        -- Y button: toggle list/grid view
+        if button == _patch.YButton then
+            local panel = getRecipeListPanel(self)
+            if panel and panel.logic then
+                local currentStyle = panel.logic:getSelectedRecipeStyle() or "list"
+                local newStyle = (currentStyle == "list") and "grid" or "list"
+                panel.logic:setSelectedRecipeStyle(newStyle)
+                panel:createChildren()
+                panel:updateJoypadSelection()
+                print("[NCS-Crafting] Toggle view: " .. currentStyle .. " -> " .. newStyle)
+                return true
+            end
+        end
+
         return false
     end
 
@@ -171,6 +186,54 @@ function NeatCraftingPatch:addRecipeListJoypad()
 
     local originalOnJoypadDown = panel.onJoypadDown
     local originalOnJoypadDirDown = panel.onJoypadDirDown
+    local originalCreateListScrollView = panel.createListScrollView
+    local originalCreateGridScrollView = panel.createGridScrollView
+
+    -- Override createListScrollView to add joypad selection support
+    if originalCreateListScrollView then
+        function NC_RecipeList_Panel:createListScrollView()
+            originalCreateListScrollView(self)
+            -- Add setJoypadSelected to list items
+            local scrollView = self.currentScrollView
+            if scrollView and scrollView.setOnUpdateItem then
+                local originalOnUpdateItem = scrollView.onUpdateItem
+                scrollView:setOnUpdateItem(function(itemObject, recipe)
+                    -- Call original update
+                    if originalOnUpdateItem then
+                        originalOnUpdateItem(itemObject, recipe)
+                    end
+                    -- Set joypad selected state
+                    if itemObject and itemObject.setJoypadSelected then
+                        local itemIndex = itemObject.indexInData
+                        itemObject:setJoypadSelected(itemIndex == self.joypadSelectedIndex)
+                    end
+                end)
+            end
+        end
+    end
+
+    -- Override createGridScrollView to add joypad selection support
+    if originalCreateGridScrollView then
+        function NC_RecipeList_Panel:createGridScrollView()
+            originalCreateGridScrollView(self)
+            -- Add setJoypadSelected to grid items
+            local scrollView = self.currentScrollView
+            if scrollView and scrollView.setOnUpdateItem then
+                local originalOnUpdateItem = scrollView.onUpdateItem
+                scrollView:setOnUpdateItem(function(itemObject, recipe)
+                    -- Call original update
+                    if originalOnUpdateItem then
+                        originalOnUpdateItem(itemObject, recipe)
+                    end
+                    -- Set joypad selected state
+                    if itemObject and itemObject.setJoypadSelected then
+                        local itemIndex = itemObject.indexInData
+                        itemObject:setJoypadSelected(itemIndex == self.joypadSelectedIndex)
+                    end
+                end)
+            end
+        end
+    end
 
     function NC_RecipeList_Panel:onJoypadDown(button)
         if originalOnJoypadDown then
@@ -197,6 +260,7 @@ function NeatCraftingPatch:addRecipeListJoypad()
         end
 
         local direction = getJoypadDirection(dir)
+        print("[NCS-RecipeList] direction: " .. tostring(direction))
         if not direction then return false end
 
         if not self.logic or not self.filteredRecipes then return false end
@@ -215,14 +279,15 @@ function NeatCraftingPatch:addRecipeListJoypad()
     function NC_RecipeList_Panel:handleListNavigation(dir, dataCount)
         local prevIndex = self.joypadSelectedIndex
 
-        if dir == Joypad.DOWN then
+        if dir == "DOWN" then
             self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + 1, dataCount)
-        elseif dir == Joypad.UP then
+        elseif dir == "UP" then
             self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - 1, 1)
         end
 
         if prevIndex ~= self.joypadSelectedIndex then
-            self:scrollToItem(self.joypadSelectedIndex)
+            print("[NCS-RecipeList] index changed: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
+            self:updateJoypadSelection()
             return true
         end
         return false
@@ -232,25 +297,66 @@ function NeatCraftingPatch:addRecipeListJoypad()
         local prevIndex = self.joypadSelectedIndex
         local cols = self.gridColumnCount or 4
 
-        if dir == Joypad.DOWN then
+        if dir == "DOWN" then
             self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + cols, dataCount)
-        elseif dir == Joypad.UP then
+        elseif dir == "UP" then
             self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - cols, 1)
-        elseif dir == Joypad.RIGHT then
+        elseif dir == "RIGHT" then
             if self.joypadSelectedIndex % cols ~= 0 then
                 self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + 1, dataCount)
             end
-        elseif dir == Joypad.LEFT then
+        elseif dir == "LEFT" then
             if self.joypadSelectedIndex > 1 then
                 self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - 1, 1)
             end
         end
 
         if prevIndex ~= self.joypadSelectedIndex then
-            self:scrollToItem(self.joypadSelectedIndex)
+            print("[NCS-RecipeList] grid index changed: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
+            self:updateJoypadSelection()
             return true
         end
         return false
+    end
+
+    -- Update joypad selection visualization and scroll to selected item
+    function NC_RecipeList_Panel:updateJoypadSelection()
+        if not self.currentScrollView then return end
+
+        local scrollView = self.currentScrollView
+        local selectedIdx = self.joypadSelectedIndex
+
+        -- Update selection state for all visible items
+        if scrollView.itemPool then
+            for _, item in ipairs(scrollView.itemPool) do
+                if item then
+                    -- Try to use setJoypadSelected if available
+                    if item.setJoypadSelected then
+                        local itemIndex = item.indexInData
+                        item:setJoypadSelected(itemIndex == selectedIdx)
+                    else
+                        -- Alternative: try to directly set a selected field
+                        item.joypadSelected = (item.indexInData == selectedIdx)
+                    end
+                end
+            end
+        end
+
+        -- Refresh items to update selection state
+        scrollView:refreshItems()
+
+        -- Scroll to selected index if available
+        if scrollView.scrollToIndex then
+            scrollView:scrollToIndex(selectedIdx)
+        end
+
+        -- Also update the selected recipe in logic if needed
+        if self.filteredRecipes and selectedIdx then
+            local selectedRecipe = self.filteredRecipes[selectedIdx]
+            if selectedRecipe and self.logic and self.logic.setSelectedRecipe then
+                self.logic:setSelectedRecipe(selectedRecipe)
+            end
+        end
     end
 end
 
