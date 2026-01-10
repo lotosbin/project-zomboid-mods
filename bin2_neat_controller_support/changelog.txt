@@ -1,5 +1,15 @@
+版本 1.2
+- 改进方向键导航：每次移动自动触发选择逻辑
+- 改进 UI 刷新：排序/视图切换后正确更新界面
+- Building A键：执行建造（和双击效果相同）
+- Crafting A键：执行合成
+- Crafting X键：切换"只显示可制作"过滤器
+- Building X键：循环切换排序方式（RecipeName/LastUsed/MostUsed）
+- Crafting/Building Y键：切换列表/网格视图
+- 右摇杆：控制合成数量（左右+/-，上max，下min）
+- 添加详细调试日志
+
 版本 1.1
 - require=\Neat_Crafting_AddonXP,\Neat_Building_AddonXP (内置42.13.1修复)
-- 版本 1.0.0
 - 初始发布
-- 添加 Neat_Controller_Support 手柄支持功能
+- 基础手柄支持（B键关闭、L1/R1分类切换、方向键导航）
