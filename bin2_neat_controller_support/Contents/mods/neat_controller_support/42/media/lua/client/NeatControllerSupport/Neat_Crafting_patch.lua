@@ -9,9 +9,14 @@ NeatCraftingPatch.L1Button = Joypad.LBumper or Joypad.L1Button
 NeatCraftingPatch.R1Button = Joypad.RBumper or Joypad.R1Button
 NeatCraftingPatch.AButton = Joypad.AButton
 NeatCraftingPatch.YButton = Joypad.YButton
+NeatCraftingPatch.XButton = Joypad.XButton
 
 -- 导入组件补丁
 local NC_RecipeList_Panel_Patch = require "NeatControllerSupport/NC_RecipeList_Panel_patch"
+
+-- 右摇杆上次检测时间（用于防抖）
+local lastRStickTime = 0
+local R_STICK_COOLDOWN = 100 -- 毫秒
 
 -- 从窗口获取 recipeListPanel
 local function getRecipeListPanel(window)
@@ -84,6 +89,118 @@ local function cycleCategory(panel, direction)
     return true
 end
 
+-- 处理右摇杆控制合成数量
+local function handleRStickForCraftQuantity(playerNum)
+    if not JoypadState or not JoypadState.players or not JoypadState.players[playerNum + 1] then
+        return false
+    end
+
+    local currentTime = getCalendarTime()
+    if currentTime - lastRStickTime < R_STICK_COOLDOWN then
+        return false
+    end
+
+    local joyState = JoypadState.players[playerNum + 1]
+    if not joyState then return false end
+
+    -- 获取右摇杆值 (axis 2 = 水平, axis 3 = 垂直)
+    local rStickX = joyState.rstickx or 0
+    local rStickY = joyState.rsticky or 0
+
+    -- 阈值
+    local threshold = 0.5
+
+    if math.abs(rStickX) < threshold and math.abs(rStickY) < threshold then
+        return false
+    end
+
+    -- 查找 craftActionPanel
+    local craftPanel = nil
+    if NC_HandcraftWindow and NC_HandcraftWindow.instance then
+        local win = NC_HandcraftWindow.instance
+        if win.HandCraftPanel and win.HandCraftPanel.craftActionPanel then
+            craftPanel = win.HandCraftPanel.craftActionPanel
+        end
+    end
+
+    if not craftPanel then return false end
+
+    -- 检查是否正在制作中
+    if craftPanel.logic and craftPanel.logic:isCraftActionInProgress() then
+        return false
+    end
+
+    -- 检查是否允许批量制作
+    if not craftPanel.allowBatchCraft then
+        return false
+    end
+
+    -- 获取当前数量和最大数量
+    local currentValue = tonumber(craftPanel.quantityInput:getText()) or 1
+    local maxCount = craftPanel.logic:getPossibleCraftCount(true)
+    maxCount = math.max(1, maxCount)
+
+    local changed = false
+
+    -- 右摇杆水平：左减右加
+    if math.abs(rStickX) >= threshold then
+        if rStickX < 0 then
+            -- 左
+            local newValue = math.max(1, currentValue - 1)
+            if newValue ~= currentValue then
+                craftPanel.quantityInput:setText(tostring(newValue))
+                craftPanel.currentCraftQuantity = newValue
+                print("[NCS-Crafting] 右摇杆左: " .. currentValue .. " -> " .. newValue)
+                changed = true
+            end
+        else
+            -- 右
+            local newValue = math.min(maxCount, currentValue + 1)
+            if newValue ~= currentValue then
+                craftPanel.quantityInput:setText(tostring(newValue))
+                craftPanel.currentCraftQuantity = newValue
+                print("[NCS-Crafting] 右摇杆右: " .. currentValue .. " -> " .. newValue)
+                changed = true
+            end
+        end
+    end
+
+    -- 右摇杆垂直：上 max，下 min
+    if math.abs(rStickY) >= threshold then
+        if rStickY < 0 then
+            -- 上
+            if currentValue ~= maxCount then
+                craftPanel.quantityInput:setText(tostring(maxCount))
+                craftPanel.currentCraftQuantity = maxCount
+                print("[NCS-Crafting] 右摇杆上: " .. currentValue .. " -> " .. maxCount)
+                changed = true
+            end
+        else
+            -- 下
+            if currentValue ~= 1 then
+                craftPanel.quantityInput:setText("1")
+                craftPanel.currentCraftQuantity = 1
+                print("[NCS-Crafting] 右摇杆下: " .. currentValue .. " -> 1")
+                changed = true
+            end
+        end
+    end
+
+    if changed then
+        lastRStickTime = currentTime
+        getSoundManager():playUISound("UIActivateButton")
+        return true
+    end
+
+    return false
+end
+
+-- 注册到全局更新
+local function registerRStickHandler()
+    if Events == nil then return end
+    Events.OnPlayerMove.Add(function() end) -- 占位，确保 Events 存在
+end
+
 -- 为窗口添加手柄支持
 function NeatCraftingPatch:addJoypad(windowClass)
     if not windowClass then return end
@@ -145,10 +262,25 @@ function NeatCraftingPatch:addJoypad(windowClass)
             if panel and panel.logic then
                 local currentStyle = panel.logic:getSelectedRecipeStyle() or "list"
                 local newStyle = (currentStyle == "list") and "grid" or "list"
-                panel.logic:setSelectedRecipeStyle(newStyle)
-                panel:createChildren()
-                panel:updateJoypadSelection()
+
                 print("[NCS-Crafting] 切换视图: " .. currentStyle .. " -> " .. newStyle)
+
+                -- 设置新的视图样式
+                panel.logic:setSelectedRecipeStyle(newStyle)
+
+                -- 重置选中状态
+                panel.joypadSelectedIndex = 1
+
+                -- 全面刷新 UI
+                panel:createChildren()
+
+                -- 刷新滚动视图
+                if panel.currentScrollView then
+                    panel.currentScrollView:refreshItems()
+                end
+
+                -- 播放声音
+                getSoundManager():playUISound("UIActivateButton")
                 return true
             end
         end
@@ -211,11 +343,11 @@ function NeatCraftingPatch:addRecipeListJoypad()
         end
 
         if button == Joypad.AButton then
-            -- 调用 logic:setRecipe 来设置选中食谱
-            if self.filteredRecipes and self.joypadSelectedIndex then
-                local selectedRecipe = self.filteredRecipes[self.joypadSelectedIndex]
-                if selectedRecipe and self.logic then
-                    self.logic:setRecipe(selectedRecipe)
+            -- A 键：执行合成（调用 craftActionPanel 的 onCraftButtonClick）
+            if self.HandCraftPanel and self.HandCraftPanel.craftActionPanel then
+                local craftPanel = self.HandCraftPanel.craftActionPanel
+                if craftPanel.onCraftButtonClick then
+                    craftPanel:onCraftButtonClick()
                     getSoundManager():playUISound("UIActivateButton")
                 end
             end
@@ -225,25 +357,172 @@ function NeatCraftingPatch:addRecipeListJoypad()
                 self.HandCraftPanel:close()
             end
             return true
+        elseif button == Joypad.XButton then
+            -- X 键：切换只显示可制作
+            if self.HandCraftPanel and self.HandCraftPanel.filterBar then
+                local filterBar = self.HandCraftPanel.filterBar
+                filterBar.showOnlyCanMake = not filterBar.showOnlyCanMake
+                print("[NCS-Crafting] showOnlyCanMake=" .. tostring(filterBar.showOnlyCanMake))
+
+                -- 触发过滤器变更事件
+                self.HandCraftPanel:onFilterChanged()
+
+                -- 重置选中状态
+                self.joypadSelectedIndex = 1
+
+                -- 全面刷新 UI
+                self:createChildren()
+
+                -- 刷新滚动视图
+                if self.currentScrollView then
+                    self.currentScrollView:refreshItems()
+                end
+
+                -- 滚动到顶部
+                if self.currentScrollView and self.currentScrollView.setYScroll then
+                    self.currentScrollView:setYScroll(0)
+                end
+
+                -- 播放声音
+                getSoundManager():playUISound("UIActivateButton")
+            end
+            return true
         end
         return false
     end
 
+    -- 右摇杆控制合成数量
+    function NC_RecipeList_Panel:onJoypadAxisMoved(axis, value)
+        -- axis 0 = 左摇杆水平, 1 = 左摇杆垂直, 2 = 右摇杆水平, 3 = 右摇杆垂直
+        if axis ~= 2 and axis ~= 3 then return false end
+
+        print("[NCS-Crafting] onJoypadAxisMoved axis=" .. tostring(axis) .. " value=" .. tostring(value))
+
+        if not self.HandCraftPanel or not self.HandCraftPanel.craftActionPanel then
+            return false
+        end
+
+        local craftPanel = self.HandCraftPanel.craftActionPanel
+
+        -- 检查是否正在制作中
+        if craftPanel.logic and craftPanel.logic:isCraftActionInProgress() then
+            return false
+        end
+
+        -- 检查是否允许批量制作
+        if not craftPanel.allowBatchCraft then
+            return false
+        end
+
+        -- 获取当前数量和最大数量
+        local currentValue = tonumber(craftPanel.quantityInput:getText()) or 1
+        local maxCount = craftPanel.logic:getPossibleCraftCount(true)
+        maxCount = math.max(1, maxCount)
+
+        -- 阈值，避免微小移动触发
+        local threshold = 0.5
+
+        if axis == 2 then
+            -- 右摇杆水平：左减右加
+            if value < -threshold then
+                -- 左
+                local newValue = math.max(1, currentValue - 1)
+                if newValue ~= currentValue then
+                    craftPanel.quantityInput:setText(tostring(newValue))
+                    craftPanel.currentCraftQuantity = newValue
+                    print("[NCS-Crafting] 右摇杆左: " .. currentValue .. " -> " .. newValue)
+                    getSoundManager():playUISound("UIActivateButton")
+                end
+                return true
+            elseif value > threshold then
+                -- 右
+                local newValue = math.min(maxCount, currentValue + 1)
+                if newValue ~= currentValue then
+                    craftPanel.quantityInput:setText(tostring(newValue))
+                    craftPanel.currentCraftQuantity = newValue
+                    print("[NCS-Crafting] 右摇杆右: " .. currentValue .. " -> " .. newValue)
+                    getSoundManager():playUISound("UIActivateButton")
+                end
+                return true
+            end
+        elseif axis == 3 then
+            -- 右摇杆垂直：上 max，下 min
+            if value < -threshold then
+                -- 上（注意：在许多控制器中，摇杆向上是负值）
+                if currentValue ~= maxCount then
+                    craftPanel.quantityInput:setText(tostring(maxCount))
+                    craftPanel.currentCraftQuantity = maxCount
+                    print("[NCS-Crafting] 右摇杆上: " .. currentValue .. " -> " .. maxCount)
+                    getSoundManager():playUISound("UIActivateButton")
+                end
+                return true
+            elseif value > threshold then
+                -- 下
+                if currentValue ~= 1 then
+                    craftPanel.quantityInput:setText("1")
+                    craftPanel.currentCraftQuantity = 1
+                    print("[NCS-Crafting] 右摇杆下: " .. currentValue .. " -> 1")
+                    getSoundManager():playUISound("UIActivateButton")
+                end
+                return true
+            end
+        end
+
+        return false
+    end
+
     function NC_RecipeList_Panel:onJoypadDirDown(dir)
+        print("[NCS-RecipeList] onJoypadDirDown dir=" .. tostring(dir))
+
+        -- 使用调试函数打印详细信息
+        if self.currentScrollView and self.currentScrollView.debug then
+            debugScrollView(self.currentScrollView, "onJoypadDirDown")
+        end
+
         if originalOnJoypadDirDown then
             local result = originalOnJoypadDirDown(self, dir)
-            if result then return result end
+            if result then
+                print("[NCS-RecipeList] originalOnJoypadDirDown 处理了方向")
+                return result
+            end
         end
 
         local direction = getJoypadDirection(dir)
-        print("[NCS-RecipeList] 方向: " .. tostring(direction))
-        if not direction then return false end
+        print("[NCS-RecipeList] 方向=" .. tostring(direction))
 
-        if not self.logic or not self.filteredRecipes then return false end
+        if not direction then
+            print("[NCS-RecipeList] 未检测到有效方向")
+            return false
+        end
+
+        if not self.logic then
+            print("[NCS-RecipeList] logic 为空")
+            return false
+        end
+
+        if not self.filteredRecipes then
+            print("[NCS-RecipeList] filteredRecipes 为空，尝试获取")
+            self.filteredRecipes = self.logic:getFilteredRecipes() or {}
+        end
+
+        local dataCount = #self.filteredRecipes
+        print("[NCS-RecipeList] filteredRecipes count=" .. tostring(dataCount))
+        print("[NCS-RecipeList] joypadSelectedIndex=" .. tostring(self.joypadSelectedIndex))
+
+        if dataCount == 0 then
+            print("[NCS-RecipeList] 数据为空")
+            return false
+        end
+
+        -- 确保索引在有效范围内
+        if not self.joypadSelectedIndex or self.joypadSelectedIndex < 1 then
+            self.joypadSelectedIndex = 1
+        elseif self.joypadSelectedIndex > dataCount then
+            self.joypadSelectedIndex = dataCount
+        end
 
         local style = self.logic:getSelectedRecipeStyle() or "list"
-        local dataCount = #self.filteredRecipes
-        if dataCount == 0 then return false end
+        print("[NCS-RecipeList] style=" .. tostring(style) .. " dataCount=" .. tostring(dataCount))
 
         if style == "grid" then
             return self:handleGridNavigation(direction, dataCount)
@@ -255,6 +534,7 @@ function NeatCraftingPatch:addRecipeListJoypad()
     -- 列表视图导航处理
     function NC_RecipeList_Panel:handleListNavigation(dir, dataCount)
         local prevIndex = self.joypadSelectedIndex
+        print("[NCS-ListNav] prevIndex=" .. tostring(prevIndex) .. " dir=" .. tostring(dir) .. " dataCount=" .. tostring(dataCount))
 
         if dir == "DOWN" then
             self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + 1, dataCount)
@@ -262,15 +542,12 @@ function NeatCraftingPatch:addRecipeListJoypad()
             self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - 1, 1)
         end
 
+        print("[NCS-ListNav] newIndex=" .. tostring(self.joypadSelectedIndex))
+
         if prevIndex ~= self.joypadSelectedIndex then
-            print("[NCS-RecipeList] 索引改变: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
-            -- 调用原始模组的 setRecipe 方法来更新选中状态
-            if self.filteredRecipes and self.joypadSelectedIndex then
-                local selectedRecipe = self.filteredRecipes[self.joypadSelectedIndex]
-                if selectedRecipe and self.logic then
-                    self.logic:setRecipe(selectedRecipe)
-                end
-            end
+            print("[NCS-ListNav] 索引改变: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
+            -- 通过点击选中项来处理（调用原始模组的 onMouseDown）
+            self:selectCurrentItem()
             self:updateJoypadSelection()
             return true
         end
@@ -280,34 +557,75 @@ function NeatCraftingPatch:addRecipeListJoypad()
     -- 网格视图导航处理
     function NC_RecipeList_Panel:handleGridNavigation(dir, dataCount)
         local prevIndex = self.joypadSelectedIndex
+        -- 从 scrollView 获取 gridColumnCount
         local cols = self.gridColumnCount or 4
+        if self.currentScrollView and self.currentScrollView.cols then
+            cols = self.currentScrollView.cols
+        end
+
+        print("[NCS-GridNav] prevIndex=" .. tostring(prevIndex) .. " dir=" .. tostring(dir) .. " cols=" .. tostring(cols) .. " dataCount=" .. tostring(dataCount))
 
         if dir == "DOWN" then
             self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + cols, dataCount)
         elseif dir == "UP" then
             self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - cols, 1)
         elseif dir == "RIGHT" then
-            if self.joypadSelectedIndex % cols ~= 0 then
+            local currentCol = self.joypadSelectedIndex % cols
+            if currentCol == 0 then currentCol = cols end
+            print("[NCS-GridNav] RIGHT currentCol=" .. tostring(currentCol))
+            if currentCol < cols then
                 self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + 1, dataCount)
             end
         elseif dir == "LEFT" then
-            if self.joypadSelectedIndex > 1 then
+            local currentCol = self.joypadSelectedIndex % cols
+            if currentCol == 0 then currentCol = cols end
+            print("[NCS-GridNav] LEFT currentCol=" .. tostring(currentCol))
+            if currentCol > 1 then
                 self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - 1, 1)
             end
         end
 
+        print("[NCS-GridNav] newIndex=" .. tostring(self.joypadSelectedIndex))
+
         if prevIndex ~= self.joypadSelectedIndex then
-            print("[NCS-RecipeList] 网格索引改变: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
-            -- 调用原始模组的 setRecipe 方法来更新选中状态
-            if self.filteredRecipes and self.joypadSelectedIndex then
-                local selectedRecipe = self.filteredRecipes[self.joypadSelectedIndex]
-                if selectedRecipe and self.logic then
-                    self.logic:setRecipe(selectedRecipe)
-                end
-            end
+            print("[NCS-GridNav] 索引改变: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
+            -- 通过点击选中项来处理（调用原始模组的 onMouseDown）
+            self:selectCurrentItem()
             self:updateJoypadSelection()
             return true
         end
+        return false
+    end
+
+    -- 通过点击当前选中项来处理选择
+    function NC_RecipeList_Panel:selectCurrentItem()
+        print("[NCS-RecipeList] selectCurrentItem joypadSelectedIndex=" .. tostring(self.joypadSelectedIndex))
+
+        -- 方法1: 直接从 filteredRecipes 获取配方并设置（最可靠的方式）
+        if self.filteredRecipes and self.HandCraftPanel and self.HandCraftPanel.logic then
+            local recipe = self.filteredRecipes[self.joypadSelectedIndex]
+            if recipe then
+                print("[NCS-RecipeList] 直接设置 recipe: " .. tostring(recipe:getTranslationName()))
+                self.HandCraftPanel.logic:setRecipe(recipe)
+                getSoundManager():playUISound("UIActivateButton")
+                return true
+            end
+        end
+
+        -- 方法2: 在 itemPool 中找到当前选中索引的 item 并调用 onMouseDown
+        if self.currentScrollView and self.currentScrollView.itemPool then
+            for _, item in ipairs(self.currentScrollView.itemPool) do
+                if item and item.indexInData == self.joypadSelectedIndex then
+                    print("[NCS-RecipeList] 从 itemPool 找到选中项，调用 onMouseDown")
+                    if item.onMouseDown then
+                        item:onMouseDown()
+                        return true
+                    end
+                end
+            end
+        end
+
+        print("[NCS-RecipeList] selectCurrentItem 失败")
         return false
     end
 
