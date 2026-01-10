@@ -1,19 +1,19 @@
--- NeatControllerSupport: Neat_Crafting Patch
--- Handle joypad navigation for Neat_Crafting components
+-- NeatControllerSupport: Neat_Crafting 补丁
+-- 处理 Neat_Crafting 组件的手柄导航
 
 local NeatCraftingPatch = {}
 
--- Joypad button configuration
+-- 手柄按钮配置
 NeatCraftingPatch.closeButton = Joypad.BButton
 NeatCraftingPatch.L1Button = Joypad.LBumper or Joypad.L1Button
 NeatCraftingPatch.R1Button = Joypad.RBumper or Joypad.R1Button
 NeatCraftingPatch.AButton = Joypad.AButton
 NeatCraftingPatch.YButton = Joypad.YButton
 
--- Import component patches
+-- 导入组件补丁
 local NC_RecipeList_Panel_Patch = require "NeatControllerSupport/NC_RecipeList_Panel_patch"
 
--- Get recipeListPanel from window
+-- 从窗口获取 recipeListPanel
 local function getRecipeListPanel(window)
     if not window then return nil end
     if window.HandCraftPanel and window.HandCraftPanel.recipeListPanel then
@@ -22,10 +22,10 @@ local function getRecipeListPanel(window)
     return nil
 end
 
--- Get categoryListPanel from window
+-- 从窗口获取 categoryListPanel
 local function getCategoryListPanel(window)
     if not window then
-        print("[NCS-Crafting] getCategoryListPanel: window is nil")
+        print("[NCS-Crafting] getCategoryListPanel: window 为空")
         return nil
     end
     if window.HandCraftPanel and window.HandCraftPanel.categoryPanel then
@@ -34,7 +34,7 @@ local function getCategoryListPanel(window)
     return nil
 end
 
--- Get all categories from categoryListPanel (inlined to avoid module dependency)
+-- 获取分类列表面板中的所有分类
 local function getAllCategories(panel)
     if not panel then return nil end
     local categories = { "", "*" }
@@ -46,14 +46,14 @@ local function getAllCategories(panel)
     return categories
 end
 
--- Cycle category - inline implementation
+-- 切换分类
 local function cycleCategory(panel, direction)
     if not panel or not panel.selectedCategory then return false end
 
     local allCategories = getAllCategories(panel)
     if not allCategories or #allCategories == 0 then return false end
 
-    -- Find current category index
+    -- 查找当前分类索引
     local currentIndex = 1
     local currentCat = panel.selectedCategory
     if currentCat == "*" then
@@ -67,7 +67,7 @@ local function cycleCategory(panel, direction)
         end
     end
 
-    -- Calculate new index
+    -- 计算新索引
     local newIndex
     if direction == "prev" then
         newIndex = currentIndex - 1
@@ -78,13 +78,13 @@ local function cycleCategory(panel, direction)
     end
 
     local newCategory = allCategories[newIndex]
-    print("[NCS-Crafting] Cycle category: " .. tostring(currentCat) .. " -> " .. tostring(newCategory))
+    print("[NCS-Crafting] 切换分类: " .. tostring(currentCat) .. " -> " .. tostring(newCategory))
 
     panel:onCategoryChanged(newCategory)
     return true
 end
 
--- Add joypad support to window
+-- 为窗口添加手柄支持
 function NeatCraftingPatch:addJoypad(windowClass)
     if not windowClass then return end
 
@@ -94,27 +94,28 @@ function NeatCraftingPatch:addJoypad(windowClass)
 
     function windowClass:onJoypadDown(button)
         print("[NCS-Crafting] === onJoypadDown ===")
-        print("[NCS-Crafting] button: " .. tostring(button))
-        -- Handle L1: previous category
+        print("[NCS-Crafting] 按钮: " .. tostring(button))
+
+        -- L1 键：上一个分类
         if button == _patch.L1Button then
-            print("[NCS-Crafting] L1 pressed - prev category")
+            print("[NCS-Crafting] L1 按下 - 上一个分类")
             local catPanel = getCategoryListPanel(self)
             if catPanel then
                 print("[NCS-Crafting] catPanel: " .. tostring(catPanel))
                 local result = cycleCategory(catPanel, "prev")
-                print("[NCS-Crafting] cycleCategory result: " .. tostring(result))
+                print("[NCS-Crafting] cycleCategory 结果: " .. tostring(result))
                 return true
             end
         end
 
-        -- Handle R1: next category
+        -- R1 键：下一个分类
         if button == _patch.R1Button then
-            print("[NCS-Crafting] R1 pressed - next category")
+            print("[NCS-Crafting] R1 按下 - 下一个分类")
             local catPanel = getCategoryListPanel(self)
             if catPanel then
                 print("[NCS-Crafting] catPanel: " .. tostring(catPanel))
                 local result = cycleCategory(catPanel, "next")
-                print("[NCS-Crafting] cycleCategory result: " .. tostring(result))
+                print("[NCS-Crafting] cycleCategory 结果: " .. tostring(result))
                 return true
             end
         end
@@ -129,7 +130,7 @@ function NeatCraftingPatch:addJoypad(windowClass)
             return true
         end
 
-        -- Forward A button to recipeListPanel
+        -- A 键：转发到 recipeListPanel
         if button == _patch.AButton then
             local panel = getRecipeListPanel(self)
             if panel and panel.onJoypadDown then
@@ -138,7 +139,7 @@ function NeatCraftingPatch:addJoypad(windowClass)
             end
         end
 
-        -- Y button: toggle list/grid view
+        -- Y 键：切换列表/网格视图
         if button == _patch.YButton then
             local panel = getRecipeListPanel(self)
             if panel and panel.logic then
@@ -147,7 +148,7 @@ function NeatCraftingPatch:addJoypad(windowClass)
                 panel.logic:setSelectedRecipeStyle(newStyle)
                 panel:createChildren()
                 panel:updateJoypadSelection()
-                print("[NCS-Crafting] Toggle view: " .. currentStyle .. " -> " .. newStyle)
+                print("[NCS-Crafting] 切换视图: " .. currentStyle .. " -> " .. newStyle)
                 return true
             end
         end
@@ -159,23 +160,23 @@ function NeatCraftingPatch:addJoypad(windowClass)
         print("[NCS-Crafting] onJoypadDirDown: " .. tostring(dir))
         if originalOnJoypadDirDown then
             local result = originalOnJoypadDirDown(self, dir)
-            print("[NCS-Crafting] originalOnJoypadDirDown result: " .. tostring(result))
+            print("[NCS-Crafting] originalOnJoypadDirDown 结果: " .. tostring(result))
             if result then return result end
         end
-        -- Forward to recipeListPanel
+        -- 转发到 recipeListPanel
         local panel = getRecipeListPanel(self)
         print("[NCS-Crafting] recipeListPanel: " .. tostring(panel))
         print("[NCS-Crafting] panel.onJoypadDirDown: " .. tostring(panel and panel.onJoypadDirDown))
         if panel and panel.onJoypadDirDown then
             local forwardResult = panel:onJoypadDirDown(dir)
-            print("[NCS-Crafting] forward result: " .. tostring(forwardResult))
+            print("[NCS-Crafting] 转发结果: " .. tostring(forwardResult))
             return forwardResult
         end
         return false
     end
 end
 
--- Apply recipe list panel patch (inlined)
+-- 应用食谱列表面板补丁
 function NeatCraftingPatch:addRecipeListJoypad()
     local panel = NC_RecipeList_Panel
     if not panel then return end
@@ -189,47 +190,62 @@ function NeatCraftingPatch:addRecipeListJoypad()
     local originalCreateListScrollView = panel.createListScrollView
     local originalCreateGridScrollView = panel.createGridScrollView
 
-    -- Override createListScrollView to add joypad selection support
+    -- 重写 createListScrollView 添加手柄选中支持
     if originalCreateListScrollView then
         function NC_RecipeList_Panel:createListScrollView()
             originalCreateListScrollView(self)
-            -- Add setJoypadSelected to list items
+            -- 添加手柄选中状态字段并渲染
             local scrollView = self.currentScrollView
-            if scrollView and scrollView.setOnUpdateItem then
+            if scrollView then
+                -- 保存面板引用用于回调
+                local panel = self
                 local originalOnUpdateItem = scrollView.onUpdateItem
                 scrollView:setOnUpdateItem(function(itemObject, recipe)
-                    -- Call original update
+                    -- 调用原始更新
                     if originalOnUpdateItem then
                         originalOnUpdateItem(itemObject, recipe)
                     end
-                    -- Set joypad selected state
-                    if itemObject and itemObject.setJoypadSelected then
-                        local itemIndex = itemObject.indexInData
-                        itemObject:setJoypadSelected(itemIndex == self.joypadSelectedIndex)
-                    end
+                    -- 通过直接字段设置手柄选中状态
+                    local itemIndex = itemObject.indexInData
+                    itemObject.joypadSelected = (itemIndex == panel.joypadSelectedIndex)
                 end)
+
+                -- 添加 prerender 来渲染选中高亮
+                local originalPrerender = scrollView.prerender
+                scrollView.prerender = function(self)
+                    if originalPrerender then originalPrerender(self) end
+                    -- 为可见项绘制选中高亮
+                    if self.itemPool then
+                        for _, item in ipairs(self.itemPool) do
+                            if item and item.joypadSelected then
+                                -- 绘制选中矩形边框
+                                item:drawBorder(0.3, 0.3, 0.8, 1) -- 蓝色高亮
+                            end
+                        end
+                    end
+                end
             end
         end
     end
 
-    -- Override createGridScrollView to add joypad selection support
+    -- 重写 createGridScrollView 添加手柄选中支持
     if originalCreateGridScrollView then
         function NC_RecipeList_Panel:createGridScrollView()
             originalCreateGridScrollView(self)
-            -- Add setJoypadSelected to grid items
+            -- 添加手柄选中状态字段
             local scrollView = self.currentScrollView
-            if scrollView and scrollView.setOnUpdateItem then
+            if scrollView then
+                -- 保存面板引用用于回调
+                local panel = self
                 local originalOnUpdateItem = scrollView.onUpdateItem
                 scrollView:setOnUpdateItem(function(itemObject, recipe)
-                    -- Call original update
+                    -- 调用原始更新
                     if originalOnUpdateItem then
                         originalOnUpdateItem(itemObject, recipe)
                     end
-                    -- Set joypad selected state
-                    if itemObject and itemObject.setJoypadSelected then
-                        local itemIndex = itemObject.indexInData
-                        itemObject:setJoypadSelected(itemIndex == self.joypadSelectedIndex)
-                    end
+                    -- 通过直接字段设置手柄选中状态
+                    local itemIndex = itemObject.indexInData
+                    itemObject.joypadSelected = (itemIndex == panel.joypadSelectedIndex)
                 end)
             end
         end
@@ -260,7 +276,7 @@ function NeatCraftingPatch:addRecipeListJoypad()
         end
 
         local direction = getJoypadDirection(dir)
-        print("[NCS-RecipeList] direction: " .. tostring(direction))
+        print("[NCS-RecipeList] 方向: " .. tostring(direction))
         if not direction then return false end
 
         if not self.logic or not self.filteredRecipes then return false end
@@ -276,6 +292,7 @@ function NeatCraftingPatch:addRecipeListJoypad()
         end
     end
 
+    -- 列表视图导航处理
     function NC_RecipeList_Panel:handleListNavigation(dir, dataCount)
         local prevIndex = self.joypadSelectedIndex
 
@@ -286,13 +303,14 @@ function NeatCraftingPatch:addRecipeListJoypad()
         end
 
         if prevIndex ~= self.joypadSelectedIndex then
-            print("[NCS-RecipeList] index changed: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
+            print("[NCS-RecipeList] 索引改变: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
             self:updateJoypadSelection()
             return true
         end
         return false
     end
 
+    -- 网格视图导航处理
     function NC_RecipeList_Panel:handleGridNavigation(dir, dataCount)
         local prevIndex = self.joypadSelectedIndex
         local cols = self.gridColumnCount or 4
@@ -312,45 +330,48 @@ function NeatCraftingPatch:addRecipeListJoypad()
         end
 
         if prevIndex ~= self.joypadSelectedIndex then
-            print("[NCS-RecipeList] grid index changed: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
+            print("[NCS-RecipeList] 网格索引改变: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
             self:updateJoypadSelection()
             return true
         end
         return false
     end
 
-    -- Update joypad selection visualization and scroll to selected item
+    -- 更新手柄选中可视化并滚动到选中项
     function NC_RecipeList_Panel:updateJoypadSelection()
         if not self.currentScrollView then return end
 
         local scrollView = self.currentScrollView
         local selectedIdx = self.joypadSelectedIndex
 
-        -- Update selection state for all visible items
+        -- 更新所有可见项的选中状态并强制重绘
         if scrollView.itemPool then
             for _, item in ipairs(scrollView.itemPool) do
                 if item then
-                    -- Try to use setJoypadSelected if available
-                    if item.setJoypadSelected then
-                        local itemIndex = item.indexInData
-                        item:setJoypadSelected(itemIndex == selectedIdx)
-                    else
-                        -- Alternative: try to directly set a selected field
-                        item.joypadSelected = (item.indexInData == selectedIdx)
+                    local isSelected = (item.indexInData == selectedIdx)
+                    item.joypadSelected = isSelected
+                    -- 强制重绘该项
+                    if item.setDirty then
+                        item:setDirty(true)
                     end
                 end
             end
         end
 
-        -- Refresh items to update selection state
+        -- 强制整个 scrollView 刷新
+        if scrollView.setDirty then
+            scrollView:setDirty(true)
+        end
+
+        -- 刷新列表
         scrollView:refreshItems()
 
-        -- Scroll to selected index if available
+        -- 滚动到选中索引
         if scrollView.scrollToIndex then
             scrollView:scrollToIndex(selectedIdx)
         end
 
-        -- Also update the selected recipe in logic if needed
+        -- 同时更新 logic 中选中的食谱
         if self.filteredRecipes and selectedIdx then
             local selectedRecipe = self.filteredRecipes[selectedIdx]
             if selectedRecipe and self.logic and self.logic.setSelectedRecipe then
@@ -360,7 +381,7 @@ function NeatCraftingPatch:addRecipeListJoypad()
     end
 end
 
--- Apply category list panel patch (inlined)
+-- 应用分类列表面板补丁
 function NeatCraftingPatch:addCategoryListJoypad()
     local panel = NC_CategoryList_Panel
     if not panel then return end
@@ -380,7 +401,7 @@ function NeatCraftingPatch:addCategoryListJoypad()
     end
 
     function NC_CategoryList_Panel:onJoypadDirDown(dir)
-        -- Forward to recipeListPanel
+        -- 转发到 recipeListPanel
         if self.HandCraftPanel and self.HandCraftPanel.recipeListPanel then
             local recipePanel = self.HandCraftPanel.recipeListPanel
             if recipePanel and recipePanel.onJoypadDirDown then
@@ -395,7 +416,7 @@ function NeatCraftingPatch:addCategoryListJoypad()
     end
 end
 
--- Register all Neat_Crafting patches at once
+-- 注册所有 Neat_Crafting 补丁
 function NeatCraftingPatch:registerAll()
     if NC_HandcraftWindow then
         self:addJoypad(NC_HandcraftWindow)
