@@ -194,37 +194,6 @@ function NeatCraftingPatch:addRecipeListJoypad()
     if originalCreateListScrollView then
         function NC_RecipeList_Panel:createListScrollView()
             originalCreateListScrollView(self)
-            -- 添加手柄选中状态字段并渲染
-            local scrollView = self.currentScrollView
-            if scrollView then
-                -- 保存面板引用用于回调
-                local panel = self
-                local originalOnUpdateItem = scrollView.onUpdateItem
-                scrollView:setOnUpdateItem(function(itemObject, recipe)
-                    -- 调用原始更新
-                    if originalOnUpdateItem then
-                        originalOnUpdateItem(itemObject, recipe)
-                    end
-                    -- 通过直接字段设置手柄选中状态
-                    local itemIndex = itemObject.indexInData
-                    itemObject.joypadSelected = (itemIndex == panel.joypadSelectedIndex)
-                end)
-
-                -- 添加 prerender 来渲染选中高亮
-                local originalPrerender = scrollView.prerender
-                scrollView.prerender = function(self)
-                    if originalPrerender then originalPrerender(self) end
-                    -- 为可见项绘制选中高亮
-                    if self.itemPool then
-                        for _, item in ipairs(self.itemPool) do
-                            if item and item.joypadSelected then
-                                -- 绘制选中矩形边框
-                                item:drawBorder(0.3, 0.3, 0.8, 1) -- 蓝色高亮
-                            end
-                        end
-                    end
-                end
-            end
         end
     end
 
@@ -232,22 +201,6 @@ function NeatCraftingPatch:addRecipeListJoypad()
     if originalCreateGridScrollView then
         function NC_RecipeList_Panel:createGridScrollView()
             originalCreateGridScrollView(self)
-            -- 添加手柄选中状态字段
-            local scrollView = self.currentScrollView
-            if scrollView then
-                -- 保存面板引用用于回调
-                local panel = self
-                local originalOnUpdateItem = scrollView.onUpdateItem
-                scrollView:setOnUpdateItem(function(itemObject, recipe)
-                    -- 调用原始更新
-                    if originalOnUpdateItem then
-                        originalOnUpdateItem(itemObject, recipe)
-                    end
-                    -- 通过直接字段设置手柄选中状态
-                    local itemIndex = itemObject.indexInData
-                    itemObject.joypadSelected = (itemIndex == panel.joypadSelectedIndex)
-                end)
-            end
         end
     end
 
@@ -258,7 +211,14 @@ function NeatCraftingPatch:addRecipeListJoypad()
         end
 
         if button == Joypad.AButton then
-            self:selectRecipeWithJoypad()
+            -- 调用 logic:setRecipe 来设置选中食谱
+            if self.filteredRecipes and self.joypadSelectedIndex then
+                local selectedRecipe = self.filteredRecipes[self.joypadSelectedIndex]
+                if selectedRecipe and self.logic then
+                    self.logic:setRecipe(selectedRecipe)
+                    getSoundManager():playUISound("UIActivateButton")
+                end
+            end
             return true
         elseif button == Joypad.BButton then
             if self.HandCraftPanel and self.HandCraftPanel.close then
@@ -304,6 +264,13 @@ function NeatCraftingPatch:addRecipeListJoypad()
 
         if prevIndex ~= self.joypadSelectedIndex then
             print("[NCS-RecipeList] 索引改变: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
+            -- 调用原始模组的 setRecipe 方法来更新选中状态
+            if self.filteredRecipes and self.joypadSelectedIndex then
+                local selectedRecipe = self.filteredRecipes[self.joypadSelectedIndex]
+                if selectedRecipe and self.logic then
+                    self.logic:setRecipe(selectedRecipe)
+                end
+            end
             self:updateJoypadSelection()
             return true
         end
@@ -331,6 +298,13 @@ function NeatCraftingPatch:addRecipeListJoypad()
 
         if prevIndex ~= self.joypadSelectedIndex then
             print("[NCS-RecipeList] 网格索引改变: " .. prevIndex .. " -> " .. self.joypadSelectedIndex)
+            -- 调用原始模组的 setRecipe 方法来更新选中状态
+            if self.filteredRecipes and self.joypadSelectedIndex then
+                local selectedRecipe = self.filteredRecipes[self.joypadSelectedIndex]
+                if selectedRecipe and self.logic then
+                    self.logic:setRecipe(selectedRecipe)
+                end
+            end
             self:updateJoypadSelection()
             return true
         end
@@ -342,42 +316,14 @@ function NeatCraftingPatch:addRecipeListJoypad()
         if not self.currentScrollView then return end
 
         local scrollView = self.currentScrollView
-        local selectedIdx = self.joypadSelectedIndex
-
-        -- 更新所有可见项的选中状态并强制重绘
-        if scrollView.itemPool then
-            for _, item in ipairs(scrollView.itemPool) do
-                if item then
-                    local isSelected = (item.indexInData == selectedIdx)
-                    item.joypadSelected = isSelected
-                    -- 强制重绘该项
-                    if item.setDirty then
-                        item:setDirty(true)
-                    end
-                end
-            end
-        end
-
-        -- 强制整个 scrollView 刷新
-        if scrollView.setDirty then
-            scrollView:setDirty(true)
-        end
-
-        -- 刷新列表
-        scrollView:refreshItems()
 
         -- 滚动到选中索引
         if scrollView.scrollToIndex then
-            scrollView:scrollToIndex(selectedIdx)
+            scrollView:scrollToIndex(self.joypadSelectedIndex)
         end
 
-        -- 同时更新 logic 中选中的食谱
-        if self.filteredRecipes and selectedIdx then
-            local selectedRecipe = self.filteredRecipes[selectedIdx]
-            if selectedRecipe and self.logic and self.logic.setSelectedRecipe then
-                self.logic:setSelectedRecipe(selectedRecipe)
-            end
-        end
+        -- 刷新列表以更新高亮显示
+        scrollView:refreshItems()
     end
 end
 
