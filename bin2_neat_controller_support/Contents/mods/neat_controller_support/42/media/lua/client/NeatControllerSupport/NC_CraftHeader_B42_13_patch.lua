@@ -2,8 +2,8 @@
 -- Loads all component patches
 
 local NeatControllerSupport = {}
-NeatControllerSupport.Crafting = require "NeatControllerSupport/Neat_Crafting_patch"
-NeatControllerSupport.Building = require "NeatControllerSupport/Neat_Building_patch"
+NeatControllerSupport.Crafting = require "NeatControllerSupport/Neat_Crafting/Neat_Crafting_patch"
+NeatControllerSupport.Building = require "NeatControllerSupport/Neat_Building/Neat_Building_patch"
 
 -- Register all patches on game boot
 Events.OnGameBoot.Add(function()
