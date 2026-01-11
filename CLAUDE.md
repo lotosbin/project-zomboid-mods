@@ -99,3 +99,4 @@
 从learn目录学习游戏手柄开发
 总是总结经验更新开发文档, 内容需要找到真实引用地址
 总是使用agent/skill/mcp
+当fetch mcp无效时使用 playwright mcp
