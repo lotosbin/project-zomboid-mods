@@ -93,6 +93,7 @@ end
 
 local function moveBuilding(self, direction)
     if not self.buildEntity then return false end
+    if not direction then return false end
 
     local player = self.player
     if not player then return false end
@@ -107,14 +108,16 @@ local function moveBuilding(self, direction)
     elseif direction == "down" then moveDir = IsoDirections.S
     end
 
-    if moveDir then
-        local currentIso = playerObj:getCurrentSquare()
-        if currentIso then
-            local nextSquare = currentIso:getNeighbor(moveDir)
-            if nextSquare and self.buildEntity:setIsoToBuildSquare(nextSquare) then
-                return true
-            end
-        end
+    if not moveDir then return false end
+
+    local currentIso = playerObj:getCurrentSquare()
+    if not currentIso then return false end
+
+    local nextSquare = currentIso:getNeighbor(moveDir)
+    if not nextSquare then return false end
+
+    if self.buildEntity:setIsoToBuildSquare(nextSquare) then
+        return true
     end
     return false
 end
