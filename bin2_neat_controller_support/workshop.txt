@@ -1,5 +1,6 @@
 version=1
+id=3644159457
 title=bin2's  Neat_Controller_Support - Neat Crafting & Building 手柄支持
 description=- Neat_Controller_Support - Neat Crafting & Building 手柄支持
-tags=Build 42;Language/Translation;QoL
+tags=Build 42;Misc
 visibility=public
