@@ -1,5 +1,18 @@
 -- NeatControllerSupport: Neat_Building Patch
 -- 手柄导航建造界面
+--
+-- B42 限制说明：
+-- ISBuildIsoEntity 是纯 Java 类，没有暴露 Lua API
+-- 以下功能无法通过 Lua 实现：
+--   - 放置建筑 (placeBuilding)
+--   - 旋转建筑 (rotateBuilding)
+--   - 移动建筑 (moveBuilding)
+-- 以下功能可用：
+--   - 配方列表导航
+--   - 分类切换 (LB/RB)
+--   - 视图切换 (Y)
+--   - 排序切换 (X)
+--   - 开始建造/取消建造
 
 local NeatBuildingPatch = {}
 local JoypadUtil = require "NeatControllerSupport/JoypadUtil"
@@ -11,7 +24,8 @@ NeatBuildingPatch.NextCategoryButton = JoypadUtil.RBumper
 NeatBuildingPatch.ConfirmButton = JoypadUtil.AButton
 NeatBuildingPatch.ToggleViewButton = JoypadUtil.YButton
 NeatBuildingPatch.ToggleSortButton = JoypadUtil.XButton
-NeatBuildingPatch.RotateButton = JoypadUtil.XButton
+-- 注意：B42 中 X键用于切换排序，无法用于旋转建筑（API 未暴露）
+
 -- D-pad 方向键 (B42 通过 onJoypadDown 传递: 10=上, 11=下, 12=左, 13=右)
 NeatBuildingPatch.DPadUp = 10
 NeatBuildingPatch.DPadDown = 11
@@ -59,14 +73,6 @@ local function cycleCategory(panel, direction)
 end
 
 -- 建造模式控制
-local function placeBuilding(self)
-    if self.buildEntity then
-        self.buildEntity:onMouseClick(0, 0)
-        return true
-    end
-    return false
-end
-
 local function startBuilding(self)
     if not self.logic then return false end
     local recipe = self.logic:getRecipe()
@@ -88,47 +94,23 @@ local function cancelBuilding(self)
     return false
 end
 
+-- B42: 建造控制函数已被禁用，因为 ISBuildIsoEntity 没有暴露 Lua API
+-- 放置、旋转、移动建筑的功能无法从 Lua 实现
+local function placeBuilding(self)
+    print("[NCS-Build] placeBuilding: B42 API not available for Lua")
+    print("[NCS-Build] 请使用鼠标放置建筑，或按 B 取消")
+    return false
+end
+
 local function rotateBuilding(self)
-    if self.buildEntity then
-        self.buildEntity:rotate()
-        return true
-    end
+    print("[NCS-Build] rotateBuilding: B42 API not available for Lua")
+    print("[NCS-Build] 旋转功能无法通过手柄控制")
     return false
 end
 
 local function moveBuilding(self, direction)
-    if not self.buildEntity then return false end
-    if not direction then return false end
-
-    local player = self.player
-    if not player then return false end
-
-    local playerObj = instanceof(player, "IsoPlayer") and player or nil
-    if not playerObj then return false end
-
-    -- 方向映射
-    local dirMap = {
-        left = "W",
-        right = "E",
-        up = "N",
-        down = "S"
-    }
-    local dirStr = dirMap[direction]
-    if not dirStr then return false end
-
-    local currentIso = playerObj:getCurrentSquare()
-    if not currentIso then return false end
-
-    -- 使用 getNeighborViaDirection
-    if not currentIso.getNeighborViaDirection then return false end
-
-    local nextSquare = currentIso:getNeighborViaDirection(dirStr)
-    if not nextSquare then return false end
-
-    if not self.buildEntity.setIsoToBuildSquare then return false end
-    if self.buildEntity:setIsoToBuildSquare(nextSquare) then
-        return true
-    end
+    print("[NCS-Build] moveBuilding: B42 API not available for Lua")
+    print("[NCS-Build] 移动建筑功能无法通过手柄控制")
     return false
 end
 
@@ -137,8 +119,6 @@ function NeatBuildingPatch:addJoypad(windowClass)
 
     local _patch = NeatBuildingPatch
     local originalOnJoypadDown = windowClass.onJoypadDown
-    local originalOnJoypadDirDown = windowClass.onJoypadDirDown
-    local originalCreateBuildIsoEntity = windowClass.createBuildIsoEntity
     local originalOnOpen = windowClass.onOpen
 
     -- 窗口打开时设置手柄焦点
@@ -151,28 +131,9 @@ function NeatBuildingPatch:addJoypad(windowClass)
         end
     end
 
-    -- 进入/退出建造模式时设置焦点
-    if originalCreateBuildIsoEntity then
-        function windowClass:createBuildIsoEntity(dontSetDrag)
-            originalCreateBuildIsoEntity(self, dontSetDrag)
-            if self.buildEntity then
-                setJoypadFocus(self.player:getPlayerNum(), self)
-            end
-        end
-    end
-
     function windowClass:onJoypadDown(button)
-        -- 建造模式控制
-        if self.buildEntity then
-            if button == _patch.ConfirmButton then
-                if placeBuilding(self) then return true end
-            elseif button == _patch.CloseButton then
-                if cancelBuilding(self) then return true end
-            elseif button == _patch.RotateButton then
-                if rotateBuilding(self) then return true end
-            end
-        else
-            -- 非建造模式
+        -- 非建造模式：A键开始建造
+        if not self.buildEntity then
             if button == _patch.ConfirmButton then
                 if startBuilding(self) then return true end
             end
@@ -230,6 +191,7 @@ function NeatBuildingPatch:addJoypad(windowClass)
             if result then return true end
         end
 
+        -- B键关闭
         if button == _patch.CloseButton then
             self.close(self)
             return true
@@ -238,50 +200,35 @@ function NeatBuildingPatch:addJoypad(windowClass)
         return false
     end
 
+    -- 方向键处理 - 委托给面板处理列表导航
     function windowClass:onJoypadDirUp()
-        if self.buildEntity then
-            if moveBuilding(self, "up") then return true end
-        else
-            local panel = self.recipeListPanel
-            if panel and panel.handleJoypadDirection then
-                return panel:handleJoypadDirection("up")
-            end
+        local panel = self.recipeListPanel
+        if panel and panel.handleJoypadDirection then
+            return panel:handleJoypadDirection("up")
         end
         return false
     end
 
     function windowClass:onJoypadDirDown(joypadData)
-        if self.buildEntity then
-            if moveBuilding(self, "down") then return true end
-        else
-            local panel = self.recipeListPanel
-            if panel and panel.handleJoypadDirection then
-                return panel:handleJoypadDirection("down")
-            end
+        local panel = self.recipeListPanel
+        if panel and panel.handleJoypadDirection then
+            return panel:handleJoypadDirection("down")
         end
         return false
     end
 
     function windowClass:onJoypadDirLeft()
-        if self.buildEntity then
-            if moveBuilding(self, "left") then return true end
-        else
-            local panel = self.recipeListPanel
-            if panel and panel.handleJoypadDirection then
-                return panel:handleJoypadDirection("left")
-            end
+        local panel = self.recipeListPanel
+        if panel and panel.handleJoypadDirection then
+            return panel:handleJoypadDirection("left")
         end
         return false
     end
 
     function windowClass:onJoypadDirRight()
-        if self.buildEntity then
-            if moveBuilding(self, "right") then return true end
-        else
-            local panel = self.recipeListPanel
-            if panel and panel.handleJoypadDirection then
-                return panel:handleJoypadDirection("right")
-            end
+        local panel = self.recipeListPanel
+        if panel and panel.handleJoypadDirection then
+            return panel:handleJoypadDirection("right")
         end
         return false
     end
