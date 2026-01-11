@@ -6,4 +6,4 @@ description=bin2的B42.13.1合集 | 包含29个精选mod的组合，包括中文
 require=\CNB42,\errorMagnifier,\CombatText,\ModernStatus,\MiniHealthPanel,\CleanUI,\CleanHotBar,\TheShortcut,\SmartRadialMenu,\CleanUIMenuSupport,\SidebarControllerSupport,\SimpleStatusFixed,\B42Trans_CN,\B42ModTrans_CN,\NeatUI_Framework,\ProjectCook,\NeatCrafting,\NeatCraftingXPDisplay,\NeatCraftingPatch,\NeatIngredientsList,\ConsolidatedAllFixB42,\NeatBuilding,\TongueOfChina,\MoreMreMilitaryFood,\ShelterHoldBeehivePatch,\ShelterHoldBeehive,\LegendaryKatana,\FastForward,\DetailedDescriptions,\Neat_Controller_Support
 tags=Build 42;Modpack;Collection;Chinese
 author=bin^2
-modversion=1.0.1
+modversion=1.0.2
