@@ -96,20 +96,22 @@ function NeatCraftingPatch:addJoypad(windowClass)
 
         -- 确认按钮
         if button == _patch.ConfirmButton then
-            local panel = getRecipeListPanel(self)
-            if panel then panel:onJoypadDown(button) end
+            local recipePanel = self.HandCraftPanel and self.HandCraftPanel.recipeListPanel
+            if recipePanel and recipePanel.onJoypadDown then
+                recipePanel:onJoypadDown(button)
+            end
             return true
         end
 
         -- 切换视图
         if button == _patch.ToggleViewButton then
-            local panel = getRecipeListPanel(self)
-            if panel and panel.logic then
-                local newStyle = panel.logic:getSelectedRecipeStyle() == "list" and "grid" or "list"
-                panel.logic:setSelectedRecipeStyle(newStyle)
-                panel.joypadSelectedIndex = 1
-                panel:createChildren()
-                if panel.currentScrollView then panel.currentScrollView:refreshItems() end
+            local recipePanel = self.HandCraftPanel and self.HandCraftPanel.recipeListPanel
+            if recipePanel and recipePanel.logic then
+                local newStyle = recipePanel.logic:getSelectedRecipeStyle() == "list" and "grid" or "list"
+                recipePanel.logic:setSelectedRecipeStyle(newStyle)
+                recipePanel.joypadSelectedIndex = 1
+                recipePanel:createChildren()
+                if recipePanel.currentScrollView then recipePanel.currentScrollView:refreshItems() end
                 getSoundManager():playUISound("UIActivateButton")
                 return true
             end
@@ -121,12 +123,13 @@ function NeatCraftingPatch:addJoypad(windowClass)
     function windowClass:onJoypadDirDown(dir)
         if originalOnJoypadDirDown then
             local result = originalOnJoypadDirDown(self, dir)
-            if result then return result end
+            if result == true then return result end
         end
 
-        local panel = getRecipeListPanel(self)
-        if panel and panel.onJoypadDirDown then
-            return panel:onJoypadDirDown(dir)
+        local recipePanel = self.HandCraftPanel and self.HandCraftPanel.recipeListPanel
+        if recipePanel and recipePanel.onJoypadDirDown then
+            local result = recipePanel:onJoypadDirDown(dir)
+            if result == true then return true end
         end
         return false
     end
@@ -146,11 +149,17 @@ function NeatCraftingPatch:addCategoryListJoypad()
     end
 
     function NC_CategoryList_Panel:onJoypadDirDown(dir)
+        -- Forward to recipe list panel for navigation
         local recipePanel = self.HandCraftPanel and self.HandCraftPanel.recipeListPanel
         if recipePanel and recipePanel.onJoypadDirDown then
-            return recipePanel:onJoypadDirDown(dir)
+            local result = recipePanel:onJoypadDirDown(dir)
+            if result == true then return true end
         end
-        if originalOnJoypadDirDown then return originalOnJoypadDirDown(self, dir) end
+        -- Fall through to original handler
+        if originalOnJoypadDirDown then
+            local result = originalOnJoypadDirDown(self, dir)
+            if result == true then return result end
+        end
         return false
     end
 end

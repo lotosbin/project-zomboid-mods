@@ -9,12 +9,6 @@ function JoypadUtil.getJoypadDirection(dirData)
 
     local ctrl = dirData.controller
 
-    -- 调试：打印 dt 字段
-    print("[NCS-Dir] dtup=" .. tostring(ctrl.dtup) .. " dtdown=" .. tostring(ctrl.dtdown) ..
-          " dtleft=" .. tostring(ctrl.dtleft) .. " dtright=" .. tostring(ctrl.dtright))
-    print("[NCS-Dir] down=" .. tostring(ctrl.down) .. " up=" .. tostring(ctrl.up) ..
-          " left=" .. tostring(ctrl.left) .. " right=" .. tostring(ctrl.right))
-
     -- 首先检查布尔字段（按键刚按下时有效）
     if ctrl.down == true or ctrl.down == 1 then return "down" end
     if ctrl.up == true or ctrl.up == 1 then return "up" end

@@ -94,7 +94,7 @@ function NC_RecipeList_Panel:onJoypadDirDown(dir)
     local originalOnJoypadDirDown = self._originalOnJoypadDirDown
     if originalOnJoypadDirDown then
         local result = originalOnJoypadDirDown(self, dir)
-        if result then return result end
+        if result == true then return true end
     end
 
     local direction = JoypadUtil.getJoypadDirection(dir)
@@ -106,27 +106,25 @@ function NC_RecipeList_Panel:onJoypadDirDown(dir)
     local style = self.logic:getSelectedRecipeStyle() or "list"
 
     if style == "grid" then
-        return self:handleGridNavigation(direction, dataCount)
+        return self:handleGridNavigation(direction, dataCount) == true
     else
-        return self:handleListNavigation(direction, dataCount)
+        return self:handleListNavigation(direction, dataCount) == true
     end
 end
 
 -- 列表导航
 function NC_RecipeList_Panel:handleListNavigation(dir, dataCount)
-    local prevIndex = self.joypadSelectedIndex
     if dir == "down" or dir == "right" then
         self.joypadSelectedIndex = math.min(self.joypadSelectedIndex + 1, dataCount)
     elseif dir == "up" or dir == "left" then
         self.joypadSelectedIndex = math.max(self.joypadSelectedIndex - 1, 1)
+    else
+        return false
     end
 
-    if prevIndex ~= self.joypadSelectedIndex then
-        self:selectCurrentItem()
-        self:updateJoypadSelection()
-        return true
-    end
-    return false
+    self:selectCurrentItem()
+    self:updateJoypadSelection()
+    return true
 end
 
 -- 网格导航

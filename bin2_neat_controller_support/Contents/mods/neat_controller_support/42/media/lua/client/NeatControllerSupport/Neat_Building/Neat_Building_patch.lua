@@ -227,7 +227,7 @@ function NeatBuildingPatch:addJoypad(windowClass)
     end
 
     function windowClass:onJoypadDirDown(dir)
-        local direction = getJoypadDirection(dir)
+        local direction = JoypadUtil.getJoypadDirection(dir)
         if not direction then return false end
 
         -- 建造模式：方向键移动建筑
@@ -238,12 +238,12 @@ function NeatBuildingPatch:addJoypad(windowClass)
         -- 转发到配方列表面板
         if self.recipeListPanel and self.recipeListPanel.onJoypadDirDown then
             local result = self.recipeListPanel:onJoypadDirDown(dir)
-            if result then return true end
+            if result == true then return true end
         end
 
         if originalOnJoypadDirDown then
             local result = originalOnJoypadDirDown(self, dir)
-            if result then return result end
+            if result == true then return result end
         end
         return false
     end
