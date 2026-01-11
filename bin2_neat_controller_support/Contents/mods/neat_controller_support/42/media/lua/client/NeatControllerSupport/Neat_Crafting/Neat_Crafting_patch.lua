@@ -11,13 +11,8 @@ NeatCraftingPatch.NextCategoryButton = JoypadUtil.RBumper
 NeatCraftingPatch.ConfirmButton = JoypadUtil.AButton
 NeatCraftingPatch.ToggleViewButton = JoypadUtil.YButton
 
--- 导入面板补丁
-local NC_RecipeList_Panel_Patch = require "NeatControllerSupport/Neat_Crafting/NC_RecipeList_Panel_patch"
-
-local function getRecipeListPanel(window)
-    if not window then return nil end
-    return window.HandCraftPanel and window.HandCraftPanel.recipeListPanel
-end
+-- 导入面板补丁 (直接扩展 NC_RecipeList_Panel)
+require "NeatControllerSupport/Neat_Crafting/NC_RecipeList_Panel_patch"
 
 local function getCategoryListPanel(window)
     if not window then return nil end
@@ -138,11 +133,7 @@ function NeatCraftingPatch:addJoypad(windowClass)
 end
 
 function NeatCraftingPatch:addRecipeListJoypad()
-    local panel = NC_RecipeList_Panel
-    if not panel then return end
-
-    -- 使用独立的补丁文件
-    NC_RecipeList_Panel_Patch:apply(panel)
+    -- NC_RecipeList_Panel 已在 require 时扩展
 end
 
 function NeatCraftingPatch:addCategoryListJoypad()

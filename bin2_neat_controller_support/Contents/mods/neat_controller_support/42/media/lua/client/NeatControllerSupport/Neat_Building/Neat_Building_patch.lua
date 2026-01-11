@@ -13,8 +13,8 @@ NeatBuildingPatch.ToggleViewButton = JoypadUtil.YButton
 NeatBuildingPatch.ToggleSortButton = JoypadUtil.XButton
 NeatBuildingPatch.RotateButton = JoypadUtil.XButton
 
--- 导入面板补丁
-local NB_BuildingRecipeList_Panel_Patch = require "NeatControllerSupport/Neat_Building/NB_BuildingRecipeList_Panel_patch"
+-- 导入面板补丁 (直接扩展 NB_BuildingRecipeList_Panel)
+require "NeatControllerSupport/Neat_Building/NB_BuildingRecipeList_Panel_patch"
 
 local function getCategoryPanel(window)
     if not window then return nil end
@@ -250,7 +250,7 @@ function NeatBuildingPatch:addJoypad(windowClass)
 end
 
 function NeatBuildingPatch:addRecipeListJoypad()
-    NB_BuildingRecipeList_Panel_Patch:apply(NB_BuildingRecipeList_Panel)
+    -- NB_BuildingRecipeList_Panel 已在 require 时扩展
 end
 
 function NeatBuildingPatch:registerAll()
