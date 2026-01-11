@@ -5,6 +5,16 @@ local JoypadUtil = {}
 
 -- 从 JoypadData 对象提取方向
 function JoypadUtil.getJoypadDirection(dirData)
+    -- 处理数字参数 (0=up, 1=down, 2=left, 3=right) - B42 标准
+    if type(dirData) == "number" then
+        if dirData == 0 then return "up" end
+        if dirData == 1 then return "down" end
+        if dirData == 2 then return "left" end
+        if dirData == 3 then return "right" end
+        return nil
+    end
+
+    -- 处理 JoypadData 对象
     if not dirData or not dirData.controller then return nil end
 
     local ctrl = dirData.controller
@@ -20,29 +30,6 @@ function JoypadUtil.getJoypadDirection(dirData)
     if ctrl.dpu == true or ctrl.dpu == 1 or ctrl.dpup then return "up" end
     if ctrl.dpl == true or ctrl.dpl == 1 or ctrl.dpleft then return "left" end
     if ctrl.dpr == true or ctrl.dpr == 1 or ctrl.dpright then return "right" end
-
-    -- 备用：检查 dt 字段（长按时 dt* > 0）
-    local dtup = tonumber(ctrl.dtup) or 0
-    local dtdown = tonumber(ctrl.dtdown) or 0
-    local dtleft = tonumber(ctrl.dtleft) or 0
-    local dtright = tonumber(ctrl.dtright) or 0
-
-    local maxDt = math.max(dtup, dtdown, dtleft, dtright)
-    if maxDt > 0 then
-        if dtup == maxDt then return "up" end
-        if dtdown == maxDt then return "down" end
-        if dtleft == maxDt then return "left" end
-        if dtright == maxDt then return "right" end
-    end
-
-    -- 检查摇杆轴
-    if ctrl.lstickx and ctrl.lsticky then
-        local threshold = 0.5
-        if ctrl.lsticky > threshold then return "down" end
-        if ctrl.lsticky < -threshold then return "up" end
-        if ctrl.lstickx > threshold then return "right" end
-        if ctrl.lstickx < -threshold then return "left" end
-    end
 
     return nil
 end

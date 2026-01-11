@@ -101,21 +101,26 @@ local function moveBuilding(self, direction)
     local playerObj = instanceof(player, "IsoPlayer") and player or nil
     if not playerObj then return false end
 
-    local moveDir = nil
-    if direction == "left" then moveDir = IsoDirections.W
-    elseif direction == "right" then moveDir = IsoDirections.E
-    elseif direction == "up" then moveDir = IsoDirections.N
-    elseif direction == "down" then moveDir = IsoDirections.S
-    end
-
-    if not moveDir then return false end
+    -- 方向映射
+    local dirMap = {
+        left = "W",
+        right = "E",
+        up = "N",
+        down = "S"
+    }
+    local dirStr = dirMap[direction]
+    if not dirStr then return false end
 
     local currentIso = playerObj:getCurrentSquare()
     if not currentIso then return false end
 
-    local nextSquare = currentIso:getNeighbor(moveDir)
+    -- 使用 getNeighborViaDirection
+    if not currentIso.getNeighborViaDirection then return false end
+
+    local nextSquare = currentIso:getNeighborViaDirection(dirStr)
     if not nextSquare then return false end
 
+    if not self.buildEntity.setIsoToBuildSquare then return false end
     if self.buildEntity:setIsoToBuildSquare(nextSquare) then
         return true
     end
