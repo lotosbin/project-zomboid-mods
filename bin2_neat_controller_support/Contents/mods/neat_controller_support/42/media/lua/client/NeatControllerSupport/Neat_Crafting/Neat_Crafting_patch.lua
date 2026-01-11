@@ -132,10 +132,6 @@ function NeatCraftingPatch:addJoypad(windowClass)
     end
 end
 
-function NeatCraftingPatch:addRecipeListJoypad()
-    -- NC_RecipeList_Panel 已在 require 时扩展
-end
-
 function NeatCraftingPatch:addCategoryListJoypad()
     local panel = NC_CategoryList_Panel
     if not panel then return end
@@ -161,7 +157,6 @@ end
 
 function NeatCraftingPatch:registerAll()
     if NC_HandcraftWindow then self:addJoypad(NC_HandcraftWindow) end
-    self:addRecipeListJoypad()
     self:addCategoryListJoypad()
 end
 

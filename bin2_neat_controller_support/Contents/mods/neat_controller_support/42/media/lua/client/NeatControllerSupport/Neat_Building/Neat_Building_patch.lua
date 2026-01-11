@@ -249,13 +249,8 @@ function NeatBuildingPatch:addJoypad(windowClass)
     end
 end
 
-function NeatBuildingPatch:addRecipeListJoypad()
-    -- NB_BuildingRecipeList_Panel 已在 require 时扩展
-end
-
 function NeatBuildingPatch:registerAll()
     if NB_BuildingPanel then self:addJoypad(NB_BuildingPanel) end
-    self:addRecipeListJoypad()
 end
 
 return NeatBuildingPatch
