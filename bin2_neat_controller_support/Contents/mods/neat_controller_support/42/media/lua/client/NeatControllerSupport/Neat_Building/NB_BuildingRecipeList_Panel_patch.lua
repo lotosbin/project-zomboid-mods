@@ -61,6 +61,31 @@ function NB_BuildingRecipeList_Panel:onJoypadDirDown(dir)
     end
 end
 
+-- 通过 onJoypadDir* 函数处理方向键 (B42)
+function NB_BuildingRecipeList_Panel:handleJoypadDirection(direction)
+    if not direction or not self.logic or not self.filteredRecipes then return false end
+
+    self:syncJoypadIndexFromSelection()
+
+    local dataCount = #self.filteredRecipes
+    if dataCount == 0 then return false end
+
+    -- 确保索引有效
+    if not self.joypadSelectedIndex or self.joypadSelectedIndex < 1 then
+        self.joypadSelectedIndex = 1
+    elseif self.joypadSelectedIndex > dataCount then
+        self.joypadSelectedIndex = dataCount
+    end
+
+    local style = self.logic:getSelectedRecipeStyle() or "list"
+
+    if style == "grid" then
+        return self:handleGridNavigation(direction, dataCount) == true
+    else
+        return self:handleListNavigation(direction, dataCount) == true
+    end
+end
+
 -- 列表导航
 function NB_BuildingRecipeList_Panel:handleListNavigation(dir, dataCount)
     if dir == "down" or dir == "right" then

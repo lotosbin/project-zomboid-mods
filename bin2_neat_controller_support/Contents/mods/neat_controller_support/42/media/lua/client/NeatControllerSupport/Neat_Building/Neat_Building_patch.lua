@@ -12,6 +12,11 @@ NeatBuildingPatch.ConfirmButton = JoypadUtil.AButton
 NeatBuildingPatch.ToggleViewButton = JoypadUtil.YButton
 NeatBuildingPatch.ToggleSortButton = JoypadUtil.XButton
 NeatBuildingPatch.RotateButton = JoypadUtil.XButton
+-- D-pad 方向键 (B42 通过 onJoypadDown 传递: 10=上, 11=下, 12=左, 13=右)
+NeatBuildingPatch.DPadUp = 10
+NeatBuildingPatch.DPadDown = 11
+NeatBuildingPatch.DPadLeft = 12
+NeatBuildingPatch.DPadRight = 13
 
 -- 导入面板补丁 (直接扩展 NB_BuildingRecipeList_Panel)
 require "NeatControllerSupport/Neat_Building/NB_BuildingRecipeList_Panel_patch"
@@ -157,7 +162,6 @@ function NeatBuildingPatch:addJoypad(windowClass)
     end
 
     function windowClass:onJoypadDown(button)
-
         -- 建造模式控制
         if self.buildEntity then
             if button == _patch.ConfirmButton then
@@ -234,24 +238,50 @@ function NeatBuildingPatch:addJoypad(windowClass)
         return false
     end
 
-    function windowClass:onJoypadDirDown(dir)
-        local direction = JoypadUtil.getJoypadDirection(dir)
-        if not direction then return false end
-
-        -- 建造模式：方向键移动建筑
+    function windowClass:onJoypadDirUp()
         if self.buildEntity then
-            if moveBuilding(self, direction) then return true end
+            if moveBuilding(self, "up") then return true end
+        else
+            local panel = self.recipeListPanel
+            if panel and panel.handleJoypadDirection then
+                return panel:handleJoypadDirection("up")
+            end
         end
+        return false
+    end
 
-        -- 转发到配方列表面板
-        if self.recipeListPanel and self.recipeListPanel.onJoypadDirDown then
-            local result = self.recipeListPanel:onJoypadDirDown(dir)
-            if result == true then return true end
+    function windowClass:onJoypadDirDown(joypadData)
+        if self.buildEntity then
+            if moveBuilding(self, "down") then return true end
+        else
+            local panel = self.recipeListPanel
+            if panel and panel.handleJoypadDirection then
+                return panel:handleJoypadDirection("down")
+            end
         end
+        return false
+    end
 
-        if originalOnJoypadDirDown then
-            local result = originalOnJoypadDirDown(self, dir)
-            if result == true then return result end
+    function windowClass:onJoypadDirLeft()
+        if self.buildEntity then
+            if moveBuilding(self, "left") then return true end
+        else
+            local panel = self.recipeListPanel
+            if panel and panel.handleJoypadDirection then
+                return panel:handleJoypadDirection("left")
+            end
+        end
+        return false
+    end
+
+    function windowClass:onJoypadDirRight()
+        if self.buildEntity then
+            if moveBuilding(self, "right") then return true end
+        else
+            local panel = self.recipeListPanel
+            if panel and panel.handleJoypadDirection then
+                return panel:handleJoypadDirection("right")
+            end
         end
         return false
     end

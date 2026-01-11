@@ -7,29 +7,21 @@ local JoypadUtil = {}
 function JoypadUtil.getJoypadDirection(dirData)
     -- 处理数字参数 (0=up, 1=down, 2=left, 3=right) - B42 标准
     if type(dirData) == "number" then
-        if dirData == 0 then return "up" end
-        if dirData == 1 then return "down" end
-        if dirData == 2 then return "left" end
-        if dirData == 3 then return "right" end
-        return nil
+        local dirMap = { [0]="up", [1]="down", [2]="left", [3]="right" }
+        return dirMap[dirData]
     end
 
     -- 处理 JoypadData 对象
-    if not dirData or not dirData.controller then return nil end
+    if not dirData then return nil end
 
-    local ctrl = dirData.controller
+    local ctrl = dirData
+    if dirData.controller then ctrl = dirData.controller end
 
-    -- 首先检查布尔字段（按键刚按下时有效）
+    -- 检查标准布尔字段
     if ctrl.down == true or ctrl.down == 1 then return "down" end
     if ctrl.up == true or ctrl.up == 1 then return "up" end
     if ctrl.left == true or ctrl.left == 1 then return "left" end
     if ctrl.right == true or ctrl.right == 1 then return "right" end
-
-    -- 检查 D-pad 字段
-    if ctrl.dpd == true or ctrl.dpd == 1 or ctrl.dpdown then return "down" end
-    if ctrl.dpu == true or ctrl.dpu == 1 or ctrl.dpup then return "up" end
-    if ctrl.dpl == true or ctrl.dpl == 1 or ctrl.dpleft then return "left" end
-    if ctrl.dpr == true or ctrl.dpr == 1 or ctrl.dpright then return "right" end
 
     return nil
 end

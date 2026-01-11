@@ -10,6 +10,11 @@ NeatCraftingPatch.PrevCategoryButton = JoypadUtil.LBumper
 NeatCraftingPatch.NextCategoryButton = JoypadUtil.RBumper
 NeatCraftingPatch.ConfirmButton = JoypadUtil.AButton
 NeatCraftingPatch.ToggleViewButton = JoypadUtil.YButton
+-- D-pad 方向键 (B42 通过 onJoypadDown 传递，键值为 10=上, 11=下, 12=左, 13=右)
+NeatCraftingPatch.DPadUp = 10
+NeatCraftingPatch.DPadDown = 11
+NeatCraftingPatch.DPadLeft = 12
+NeatCraftingPatch.DPadRight = 13
 
 -- 导入面板补丁 (直接扩展 NC_RecipeList_Panel)
 require "NeatControllerSupport/Neat_Crafting/NC_RecipeList_Panel_patch"
@@ -120,16 +125,34 @@ function NeatCraftingPatch:addJoypad(windowClass)
         return false
     end
 
-    function windowClass:onJoypadDirDown(dir)
-        if originalOnJoypadDirDown then
-            local result = originalOnJoypadDirDown(self, dir)
-            if result == true then return result end
-        end
-
+    function windowClass:onJoypadDirUp()
         local recipePanel = self.HandCraftPanel and self.HandCraftPanel.recipeListPanel
-        if recipePanel and recipePanel.onJoypadDirDown then
-            local result = recipePanel:onJoypadDirDown(dir)
-            if result == true then return true end
+        if recipePanel and recipePanel.handleJoypadDirection then
+            return recipePanel:handleJoypadDirection("up")
+        end
+        return false
+    end
+
+    function windowClass:onJoypadDirDown(joypadData)
+        local recipePanel = self.HandCraftPanel and self.HandCraftPanel.recipeListPanel
+        if recipePanel and recipePanel.handleJoypadDirection then
+            return recipePanel:handleJoypadDirection("down")
+        end
+        return false
+    end
+
+    function windowClass:onJoypadDirLeft()
+        local recipePanel = self.HandCraftPanel and self.HandCraftPanel.recipeListPanel
+        if recipePanel and recipePanel.handleJoypadDirection then
+            return recipePanel:handleJoypadDirection("left")
+        end
+        return false
+    end
+
+    function windowClass:onJoypadDirRight()
+        local recipePanel = self.HandCraftPanel and self.HandCraftPanel.recipeListPanel
+        if recipePanel and recipePanel.handleJoypadDirection then
+            return recipePanel:handleJoypadDirection("right")
         end
         return false
     end
