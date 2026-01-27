@@ -17,7 +17,6 @@ lungeList = {
     "哈哈哈哈...",
     "哈哈...哈...",
 }
-lungeLines = { zombieLine:new("%s", lungeList) }
 
 -- 被击中/踉跄时的台词
 staggerList = {
@@ -55,7 +54,6 @@ staggerList = {
     "...停下",
     "停下！...",
 }
-staggerLines = { zombieLine:new("%s", staggerList) }
 
 -- 假死时的台词
 fakeDeadList = {
@@ -68,7 +66,6 @@ fakeDeadList = {
     "哈哈哈哈...",
     "...你",
 }
-fakeDeadLines = { zombieLine:new("%s", fakeDeadList) }
 
 -- 敲门/敲击时的台词
 thumpingList = {
@@ -83,7 +80,6 @@ thumpingList = {
     "...打开它！",
     "有人吗...？",
 }
-thumpingLines = { zombieLine:new("%s", thumpingList) }
 
 -- 攻击时的台词
 attackList = {
@@ -108,4 +104,14 @@ attackList = {
     "...等等",
     "...等-等",
 }
-attackLines = { zombieLine:new("%s", attackList) }
+local function handleCustom(linesTable, customList)
+    if  #customList ~= 0 then
+        table.insert( linesTable, zombieLine:new("%s", customList))
+    end
+end
+--handleCustom(idleLines,zombieLine:new("%s", IdleList))
+handleCustom(lungeLines,zombieLine:new("%s", lungeList))
+handleCustom(staggerLines,zombieLine:new("%s", staggerList))
+handleCustom(fakeDeadLines, zombieLine:new("%s", fakeDeadList))
+handleCustom(thumpingLines, zombieLine:new("%s", thumpingList))
+handleCustom(attackLines, zombieLine:new("%s", attackList) )

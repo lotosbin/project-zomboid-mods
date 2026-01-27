@@ -4,4 +4,4 @@ description=将 Lingering Voices 模组的所有僵尸台词翻译为中文。�
 poster=poster.png
 versionMin=42.13.1
 require=\Lingering Voices
-modversion=1.0.1
+modversion=1.0.2
