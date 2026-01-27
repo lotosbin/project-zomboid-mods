@@ -1,0 +1,2 @@
+## Workshop/bin2_b42/Contents/mods/Lingering Voices CN (被patch的mod Workshop/learn/Lingering Voices)
+- [x] Workshop/bin2_b42/Contents/mods/Lingering Voices CN/42/media/lua/server/LWtalking_patch.lua 没有效果, 还是英文的

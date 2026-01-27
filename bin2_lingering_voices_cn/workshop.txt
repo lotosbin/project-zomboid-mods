@@ -1,0 +1,6 @@
+version=1
+id=3654950612
+title=Lingering Voices CN
+description=Lingering Voices 僵尸台词中文化补丁。翻译所有僵尸台词为中文，包括扑击、踉跄、假死、敲门和攻击时的台词。
+tags=Build 42;Language/Translation
+visibility=public
