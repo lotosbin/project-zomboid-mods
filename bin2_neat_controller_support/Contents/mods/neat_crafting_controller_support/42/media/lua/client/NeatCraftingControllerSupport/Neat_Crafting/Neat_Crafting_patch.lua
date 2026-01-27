@@ -1,8 +1,8 @@
--- NeatControllerSupport: Neat_Crafting Patch
+-- NeatCraftingControllerSupport: Neat_Crafting Patch
 -- 手柄导航制作界面
 
 local NeatCraftingPatch = {}
-local JoypadUtil = require "NeatControllerSupport/JoypadUtil"
+local JoypadUtil = require "NeatCraftingControllerSupport/JoypadUtil"
 
 -- 按钮配置
 NeatCraftingPatch.CloseButton = JoypadUtil.BButton
@@ -16,8 +16,8 @@ NeatCraftingPatch.DPadDown = 11
 NeatCraftingPatch.DPadLeft = 12
 NeatCraftingPatch.DPadRight = 13
 
--- 导入面板补丁 (直接扩展 NC_RecipeList_Panel)
-require "NeatControllerSupport/Neat_Crafting/NC_RecipeList_Panel_patch"
+-- 导入面板补丁 (通过 OnGameBoot 延迟注入)
+local RecipeListPanelPatch = require "NeatCraftingControllerSupport/Neat_Crafting/NC_RecipeList_Panel_patch"
 
 local function getCategoryListPanel(window)
     if not window then return nil end
@@ -158,9 +158,11 @@ function NeatCraftingPatch:addJoypad(windowClass)
     end
 end
 
-function NeatCraftingPatch:addCategoryListJoypad()
+-- 只在 OnGameBoot 时注入 NC_CategoryList_Panel 方法
+local function injectCategoryListPanelMethods()
+    if not NC_CategoryList_Panel or NC_CategoryList_Panel._joypadMethodsInjected then return end
     local panel = NC_CategoryList_Panel
-    if not panel then return end
+    panel._joypadMethodsInjected = true
     if not panel.joypadCategoryIndex then panel.joypadCategoryIndex = 1 end
 
     local originalOnJoypadDown = panel.onJoypadDown
@@ -188,8 +190,18 @@ function NeatCraftingPatch:addCategoryListJoypad()
 end
 
 function NeatCraftingPatch:registerAll()
+    -- 注入 NC_RecipeList_Panel 方法
+    RecipeListPanelPatch.inject()
+    -- 注入 NC_CategoryList_Panel 方法
+    injectCategoryListPanelMethods()
+
+    -- 为 NC_HandcraftWindow 添加手柄支持
     if NC_HandcraftWindow then self:addJoypad(NC_HandcraftWindow) end
-    self:addCategoryListJoypad()
 end
+
+-- 注册 OnGameBoot 事件
+Events.OnGameBoot.Add(function()
+    NeatCraftingPatch:registerAll()
+end)
 
 return NeatCraftingPatch

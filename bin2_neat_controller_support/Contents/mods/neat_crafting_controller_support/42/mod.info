@@ -1,0 +1,17 @@
+name=Neat Crafting Controller Support
+id=Neat_Crafting_Controller_Support
+poster=poster.png
+author=bin^2
+modversion=1.3
+versionMin=42.13
+require=\Neat_Crafting_AddonXP
+description=为 Neat Crafting 和 Neat Building 添加手柄控制支持。
+description=
+description=【Neat Crafting 手柄控制】
+description=  方向键 - 上下切换配方，左右网格视图切换
+description=  A键 - 执行合成
+description=  B键 - 关闭界面
+description=  X键 - 切换"只显示可制作"
+description=  Y键 - 切换列表/网格视图
+description=  L1/R1 - 循环切换分类
+description=  右摇杆 - 控制合成数量（左右+/-，上max，下min）

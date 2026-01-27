@@ -1,4 +1,4 @@
--- NeatControllerSupport: NC_CategoryList_Panel Patch
+-- NeatCraftingControllerSupport: NC_CategoryList_Panel Patch
 -- Handle joypad navigation for category list
 
 local function getAllCategories(panel)
