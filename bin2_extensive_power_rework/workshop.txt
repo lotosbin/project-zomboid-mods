@@ -1,0 +1,7 @@
+version=1
+title=bin2's B42 mods
+description=bin2 的 Project Zomboid Build 42 模组包集合。包含多个实用模组的中文化补丁和手柄支持功能，为中文玩家提供更好的游戏体验。
+description=包含模组：
+description=- Lingering Voices CN - Lingering Voices 中文化补丁
+tags=Build 42;Language/Translation
+visibility=public

@@ -1,0 +1,8 @@
+name=Extensive Power Rework CN
+id=EPR_B42_CN
+author=bin^2
+description=Power and water infrastructure overhaul for Project Zomboid B42. Repair substations and water treatment facilities to restore utilities to zones.
+poster=poster.png
+modversion=1.0.0
+versionMin=42.0.0
+require=\EPR_B42
