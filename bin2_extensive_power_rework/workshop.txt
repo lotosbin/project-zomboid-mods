@@ -1,7 +1,8 @@
 version=1
+id=3655315287
 title=bin2 的 Extensive Power Rework B42 中文补丁
 description=bin2 的 Extensive Power Rework B42 中文补丁
 description=包含模组：
 description=- Extensive Power Rework B42 CN 中文补丁
-tags=Build 42;Language/Translation
+tags=Build 42;Language/Translation;QoL
 visibility=public
