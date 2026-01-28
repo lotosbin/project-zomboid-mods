@@ -1,0 +1,12 @@
+local EPR_ContextMenu = {
+    ["EPR Grid"] = "电网",
+    ["Disconnect Building from EPR Grid"] = "断开建筑与电网的连接",
+    ["Connect Building to EPR Grid"] = "将建筑连接到电网",
+    ["Disconnect Streetlight from EPR Grid"] = "断开路灯与电网的连接",
+    ["Connect Streetlight to EPR Grid"] = "将路灯连接到电网",
+}
+
+ContextMenu_CN = ContextMenu_CN or {}
+for key, value in pairs(EPR_ContextMenu) do
+    ContextMenu_CN[key] = value
+end

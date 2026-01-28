@@ -2,130 +2,136 @@ local EPR_Sandbox = {
     -- ============================================
     -- PAGE TITLE
     -- ============================================
-    Sandbox_EPR = "Extensive Power Rework",
+    Sandbox_EPR = "电力系统改造",
 
     -- ============================================
     -- REPAIR SPEED SETTINGS
     -- ============================================
-    Sandbox_EPR_RepairSpeedMultiplier = "Repair Speed Multiplier",
-    Sandbox_EPR_RepairSpeedMultiplier_tooltip = "Multiplies all repair times. Lower = faster repairs. Default: 1.0",
+    Sandbox_EPR_RepairSpeedMultiplier = "维修速度倍率",
+    Sandbox_EPR_RepairSpeedMultiplier_tooltip = "所有维修时间的倍率。数值越低 = 维修越快。默认值：1.0",
 
-    Sandbox_EPR_AssessmentTimeMinutes = "Assessment Time (minutes)",
-    Sandbox_EPR_AssessmentTimeMinutes_tooltip = "Base time for the damage assessment stage. Default: 30 minutes",
+    Sandbox_EPR_AssessmentTimeMinutes = "评估时间（分钟）",
+    Sandbox_EPR_AssessmentTimeMinutes_tooltip = "损坏评估阶段的基础时间。默认值：30 分钟",
 
-    Sandbox_EPR_PartReplacementTimeMinutes = "Part Replacement Time (minutes)",
-    Sandbox_EPR_PartReplacementTimeMinutes_tooltip = "Base time for the part replacement stage. Default: 360 minutes (6 hours)",
+    Sandbox_EPR_PartReplacementTimeMinutes = "部件更换时间（分钟）",
+    Sandbox_EPR_PartReplacementTimeMinutes_tooltip = "部件更换阶段的基础时间。默认值：360 分钟（6 小时）",
 
-    Sandbox_EPR_CalibrationTimeMinutes = "Calibration Time (minutes)",
-    Sandbox_EPR_CalibrationTimeMinutes_tooltip = "Base time for the calibration stage. Default: 90 minutes",
+    Sandbox_EPR_CalibrationTimeMinutes = "校准时间（分钟）",
+    Sandbox_EPR_CalibrationTimeMinutes_tooltip = "校准阶段的基础时间。默认值：90 分钟",
 
-    Sandbox_EPR_StartupDefenseTimeMinutes = "Startup Defense Time (minutes)",
-    Sandbox_EPR_StartupDefenseTimeMinutes_tooltip = "Time you must defend the facility during startup. Default: 5 minutes",
+    Sandbox_EPR_StartupDefenseTimeMinutes = "启动防御时间（分钟）",
+    Sandbox_EPR_StartupDefenseTimeMinutes_tooltip = "启动期间必须防御设施的时间。默认值：5 分钟",
 
     -- ============================================
     -- SKILL REQUIREMENTS
     -- ============================================
-    Sandbox_EPR_SkillRequirementMultiplier = "Skill Requirement Multiplier",
-    Sandbox_EPR_SkillRequirementMultiplier_tooltip = "Multiplies all skill requirements. Lower = easier. Default: 1.0",
+    Sandbox_EPR_SkillRequirementMultiplier = "技能要求倍率",
+    Sandbox_EPR_SkillRequirementMultiplier_tooltip = "所有技能要求的倍率。数值越低 = 越容易。默认值：1.0",
 
-    Sandbox_EPR_MinElectricalSkill = "Min Electrical Skill (Substations)",
-    Sandbox_EPR_MinElectricalSkill_tooltip = "Minimum Electrical skill to repair power substations. Default: 7",
+    Sandbox_EPR_MinElectricalSkill = "最低电气技能（变电站）",
+    Sandbox_EPR_MinElectricalSkill_tooltip = "维修电力变电站所需的最低电气技能。默认值：7",
 
-    Sandbox_EPR_MinMetalworkSkill = "Min Welding Skill (Substations)",
-    Sandbox_EPR_MinMetalworkSkill_tooltip = "Minimum Welding skill to repair power substations. Default: 4",
+    Sandbox_EPR_MinMetalworkSkill = "最低焊接技能（变电站）",
+    Sandbox_EPR_MinMetalworkSkill_tooltip = "维修电力变电站所需的最低焊接技能。默认值：4",
 
-    Sandbox_EPR_FieldComponentCount = "Field Repair Points",
-    Sandbox_EPR_FieldComponentCount_tooltip = "Number of additional repair points to fix after the main control panel. Default: 2",
+    Sandbox_EPR_FieldComponentCount = "现场维修点数",
+    Sandbox_EPR_FieldComponentCount_tooltip = "主控面板后需要修复的额外维修点数量。默认值：2",
 
-    Sandbox_EPR_WaterPlantElectricalSkill = "Min Electrical Skill (Water Plants)",
-    Sandbox_EPR_WaterPlantElectricalSkill_tooltip = "Minimum Electrical skill to repair water plants. Default: 5",
+    Sandbox_EPR_WaterPlantElectricalSkill = "最低电气技能（水厂）",
+    Sandbox_EPR_WaterPlantElectricalSkill_tooltip = "维修水厂所需的最低电气技能。默认值：5",
 
-    Sandbox_EPR_WaterPlantMetalworkSkill = "Min Welding Skill (Water Plants)",
-    Sandbox_EPR_WaterPlantMetalworkSkill_tooltip = "Minimum Welding skill to repair water plants. Default: 5",
+    Sandbox_EPR_WaterPlantMetalworkSkill = "最低焊接技能（水厂）",
+    Sandbox_EPR_WaterPlantMetalworkSkill_tooltip = "维修水厂所需的最低焊接技能。默认值：5",
 
     -- ============================================
     -- MAINTENANCE & DEGRADATION
     -- ============================================
-    Sandbox_EPR_DegradationRate = "Degradation Rate",
-    Sandbox_EPR_DegradationRate_tooltip = "How fast facilities lose health over time. Higher = faster degradation. Default: 1.0",
+    Sandbox_EPR_DegradationRate = "退化速度",
+    Sandbox_EPR_DegradationRate_tooltip = "设施随时间损失生命值的速度。数值越高 = 退化越快。默认值：1.0",
 
-    Sandbox_EPR_RandomBreakdownEnabled = "Random Breakdowns",
-    Sandbox_EPR_RandomBreakdownEnabled_tooltip = "Enable random breakdowns for low-health facilities. Default: On",
+    Sandbox_EPR_RandomBreakdownEnabled = "随机故障",
+    Sandbox_EPR_RandomBreakdownEnabled_tooltip = "为低生命值设施启用随机故障。默认值：开启",
 
-    Sandbox_EPR_BreakdownWarningEnabled = "Breakdown Warnings",
-    Sandbox_EPR_BreakdownWarningEnabled_tooltip = "Show warnings when facility health is critically low. Default: On",
+    Sandbox_EPR_BreakdownWarningEnabled = "故障警告",
+    Sandbox_EPR_BreakdownWarningEnabled_tooltip = "当设施生命值极低时显示警告。默认值：开启",
 
     -- ============================================
     -- ZOMBIE ATTRACTION
     -- ============================================
-    Sandbox_EPR_ZombieAttractionEnabled = "Zombie Attraction",
-    Sandbox_EPR_ZombieAttractionEnabled_tooltip = "Repairs and startup attract nearby zombies. Default: On",
+    Sandbox_EPR_ZombieAttractionEnabled = "僵尸吸引",
+    Sandbox_EPR_ZombieAttractionEnabled_tooltip = "维修和启动会吸引附近的僵尸。默认值：开启",
 
-    Sandbox_EPR_ZombieAttractionMultiplier = "Zombie Attraction Multiplier",
-    Sandbox_EPR_ZombieAttractionMultiplier_tooltip = "How many zombies are attracted. Higher = more zombies. Default: 1.0",
+    Sandbox_EPR_ZombieAttractionMultiplier = "僵尸吸引倍率",
+    Sandbox_EPR_ZombieAttractionMultiplier_tooltip = "吸引的僵尸数量。数值越高 = 僵尸越多。默认值：1.0",
 
-    Sandbox_EPR_RepairNoiseRadius = "Repair Noise Radius",
-    Sandbox_EPR_RepairNoiseRadius_tooltip = "How far repair sounds travel (in tiles). Default: 100",
+    Sandbox_EPR_RepairNoiseRadius = "维修噪音半径",
+    Sandbox_EPR_RepairNoiseRadius_tooltip = "维修声音传播的距离（以格为单位）。默认值：100",
 
-    Sandbox_EPR_StartupNoiseRadius = "Startup Noise Radius",
-    Sandbox_EPR_StartupNoiseRadius_tooltip = "How far startup sounds travel (in tiles). Startup is LOUD! Default: 150",
+    Sandbox_EPR_StartupNoiseRadius = "启动噪音半径",
+    Sandbox_EPR_StartupNoiseRadius_tooltip = "启动声音传播的距离（以格为单位）。启动声音很大！默认值：150",
 
     -- ============================================
     -- PART & TOOL REQUIREMENTS
     -- ============================================
-    Sandbox_EPR_PartRequirementMultiplier = "Part Requirement Multiplier",
-    Sandbox_EPR_PartRequirementMultiplier_tooltip = "Multiplies number of parts needed. Lower = fewer parts. Default: 1.0",
+    Sandbox_EPR_PartRequirementMultiplier = "部件要求倍率",
+    Sandbox_EPR_PartRequirementMultiplier_tooltip = "所需部件数量的倍率。数值越低 = 部件越少。默认值：1.0",
 
-    Sandbox_EPR_RequireTools = "Require Tools",
-    Sandbox_EPR_RequireTools_tooltip = "Require specific tools to perform repairs. Default: On",
+    Sandbox_EPR_RequireTools = "需要工具",
+    Sandbox_EPR_RequireTools_tooltip = "需要特定工具才能进行维修。默认值：开启",
 
-    Sandbox_EPR_ToolsConsumed = "Tools Get Damaged",
-    Sandbox_EPR_ToolsConsumed_tooltip = "Tools lose durability when used for repairs. Default: On",
+    Sandbox_EPR_ToolsConsumed = "工具会损坏",
+    Sandbox_EPR_ToolsConsumed_tooltip = "工具用于维修时会损失耐久度。默认值：开启",
 
     -- ============================================
     -- GENERATOR SETTINGS
     -- ============================================
-    Sandbox_EPR_GeneratorFuelConsumption = "Generator Fuel Consumption",
-    Sandbox_EPR_GeneratorFuelConsumption_tooltip = "Fuel consumption rate for portable generators. Default: 1.0",
+    Sandbox_EPR_GeneratorFuelConsumption = "发电机燃料消耗",
+    Sandbox_EPR_GeneratorFuelConsumption_tooltip = "便携式发电机的燃料消耗率。默认值：1.0",
 
-    Sandbox_EPR_GeneratorAutoConnect = "Auto-Connect Generators",
-    Sandbox_EPR_GeneratorAutoConnect_tooltip = "Generators automatically connect to nearby buildings. Default: On",
+    Sandbox_EPR_GeneratorAutoConnect = "自动连接发电机",
+    Sandbox_EPR_GeneratorAutoConnect_tooltip = "发电机会自动连接到附近的建筑物。默认值：开启",
 
-    Sandbox_EPR_SpriteGeneratorVirtualOnly = "Sprite Generators: Virtual Only",
-    Sandbox_EPR_SpriteGeneratorVirtualOnly_tooltip = "Use virtual power only (no physical generator object). Turn off for legacy generator behavior. Default: On",
+    Sandbox_EPR_SpriteGeneratorVirtualOnly = "精灵发电机：仅虚拟",
+    Sandbox_EPR_SpriteGeneratorVirtualOnly_tooltip = "仅使用虚拟电力（无物理发电机对象）。关闭以使用传统发电机行为。默认值：开启",
 
     -- ============================================
     -- WATER TANK SETTINGS
     -- ============================================
-    Sandbox_EPR_WaterTankRequiresPower = "Water Tanks Require Power",
-    Sandbox_EPR_WaterTankRequiresPower_tooltip = "Water tanks need power to function. Default: Off",
+    Sandbox_EPR_WaterTankRequiresPower = "水箱需要电力",
+    Sandbox_EPR_WaterTankRequiresPower_tooltip = "水箱需要电力才能工作。默认值：关闭",
 
-    Sandbox_EPR_ManualPumpEnabled = "Manual Pump Option",
-    Sandbox_EPR_ManualPumpEnabled_tooltip = "Allow manual pumping from water tanks without power. Default: On",
+    Sandbox_EPR_ManualPumpEnabled = "手动泵选项",
+    Sandbox_EPR_ManualPumpEnabled_tooltip = "允许在没有电力的情况下从水箱手动泵水。默认值：开启",
 
     -- ============================================
     -- GRID HIERARCHY
     -- ============================================
-    Sandbox_EPR_RequirePrerequisite = "Require Louisville First",
-    Sandbox_EPR_RequirePrerequisite_tooltip = "Must repair Louisville Combined Plant before other facilities. Default: On",
+    Sandbox_EPR_RequirePrerequisite = "必须先修复路易斯维尔",
+    Sandbox_EPR_RequirePrerequisite_tooltip = "必须先修复路易斯维尔联合电厂才能修复其他设施。默认值：开启",
 
-    Sandbox_EPR_LouisvillePlantEnabled = "Louisville Plant Available",
-    Sandbox_EPR_LouisvillePlantEnabled_tooltip = "Enable the Louisville Combined Utility Plant. Default: On",
+    Sandbox_EPR_LouisvillePlantEnabled = "路易斯维尔电厂可用",
+    Sandbox_EPR_LouisvillePlantEnabled_tooltip = "启用路易斯维尔联合公用设施电厂。默认值：开启",
 
     -- ============================================
     -- DEBUG & MISC
     -- ============================================
-    Sandbox_EPR_DebugMode = "Debug Mode",
-    Sandbox_EPR_DebugMode_tooltip = "Show debug information in console. Default: Off",
+    Sandbox_EPR_DebugMode = "调试模式",
+    Sandbox_EPR_DebugMode_tooltip = "在控制台中显示调试信息。默认值：关闭",
 
-    Sandbox_EPR_ShowMapOverlay = "Map Overlay",
-    Sandbox_EPR_ShowMapOverlay_tooltip = "Show facility locations on the map. Default: On",
+    Sandbox_EPR_ShowMapOverlay = "地图覆盖",
+    Sandbox_EPR_ShowMapOverlay_tooltip = "在地图上显示设施位置。默认值：开启",
 
-    Sandbox_EPR_RequirePowerOff = "Require Power Shutoff",
-    Sandbox_EPR_RequirePowerOff_tooltip = "Only allow repairs after vanilla power shuts off. Default: On",
+    Sandbox_EPR_RequirePowerOff = "需要断电",
+    Sandbox_EPR_RequirePowerOff_tooltip = "仅在原版电力关闭后允许维修。默认值：开启",
+
+        ["EPR Grid"] = "电网",
+        ["Disconnect Building from EPR Grid"] = "断开建筑与电网的连接",
+        ["Connect Building to EPR Grid"] = "将建筑连接到电网",
+        ["Disconnect Streetlight from EPR Grid"] = "断开路灯与电网的连接",
+        ["Connect Streetlight to EPR Grid"] = "将路灯连接到电网",
 }
 
-Sandbox_EN = Sandbox_EN or {}
+Sandbox_CN = Sandbox_CN or {}
 for key, value in pairs(EPR_Sandbox) do
-    Sandbox_EN[key] = value
+    Sandbox_CN[key] = value
 end
