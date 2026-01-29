@@ -1,179 +1,179 @@
-﻿Sandbox_CN = {
+Sandbox_CN = {
     -- ============================================
     -- MAIN MOD PAGE (required for sandbox visibility)
     -- ============================================
-    Sandbox_ExtensiveHealthRework = "Extensive Health Rework",
+    Sandbox_ExtensiveHealthRework = "全面健康重制版",
 
     -- ============================================
     -- PAGE NAMES
     -- ============================================
-    Sandbox_EHR_Blood = "EHR: Blood System",
-    Sandbox_EHR_Disease = "EHR: Disease",
-    Sandbox_EHR_Loot = "EHR: Loot",
-    Sandbox_EHR_Temperature = "EHR: Body Temperature",
-    Sandbox_EHR_Comp = "EHR: Compatibility",
-    Sandbox_EHR_Other = "EHR: Other",
-    Sandbox_EHR_Debug = "EHR: Debug",
+    Sandbox_EHR_Blood = "EHR: 血液系统",
+    Sandbox_EHR_Disease = "EHR: 疾病",
+    Sandbox_EHR_Loot = "EHR: 战利品",
+    Sandbox_EHR_Temperature = "EHR: 体温",
+    Sandbox_EHR_Comp = "EHR: 兼容性",
+    Sandbox_EHR_Other = "EHR: 其他",
+    Sandbox_EHR_Debug = "EHR: 调试",
 
     -- ============================================
     -- BLOOD SYSTEM
     -- ============================================
-    Sandbox_EHR_BloodLossMultiplier = "Blood Loss Multiplier",
-    Sandbox_EHR_BloodLossMultiplier_tooltip = "How fast blood drains from wounds. 1.0 = normal, 2.0 = twice as fast.",
-    Sandbox_EHR_BloodThresholdHealthy = "Healthy Blood Threshold (%)",
-    Sandbox_EHR_BloodThresholdHealthy_tooltip = "Blood percentage above which character is considered healthy.",
-    Sandbox_EHR_BloodThresholdMild = "Mild Loss Threshold (%)",
-    Sandbox_EHR_BloodThresholdMild_tooltip = "Blood percentage for mild blood loss effects.",
-    Sandbox_EHR_BloodThresholdModerate = "Moderate Loss Threshold (%)",
-    Sandbox_EHR_BloodThresholdModerate_tooltip = "Blood percentage for moderate blood loss. Below this is CRITICAL.",
-    Sandbox_EHR_BloodRegenEnabled = "Enable Blood Regeneration",
-    Sandbox_EHR_BloodRegenEnabled_tooltip = "Allow natural blood regeneration over time. <LINE> <LINE> HOW IT WORKS: <LINE> - Your body regenerates blood naturally when bleeding has stopped <LINE> - Regeneration only begins after a delay period (no active bleeding) <LINE> - Regeneration ONLY works if blood is above the minimum threshold <LINE> - Being fed, hydrated, and rested speeds up regeneration <LINE> <LINE> IMPORTANT: Transfusions are still the fastest way to restore blood in emergencies!",
-    Sandbox_EHR_BloodRegenDelayHours = "Blood Regen Delay (hours)",
-    Sandbox_EHR_BloodRegenDelayHours_tooltip = "Hours without bleeding before regeneration begins. <LINE> <LINE> HOW IT WORKS: <LINE> - Timer resets every time you start bleeding again <LINE> - Simulates your body stabilizing before producing new blood <LINE> - Lower values = faster recovery start <LINE> - Higher values = more realistic (body needs time to recover) <LINE> <LINE> RECOMMENDED: 2.0 hours (default) for balanced gameplay.",
-    Sandbox_EHR_BloodRegenRatePerHour = "Blood Regen Rate (mL/hour)",
-    Sandbox_EHR_BloodRegenRatePerHour_tooltip = "Milliliters of blood regenerated per in-game hour. <LINE> <LINE> REFERENCE (5000 mL max blood): <LINE> - 50 mL/hr (default) = ~70 hours to fully recover from critical <LINE> - 100 mL/hr = ~35 hours to fully recover <LINE> - 200 mL/hr = ~17 hours (arcade mode) <LINE> <LINE> Real human regeneration is ~40-50 mL/hour. <LINE> Being well-fed and hydrated provides a 50% bonus!",
-    Sandbox_EHR_BloodRegenMinimumPercent = "Blood Regen Min Threshold (%)",
-    Sandbox_EHR_BloodRegenMinimumPercent_tooltip = "Minimum blood percentage required for regeneration to work. <LINE> <LINE> HOW IT WORKS: <LINE> - Below this threshold, your body is too weak to regenerate <LINE> - You MUST use blood transfusions to get above this level <LINE> - Simulates critical blood loss requiring medical intervention <LINE> <LINE> EXAMPLE (30% default, 5000 mL max): <LINE> - Below 1500 mL = NO natural regeneration <LINE> - Need transfusion to reach 1500+ mL first <LINE> <LINE> Lower = more forgiving, Higher = more realistic/hardcore.",
-    Sandbox_EHR_BlackoutEnabled = "Enable Blackouts",
-    Sandbox_EHR_BlackoutEnabled_tooltip = "Allow character to black out from critical blood loss.",
-    Sandbox_EHR_BlackoutCooldownHours = "Blackout Cooldown (hours)",
-    Sandbox_EHR_BlackoutCooldownHours_tooltip = "In-game hours between possible blackouts.",
-    Sandbox_EHR_BlackoutChance = "Blackout Chance (1 in X)",
-    Sandbox_EHR_BlackoutChance_tooltip = "Random chance per tick. Lower = more frequent. 50 = 1 in 50 chance.",
+    Sandbox_EHR_BloodLossMultiplier = "失血倍率",
+    Sandbox_EHR_BloodLossMultiplier_tooltip = "伤口失血速度。1.0 = 正常，2.0 = 两倍速度。",
+    Sandbox_EHR_BloodThresholdHealthy = "健康血液阈值 (%)",
+    Sandbox_EHR_BloodThresholdHealthy_tooltip = "血液百分比，高于此值被视为健康。",
+    Sandbox_EHR_BloodThresholdMild = "轻度失血阈值 (%)",
+    Sandbox_EHR_BloodThresholdMild_tooltip = "轻度失血效果的血液百分比。",
+    Sandbox_EHR_BloodThresholdModerate = "中度失血阈值 (%)",
+    Sandbox_EHR_BloodThresholdModerate_tooltip = "中度失血的血液百分比。低于此值为危急。",
+    Sandbox_EHR_BloodRegenEnabled = "启用血液再生",
+    Sandbox_EHR_BloodRegenEnabled_tooltip = "允许自然时间内血液再生。 <LINE> <LINE> 工作原理： <LINE> - 止血后身体会自然再生血液 <LINE> - 再生只在延迟期后开始（无活跃出血） <LINE> - 再生仅在血液高于最低阈值时生效 <LINE> - 吃饱、喝足、休息充足可加速再生 <LINE> <LINE> 重要提示：紧急情况下输血仍是恢复血液的最快方式！",
+    Sandbox_EHR_BloodRegenDelayHours = "血液再生延迟（小时）",
+    Sandbox_EHR_BloodRegenDelayHours_tooltip = "无出血状态多久后开始再生。 <LINE> <LINE> 工作原理： <LINE> - 再次出血时计时器重置 <LINE> - 模拟身体稳定后才产生新血液 <LINE> - 数值越低，恢复开始越快 <LINE> - 数值越高越真实（身体需要时间恢复） <LINE> <LINE> 推荐：2.0小时（默认），平衡游戏体验。",
+    Sandbox_EHR_BloodRegenRatePerHour = "血液再生速率（毫升/小时）",
+    Sandbox_EHR_BloodRegenRatePerHour_tooltip = "每游戏小时再生的血液毫升数。 <LINE> <LINE> 参考（最大血液5000毫升）： <LINE> - 50毫升/小时（默认）= 从危急状态完全恢复约需70小时 <LINE> - 100毫升/小时 = 完全恢复约需35小时 <LINE> - 200毫升/小时 = 约17小时（街机模式） <LINE> <LINE> 人类真实再生速度约为40-50毫升/小时。 <LINE> 吃饱喝足可获得50%加成！",
+    Sandbox_EHR_BloodRegenMinimumPercent = "血液再生最低阈值 (%)",
+    Sandbox_EHR_BloodRegenMinimumPercent_tooltip = "再生所需的最低血液百分比。 <LINE> <LINE> 工作原理： <LINE> - 低于此阈值时，身体太虚弱无法再生 <LINE> - 必须使用输血使血液达到此水平以上 <LINE> - 模拟需要医疗干预的危急失血 <LINE> <LINE> 示例（默认30%，最大5000毫升）： <LINE> - 低于1500毫升 = 无自然再生 <LINE> - 需要先输血达到1500毫升以上 <LINE> <LINE> 越低越宽容，越高越真实/硬核。",
+    Sandbox_EHR_BlackoutEnabled = "启用昏迷",
+    Sandbox_EHR_BlackoutEnabled_tooltip = "允许角色因危急失血而昏迷。",
+    Sandbox_EHR_BlackoutCooldownHours = "昏迷冷却（小时）",
+    Sandbox_EHR_BlackoutCooldownHours_tooltip = "可能再次昏迷的游戏小时间隔。",
+    Sandbox_EHR_BlackoutChance = "昏迷概率（1/X）",
+    Sandbox_EHR_BlackoutChance_tooltip = "每次tick的随机概率。越低越频繁。50 = 50分之一概率。",
 
     -- ============================================
     -- HEALING REQUIREMENTS
     -- ============================================
-    Sandbox_EHR_HealingRequiresFed = "Healing Requires Fed",
-    Sandbox_EHR_HealingRequiresFed_tooltip = "Body parts only heal when not hungry.",
-    Sandbox_EHR_HealingRequiresHydrated = "Healing Requires Hydrated",
-    Sandbox_EHR_HealingRequiresHydrated_tooltip = "Body parts only heal when not thirsty.",
-    Sandbox_EHR_HealingRequiresRested = "Healing Requires Rested",
-    Sandbox_EHR_HealingRequiresRested_tooltip = "Body parts only heal when not exhausted.",
-    Sandbox_EHR_HealingRequiresCalm = "Healing Requires Calm",
-    Sandbox_EHR_HealingRequiresCalm_tooltip = "Body parts only heal when not stressed.",
-    Sandbox_EHR_HealingRequiresNoPain = "Healing Requires No Pain",
-    Sandbox_EHR_HealingRequiresNoPain_tooltip = "Body parts only heal when not in significant pain.",
+    Sandbox_EHR_HealingRequiresFed = "愈合需要饱食",
+    Sandbox_EHR_HealingRequiresFed_tooltip = "身体部位只在不饥饿时愈合。",
+    Sandbox_EHR_HealingRequiresHydrated = "愈合需要水分",
+    Sandbox_EHR_HealingRequiresHydrated_tooltip = "身体部位只在不口渴时愈合。",
+    Sandbox_EHR_HealingRequiresRested = "愈合需要休息",
+    Sandbox_EHR_HealingRequiresRested_tooltip = "身体部位只在不疲惫时愈合。",
+    Sandbox_EHR_HealingRequiresCalm = "愈合需要平静",
+    Sandbox_EHR_HealingRequiresCalm_tooltip = "身体部位只在不紧张时愈合。",
+    Sandbox_EHR_HealingRequiresNoPain = "愈合需要无痛",
+    Sandbox_EHR_HealingRequiresNoPain_tooltip = "身体部位只在无剧痛时愈合。",
 
     -- ============================================
     -- WOUNDS & INFECTION
     -- ============================================
-    Sandbox_EHR_WoundInfectionEnabled = "Enable Wound Infections",
-    Sandbox_EHR_WoundInfectionEnabled_tooltip = "Untreated wounds can become infected.",
-    Sandbox_EHR_WoundInfectionSpeed = "Wound Infection Speed",
-    Sandbox_EHR_WoundInfectionSpeed_tooltip = "How fast infections progress. 1.0 = normal, 2.0 = twice as fast.",
-    Sandbox_EHR_SepsisEnabled = "Enable Sepsis",
-    Sandbox_EHR_SepsisEnabled_tooltip = "Severe infections can cause sepsis (life-threatening).",
-    Sandbox_EHR_SepsisSpeed = "Sepsis Speed",
-    Sandbox_EHR_SepsisSpeed_tooltip = "How fast sepsis progresses. 1.0 = normal, 2.0 = twice as fast.",
-    Sandbox_EHR_TetanusEnabled = "Enable Tetanus",
-    Sandbox_EHR_TetanusEnabled_tooltip = "LETHAL lockjaw from rusty/dirty deep wounds. Long incubation (3-7 days), then spasms, can't eat, death. Rare antitoxin required to survive.",
+    Sandbox_EHR_WoundInfectionEnabled = "启用伤口感染",
+    Sandbox_EHR_WoundInfectionEnabled_tooltip = "未处理的伤口可能感染。",
+    Sandbox_EHR_WoundInfectionSpeed = "伤口感染速度",
+    Sandbox_EHR_WoundInfectionSpeed_tooltip = "感染发展速度。1.0 = 正常，2.0 = 两倍速度。",
+    Sandbox_EHR_SepsisEnabled = "启用败血症",
+    Sandbox_EHR_SepsisEnabled_tooltip = "严重感染可导致败血症（致命）。",
+    Sandbox_EHR_SepsisSpeed = "败血症速度",
+    Sandbox_EHR_SepsisSpeed_tooltip = "败血症发展速度。1.0 = 正常，2.0 = 两倍速度。",
+    Sandbox_EHR_TetanusEnabled = "启用破伤风",
+    Sandbox_EHR_TetanusEnabled_tooltip = "生锈/脏污的深伤口会导致致命的牙关紧闭。潜伏期长（3-7天），然后痉挛，无法进食，死亡。需要罕见的抗毒素才能存活。",
 
     -- ============================================
     -- DISEASES - GENERAL
     -- ============================================
-    Sandbox_EHR_DiseaseEnabled = "Enable Diseases",
-    Sandbox_EHR_DiseaseEnabled_tooltip = "Enable food poisoning and other diseases.",
-    Sandbox_EHR_DiseaseSpeed = "Disease Speed",
-    Sandbox_EHR_DiseaseSpeed_tooltip = "How fast diseases progress. 1.0 = normal, 2.0 = twice as fast.",
-    Sandbox_EHR_MisdiagnosisConsequences = "Misdiagnosis Consequences",
-    Sandbox_EHR_MisdiagnosisConsequences_tooltip = "Wrong self-diagnosis can lead to ineffective treatment. Higher First Aid skill = better accuracy.",
+    Sandbox_EHR_DiseaseEnabled = "启用疾病",
+    Sandbox_EHR_DiseaseEnabled_tooltip = "启用食物中毒和其他疾病。",
+    Sandbox_EHR_DiseaseSpeed = "疾病速度",
+    Sandbox_EHR_DiseaseSpeed_tooltip = "疾病发展速度。1.0 = 正常，2.0 = 两倍速度。",
+    Sandbox_EHR_MisdiagnosisConsequences = "误诊后果",
+    Sandbox_EHR_MisdiagnosisConsequences_tooltip = "错误的自我诊断可能导致无效治疗。急救技能越高，准确度越好。",
 
     -- ============================================
     -- DISEASES - FOOD & WATER
     -- ============================================
-    Sandbox_EHR_FoodPoisoningEnabled = "Enable Food Poisoning",
-    Sandbox_EHR_FoodPoisoningEnabled_tooltip = "Rotten, raw, or burned food causes food poisoning. Nausea, vomiting, dehydration. Survivable with proper hydration.",
-    Sandbox_EHR_GastroenteritisEnabled = "Enable Gastroenteritis",
-    Sandbox_EHR_GastroenteritisEnabled_tooltip = "Stomach bug from eating with dirty/bloody hands. Causes vomiting and dehydration. Wash your hands!",
-    Sandbox_EHR_TrichinosisEnabled = "Enable Trichinosis",
-    Sandbox_EHR_TrichinosisEnabled_tooltip = "Parasitic worm infection from raw/undercooked wild game (rats, boar, bear). SEVERE muscle pain, can be lethal. Cook your meat!",
-    Sandbox_EHR_DysenteryEnabled = "Enable Dysentery",
-    Sandbox_EHR_DysenteryEnabled_tooltip = "Drinking contaminated water can cause dysentery. LETHAL through dehydration.",
+    Sandbox_EHR_FoodPoisoningEnabled = "启用食物中毒",
+    Sandbox_EHR_FoodPoisoningEnabled_tooltip = "腐烂、生或烧焦的食物会导致食物中毒。恶心、呕吐、脱水。适当补水可存活。",
+    Sandbox_EHR_GastroenteritisEnabled = "启用胃肠炎",
+    Sandbox_EHR_GastroenteritisEnabled_tooltip = "用脏手/血手吃饭会导致胃病。导致呕吐和脱水。洗手！",
+    Sandbox_EHR_TrichinosisEnabled = "启用旋毛虫病",
+    Sandbox_EHR_TrichinosisEnabled_tooltip = "食用生/未煮熟的野生动物（老鼠、野猪、熊）导致的寄生虫感染。严重肌肉疼痛，可能致命。把肉煮熟！",
+    Sandbox_EHR_DysenteryEnabled = "启用痢疾",
+    Sandbox_EHR_DysenteryEnabled_tooltip = "饮用受污染的水会导致痢疾。脱水可致命。",
 
     -- ============================================
     -- DISEASES - ENVIRONMENTAL
     -- ============================================
-    Sandbox_EHR_CommonColdEnabled = "Enable Common Cold",
-    Sandbox_EHR_CommonColdEnabled_tooltip = "Cold weather + wet exposure can cause common cold. Can progress to pneumonia.",
-    Sandbox_EHR_PneumoniaEnabled = "Enable Pneumonia",
-    Sandbox_EHR_PneumoniaEnabled_tooltip = "Untreated cold can become pneumonia. LETHAL without antibiotics. Coughing attracts zombies!",
-    Sandbox_EHR_HypothermiaEnabled = "Enable Hypothermia",
-    Sandbox_EHR_HypothermiaEnabled_tooltip = "Extreme cold + wet exposure causes hypothermia. LETHAL - cardiac arrest risk.",
-    Sandbox_EHR_HeatExhaustionEnabled = "Enable Heat Exhaustion",
-    Sandbox_EHR_HeatExhaustionEnabled_tooltip = "Hot weather + exertion + dehydration causes heat exhaustion. Can progress to LETHAL heat stroke. Get shade and water!",
-    Sandbox_EHR_EnvironmentalDiseaseSpeed = "Environmental Disease Speed",
-    Sandbox_EHR_EnvironmentalDiseaseSpeed_tooltip = "How fast environmental diseases (cold, hypothermia, dysentery) progress. 1.0 = normal.",
+    Sandbox_EHR_CommonColdEnabled = "启用普通感冒",
+    Sandbox_EHR_CommonColdEnabled_tooltip = "寒冷天气 + 潮湿暴露可能导致普通感冒。可发展为肺炎。",
+    Sandbox_EHR_PneumoniaEnabled = "启用肺炎",
+    Sandbox_EHR_PneumoniaEnabled_tooltip = "未治疗的感冒可发展为肺炎。没有抗生素会致命。咳嗽会吸引僵尸！",
+    Sandbox_EHR_HypothermiaEnabled = "启用低体温症",
+    Sandbox_EHR_HypothermiaEnabled_tooltip = "极度寒冷 + 潮湿暴露会导致低体温症。致命 - 心脏骤停风险。",
+    Sandbox_EHR_HeatExhaustionEnabled = "启用热衰竭",
+    Sandbox_EHR_HeatExhaustionEnabled_tooltip = "炎热天气 + 劳累 + 脱水会导致热衰竭。可发展为致命的中暑。找阴凉处和水！",
+    Sandbox_EHR_EnvironmentalDiseaseSpeed = "环境疾病速度",
+    Sandbox_EHR_EnvironmentalDiseaseSpeed_tooltip = "环境疾病（感冒、低体温、痢疾）的发展速度。1.0 = 正常。",
 
     -- ============================================
     -- DISEASES - CORPSE EXPOSURE
     -- ============================================
-    Sandbox_EHR_AspergilliosisEnabled = "Enable Cadaveric Aspergillosis",
-    Sandbox_EHR_AspergilliosisEnabled_tooltip = "Fungal lung infection from prolonged exposure to decaying corpses in damp environments. Progressive respiratory failure.",
-    Sandbox_EHR_PutrefactionSicknessEnabled = "Enable Putrefaction Sickness",
-    Sandbox_EHR_PutrefactionSicknessEnabled_tooltip = "H2S gas poisoning from corpses in enclosed spaces. Causes olfactory fatigue (stop smelling = DANGER). Can knock you unconscious!",
-    Sandbox_EHR_TuberculosisEnabled = "Enable Tuberculosis",
-    Sandbox_EHR_TuberculosisEnabled_tooltip = "CHRONIC disease from long-term corpse exposure. Takes weeks/months to contract. LETHAL without sustained antibiotic treatment (21+ days). Bloody cough, weight loss.",
-    Sandbox_EHR_CorpseDiseaseSpeed = "Corpse Disease Speed",
-    Sandbox_EHR_CorpseDiseaseSpeed_tooltip = "How fast corpse diseases (aspergillosis, putrefaction sickness) progress. 1.0 = normal.",
+    Sandbox_EHR_AspergilliosisEnabled = "启用尸体真菌病",
+    Sandbox_EHR_AspergilliosisEnabled_tooltip = "在潮湿环境中长期接触腐烂尸体导致的肺部真菌感染。进行性呼吸衰竭。",
+    Sandbox_EHR_PutrefactionSicknessEnabled = "启用腐烂病",
+    Sandbox_EHR_PutrefactionSicknessEnabled_tooltip = "密闭空间中尸体的硫化氢气体中毒。导致嗅觉疲劳（闻不到 = 危险）。可能让你昏迷！",
+    Sandbox_EHR_TuberculosisEnabled = "启用结核病",
+    Sandbox_EHR_TuberculosisEnabled_tooltip = "长期接触尸体的慢性疾病。需要数周/数月才会感染。没有持续抗生素治疗会致命（21天以上）。咳血、体重减轻。",
+    Sandbox_EHR_CorpseDiseaseSpeed = "尸体疾病速度",
+    Sandbox_EHR_CorpseDiseaseSpeed_tooltip = "尸体疾病（真菌病、腐烂病）的发展速度。1.0 = 正常。",
 
     -- ============================================
     -- BODY TEMPERATURE
     -- ============================================
-    Sandbox_EHR_BodyTemperatureEnabled = "Body Temperature System",
-    Sandbox_EHR_BodyTemperatureEnabled_tooltip = "Enables custom body temperature tracking with gradual effects. <LINE> <LINE> FEATURES: <LINE> - Tracks body temperature in Celsius (37C = normal) <LINE> - Gradual cooling/warming based on environment <LINE> - Pre-disease effects (shivering, sweating) <LINE> - Smooth transition to hypothermia/heat exhaustion <LINE> <LINE> When disabled: <LINE> - Falls back to exposure-time-based disease triggering <LINE> - Vanilla temperature system is NOT suppressed <LINE> - Allows other temperature mods to work (e.g. Realistic Temps)",
-    Sandbox_EHR_TemperatureChangeSpeed = "Temperature Change Speed",
-    Sandbox_EHR_TemperatureChangeSpeed_tooltip = "How quickly body temperature changes. <LINE> <LINE> EXAMPLES: <LINE> - 0.25 = Very slow (4x longer to change) <LINE> - 1.0 = Normal speed (default) <LINE> - 2.0 = Fast (2x quicker changes) <LINE> - 4.0 = Very fast (arcade mode)",
-    Sandbox_EHR_PreDiseaseEffectsEnabled = "Pre-Disease Effects",
-    Sandbox_EHR_PreDiseaseEffectsEnabled_tooltip = "Enable warning effects before diseases contract. <LINE> <LINE> EFFECTS: <LINE> - Shivering and dialogue when cold <LINE> - Sweating and dialogue when hot <LINE> - Movement penalties at extreme temps <LINE> - Increased fatigue/thirst drain <LINE> <LINE> Provides warning before hypothermia/heat exhaustion.",
+    Sandbox_EHR_BodyTemperatureEnabled = "体温系统",
+    Sandbox_EHR_BodyTemperatureEnabled_tooltip = "启用自定义体温追踪，渐进效果。 <LINE> <LINE> 特性： <LINE> - 追踪摄氏体温（37C = 正常） <LINE> - 根据环境逐渐降温/升温 <LINE> - 疾病前效果（颤抖、出汗） <LINE> - 平滑过渡到低体温/热衰竭 <LINE> <LINE> 禁用时： <LINE> - 回退到基于暴露时间的疾病触发 <LINE> - 不会压制原版体温系统 <LINE> - 允许其他体温模组工作（如真实温度）",
+    Sandbox_EHR_TemperatureChangeSpeed = "温度变化速度",
+    Sandbox_EHR_TemperatureChangeSpeed_tooltip = "体温变化速度。 <LINE> <LINE> 示例： <LINE> - 0.25 = 非常慢（4倍时间变化） <LINE> - 1.0 = 正常速度（默认） <LINE> - 2.0 = 快速（2倍变化速度） <LINE> - 4.0 = 非常快（街机模式）",
+    Sandbox_EHR_PreDiseaseEffectsEnabled = "疾病前效果",
+    Sandbox_EHR_PreDiseaseEffectsEnabled_tooltip = "患病前的警告效果。 <LINE> <LINE> 效果： <LINE> - 寒冷时颤抖和对话 <LINE> - 炎热时出汗和对话 <LINE> - 极端温度时移动惩罚 <LINE> - 增加疲劳/口渴消耗 <LINE> <LINE> 在低体温/热衰竭前提供警告。",
 
     -- ============================================
     -- PAIN & DIALOGUE
     -- ============================================
-    Sandbox_EHR_PainSoundsEnabled = "Enable Pain Sounds",
-    Sandbox_EHR_PainSoundsEnabled_tooltip = "Character vocalizes pain when injured. Pain sounds attract zombies!",
-    Sandbox_EHR_PainSoundCooldown = "Pain Sound Cooldown (seconds)",
-    Sandbox_EHR_PainSoundCooldown_tooltip = "Minimum seconds between pain vocalizations. 300 = 5 minutes.",
-    Sandbox_EHR_ZombieAttractionRadius = "Pain Zombie Attraction (tiles)",
-    Sandbox_EHR_ZombieAttractionRadius_tooltip = "How far zombies can hear pain sounds. Higher = more dangerous.",
-    Sandbox_EHR_DialogueFrequency = "Character Dialogue Frequency",
-    Sandbox_EHR_DialogueFrequency_tooltip = "How often your character speaks about injuries, diseases, and other health events.",
-    Sandbox_EHR_DialogueFrequency_option1 = "Off",
-    Sandbox_EHR_DialogueFrequency_option2 = "Rare",
-    Sandbox_EHR_DialogueFrequency_option3 = "Normal",
-    Sandbox_EHR_DialogueFrequency_option4 = "Frequent",
+    Sandbox_EHR_PainSoundsEnabled = "启用疼痛声音",
+    Sandbox_EHR_PainSoundsEnabled_tooltip = "受伤时角色会发出疼痛声音。疼痛声音会吸引僵尸！",
+    Sandbox_EHR_PainSoundCooldown = "疼痛声音冷却（秒）",
+    Sandbox_EHR_PainSoundCooldown_tooltip = "疼痛发声之间的最短秒数。300 = 5分钟。",
+    Sandbox_EHR_ZombieAttractionRadius = "疼痛僵尸吸引范围（格）",
+    Sandbox_EHR_ZombieAttractionRadius_tooltip = "僵尸能听到疼痛声音的距离。越高越危险。",
+    Sandbox_EHR_DialogueFrequency = "角色对话频率",
+    Sandbox_EHR_DialogueFrequency_tooltip = "角色谈论伤病、疾病和其他健康事件的频率。",
+    Sandbox_EHR_DialogueFrequency_option1 = "关闭",
+    Sandbox_EHR_DialogueFrequency_option2 = "稀少",
+    Sandbox_EHR_DialogueFrequency_option3 = "正常",
+    Sandbox_EHR_DialogueFrequency_option4 = "频繁",
 
     -- ============================================
     -- FIRST AID XP
     -- ============================================
-    Sandbox_EHR_FirstAidXPEnabled = "Enable First Aid XP Rewards",
-    Sandbox_EHR_FirstAidXPEnabled_tooltip = "Award First Aid skill XP for medical actions like taking medication, treating diseases, blood transfusions, and self-examination.",
-    Sandbox_EHR_FirstAidXPMultiplier = "First Aid XP Multiplier",
-    Sandbox_EHR_FirstAidXPMultiplier_tooltip = "Multiplier for First Aid XP gained from EHR medical actions. <LINE> <LINE> EXAMPLES: <LINE> - 0.0 = No XP (disabled) <LINE> - 0.5 = Half XP <LINE> - 1.0 = Normal XP (default) <LINE> - 2.0 = Double XP <LINE> - 5.0 = 5x XP (fast learning) <LINE> <LINE> BASE XP VALUES: <LINE> - Take medication: 1-6 XP (based on tier) <LINE> - Correct treatment: 3 XP <LINE> - Cure disease: 20 XP <LINE> - Blood transfusion: 10 XP <LINE> - Self-examination: 1-5 XP",
+    Sandbox_EHR_FirstAidXPEnabled = "启用急救经验奖励",
+    Sandbox_EHR_FirstAidXPEnabled_tooltip = "对服药、治疗疾病、输血和自检等医疗行为授予急救技能经验。",
+    Sandbox_EHR_FirstAidXPMultiplier = "急救经验倍率",
+    Sandbox_EHR_FirstAidXPMultiplier_tooltip = "EHR医疗行为获得的急救经验倍率。 <LINE> <LINE> 示例： <LINE> - 0.0 = 无经验（禁用） <LINE> - 0.5 = 一半经验 <LINE> - 1.0 = 正常经验（默认） <LINE> - 2.0 = 双倍经验 <LINE> - 5.0 = 5倍经验（快速学习） <LINE> <LINE> 基础经验值： <LINE> - 服药：1-6经验（基于等级） <LINE> - 正确治疗：3经验 <LINE> - 治愈疾病：20经验 <LINE> - 输血：10经验 <LINE> - 自检：1-5经验",
 
     -- ============================================
     -- KNOX VIRUS CURE
     -- ============================================
-    Sandbox_EHR_KnoxCureItemsEnabled = "Enable Knox Cure Items",
-    Sandbox_EHR_KnoxCureItemsEnabled_tooltip = "Allow Knox Virus Cure items to spawn in the world. <LINE> <LINE> ITEMS AFFECTED: <LINE> - Phalanx Pills (slows infection) <LINE> - Antibody Test Kit (detects infection stage) <LINE> - Immunobooster Shot (boosts resistance) <LINE> - Gene Therapy Kit (cures Knox Virus) <LINE> <LINE> These ultra-rare items only spawn in the Military Research Facility basement near Rosewood. <LINE> <LINE> Disable this if you want a more vanilla zombie experience with NO cure possibility.",
+    Sandbox_EHR_KnoxCureItemsEnabled = "启用诺克斯病毒解药物品",
+    Sandbox_EHR_KnoxCureItemsEnabled_tooltip = "允许诺克斯病毒解药物品生成在世界中。 <LINE> <LINE> 受影响的物品： <LINE> - 磷化物药片（减缓感染） <LINE> - 抗体测试套件（检测感染阶段） <LINE> - 免疫增强针（提升抵抗） <LINE> - 基因治疗套件（治愈诺克斯病毒） <LINE> <LINE> 这些极其稀有的物品只在罗斯伍德附近的军事研究设施地下室生成。 <LINE> <LINE> 如果你想要更原版的僵尸体验且没有治愈可能性，请禁用此选项。",
 
     -- ============================================
     -- MOD COMPATIBILITY
     -- ============================================
-    Sandbox_EHR_NnCCompatEnabled = "N&C Narcotics Compatibility",
-    Sandbox_EHR_NnCCompatEnabled_tooltip = "Enable integration with N&C's Narcotics mod (requires mod to be loaded).",
-    Sandbox_EHR_NnCStimulantBloodLoss = "Stimulant Blood Loss Multiplier",
-    Sandbox_EHR_NnCStimulantBloodLoss_tooltip = "Blood loss multiplier when on stimulants (cocaine, meth). 1.5 = 50% more blood loss.",
-    Sandbox_EHR_NnCOpioidInfectionReduction = "Opioid Infection Reduction",
-    Sandbox_EHR_NnCOpioidInfectionReduction_tooltip = "Infection progression multiplier when on opioids. 0.5 = 50% slower infection.",
-    Sandbox_EHR_NnCWithdrawalBlocksHealing = "Withdrawal Blocks Healing",
-    Sandbox_EHR_NnCWithdrawalBlocksHealing_tooltip = "Drug withdrawal prevents wound healing.",
-    Sandbox_EHR_NnCOverdoseTriggersDisease = "Overdose Triggers Disease",
-    Sandbox_EHR_NnCOverdoseTriggersDisease_tooltip = "Drug overdose triggers EHR disease system.",
+    Sandbox_EHR_NnCCompatEnabled = "N&C 麻醉品兼容性",
+    Sandbox_EHR_NnCCompatEnabled_tooltip = "启用与N&C麻醉品模组的集成（需要加载该模组）。",
+    Sandbox_EHR_NnCStimulantBloodLoss = "兴奋剂失血倍率",
+    Sandbox_EHR_NnCStimulantBloodLoss_tooltip = "使用兴奋剂（可卡因、冰毒）时的失血倍率。1.5 = 50%更多失血。",
+    Sandbox_EHR_NnCOpioidInfectionReduction = "阿片类药物感染减少",
+    Sandbox_EHR_NnCOpioidInfectionReduction_tooltip = "使用阿片类药物时的感染进展倍率。0.5 = 感染速度减慢50%。",
+    Sandbox_EHR_NnCWithdrawalBlocksHealing = "戒断阻止愈合",
+    Sandbox_EHR_NnCWithdrawalBlocksHealing_tooltip = "药物戒断会阻止伤口愈合。",
+    Sandbox_EHR_NnCOverdoseTriggersDisease = "过量触发疾病",
+    Sandbox_EHR_NnCOverdoseTriggersDisease_tooltip = "药物过量会触发EHR疾病系统。",
 
     -- ============================================
     -- DEBUG
     -- ============================================
-    Sandbox_EHR_DebugMode = "Debug Mode",
-    Sandbox_EHR_DebugMode_tooltip = "Enable EHR Debug Menu access (press G). Also enables console logging. Does NOT require Steam -debug flag. In multiplayer, admin privileges are also required.",
+    Sandbox_EHR_DebugMode = "调试模式",
+    Sandbox_EHR_DebugMode_tooltip = "启用EHR调试菜单访问（按G）。同时启用控制台日志。不需要Steam的-debug标志。在多人游戏中还需要管理员权限。",
 }
