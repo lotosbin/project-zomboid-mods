@@ -1,0 +1,7 @@
+version=1
+title=bin2 的 Extensive Health Rework B42 中文补丁
+description=bin2 的 Extensive Health Rework B42 中文补丁
+description=包含模组：
+description=- Extensive Health Rework B42 CN 中文补丁
+tags=Build 42;Language/Translation;QoL
+visibility=public

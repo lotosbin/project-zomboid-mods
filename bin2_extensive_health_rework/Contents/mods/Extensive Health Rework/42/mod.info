@@ -1,0 +1,7 @@
+name=Extensive Health Rework B42 CN
+id=EHR_CN
+author=bin^2
+description=Extensive Health Rework B42 中文补丁
+modversion=1.0.0
+versionMin=42.0.0
+require=\EHR
