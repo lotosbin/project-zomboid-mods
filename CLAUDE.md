@@ -100,3 +100,6 @@
 总是总结经验更新开发文档, 内容需要找到真实引用地址
 总是使用agent/skill/mcp
 当fetch mcp无效时使用 playwright mcp
+
+过程记录到{project}/docs/rolling_log.md
+当需要生成开发日志时,根据会话历史和{project}/docs/rolling_log.md, 生成开发日志 {project}/docs/develop_log_{date}.md
