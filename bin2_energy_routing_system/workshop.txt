@@ -1,0 +1,8 @@
+version=1
+id=3676991775
+title=bin2 的 Energy Routing System 中文补丁
+description=bin2 的 Energy Routing System 中文补丁
+description=包含模组：
+description=- Energy Routing System 中文补丁
+tags=Build 42;Language/Translation;QoL
+visibility=friendsOnly
