@@ -1,5 +1,5 @@
 [ ALERT_CONFIG ]
-link1 = GitHub = https://github.com/lotosbin/Zomboid-Workshop,
+link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 [ ------ ]
 
 [ 03/15/2026 ]
