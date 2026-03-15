@@ -1,0 +1,9 @@
+# CHANGELOG - Project Cook Controller Support
+
+## v1.0.0 (2026-01-14)
+- 初始版本发布
+- 完整的手柄控制器支持
+- 方向键导航
+- A/B/X/Y 功能键支持
+- L1/R1 分类切换
+- 焦点视觉指示器
