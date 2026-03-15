@@ -2,5 +2,12 @@
 - Skill Recovery Journal - B42.13.2 Temp Fix [OUTDATED]
 
 移除崩溃的模组
-- [B42]说话描述情绪B42.13 
+- [B42]说话描述情绪B42.13
 - [B42] Nested Containers
+
+翻译更新
+- Respawn2: 翻译文件转换为 JSON
+- Lingering Voices CN: 翻译文件转换为 JSON
+- Extensive Power Rework CN: 翻译文件转换为 JSON
+- Extensive Health Rework: 翻译文件转换为 JSON
+- EnergyRoutingSystem_CN: 翻译文件转换为 JSON
