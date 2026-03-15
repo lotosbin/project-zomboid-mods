@@ -7,4 +7,4 @@ modversion=1.5.0
 versionMin=42.13.0
 supports=42.13
 author=DarylMasterGG
-require=\EnergyRoutingSystem,\EnergyRoutingSystem_CN
+require=\EnergyRoutingSystem
