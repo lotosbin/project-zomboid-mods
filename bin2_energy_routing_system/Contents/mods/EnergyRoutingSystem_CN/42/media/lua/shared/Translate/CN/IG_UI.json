@@ -1,0 +1,13 @@
+{
+    "IGUI_SPESS_Item_SolarPanel_Tooltip": "垂直太阳能板。产生日间能量，必须连接到控制器。",
+    "IGUI_SPESS_Item_SolarPanelHorizontal_Tooltip": "水平太阳能板。紧凑型日间能量生产装置。",
+    "IGUI_SPESS_Item_Aerogenerador_Tooltip": "风力涡轮机。根据风速和天气产生可变功率。",
+    "IGUI_SPESS_Item_TurbinaHidraulica_Tooltip": "水力涡轮机。安装在流动水域并连接到控制器时输出稳定。",
+    "IGUI_SPESS_Item_SolarPanelIndividual_Tooltip": "太阳能板备件。用于修复损坏的太阳能板。",
+    "IGUI_SPESS_Item_WindTurbineMotor_Tooltip": "风力涡轮机备用电机。用于修复损坏的风力涡轮机。",
+    "IGUI_SPESS_Item_TurbineHelice_Tooltip": "水力涡轮机叶轮。用于修复损坏的水力涡轮机。",
+    "IGUI_SPESS_Item_BatteryTank_Tooltip": "太阳能电池。储存多余能量以在产量下降时满足需求。",
+    "IGUI_SPESS_Item_WindBattery_Tooltip": "风能电池。储存涡轮机能量供日后使用。",
+    "IGUI_SPESS_Item_EnergyController_Tooltip": "能量路由系统控制器。协调生产、电池和建筑供电状态。",
+    "IGUI_SPESS_Item_WireTransferEnergy_Tooltip": "传输电缆。将面板、涡轮机和电池连接到控制器。"
+}

@@ -3,6 +3,6 @@ id=EPR_B42_CN
 author=bin^2
 description=Extensive Power Rework B42 中文补丁
 poster=poster.png
-modversion=1.0.0
+modversion=1.1.0
 versionMin=42.0.0
 require=\EPR_B42

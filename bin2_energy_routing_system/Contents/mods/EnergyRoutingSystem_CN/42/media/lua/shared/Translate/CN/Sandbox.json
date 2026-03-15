@@ -1,0 +1,18 @@
+{
+    "Sandbox_EnergyRouting": "能量路由",
+    "Sandbox_EnergyRoutingSystem": "能量路由系统",
+    "Sandbox_EnergyRoutingSystem_LootSpawnMultiplier": "模组物品战利品倍率",
+    "Sandbox_EnergyRoutingSystem_LootSpawnMultiplier_tooltip": "控制能量路由模组物品在战利品中出现的频率（x1、x3、x5）。",
+    "Sandbox_EnergyRoutingSystem_ConsumerScanIntervalHours": "消费者扫描间隔（小时）",
+    "Sandbox_EnergyRoutingSystem_ConsumerScanIntervalHours_tooltip": "控制器执行定期完整消费者缓存刷新的频率。脏事件仍会强制立即刷新。",
+    "Sandbox_EnergyRoutingSystem_ControllerVerticalRange": "控制器垂直范围（楼层）",
+    "Sandbox_EnergyRoutingSystem_ControllerVerticalRange_tooltip": "控制器上下多少层楼包含在能量分配和消费者扫描范围内（0 = 仅限同一楼层）。",
+    "Sandbox_EnergyRoutingSystem_DebugLogs": "调试日志",
+    "Sandbox_EnergyRoutingSystem_DebugLogs_tooltip": "启用详细的 能量路由系统 控制台日志记录以进行调试。在服务器上保持禁用以避免刷屏。",
+    "Sandbox_EnergyRouting_LootSpawnMultiplier": "模组物品战利品倍率",
+    "Sandbox_EnergyRouting_LootSpawnMultiplier_tooltip": "控制能量路由模组物品在战利品中出现的频率（x1、x3、x5）。",
+    "Sandbox_EnergyRouting_ConsumerScanIntervalHours": "消费者扫描间隔（小时）",
+    "Sandbox_EnergyRouting_ConsumerScanIntervalHours_tooltip": "控制器执行定期完整消费者缓存刷新的频率。脏事件仍会强制立即刷新。",
+    "Sandbox_EnergyRouting_ControllerVerticalRange": "控制器垂直范围（楼层）",
+    "Sandbox_EnergyRouting_ControllerVerticalRange_tooltip": "控制器上下多少层楼包含在能量分配和消费者扫描范围内（0 = 仅限同一楼层）。"
+}
