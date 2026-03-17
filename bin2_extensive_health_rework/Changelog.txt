@@ -3,6 +3,10 @@ link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 [ ------ ]
 
+[ 03/17/2026 ]
+- 修复翻译不生效问题：添加 .txt 格式翻译文件覆盖主模组英文内容
+[ ------ ]
+
 [ 03/15/2026 ]
 - 更新翻译文件格式为 JSON (PZ 42.15+)
 - 转换所有 CN 翻译文件从 .txt 到 .json 格式
