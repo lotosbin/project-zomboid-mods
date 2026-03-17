@@ -1,3 +1,6 @@
+# bin2 project zomboid mods
+https://github.com/lotosbin/project-zomboid-mods
+
 https://pzwiki.net/wiki/Lua_event
 
 mod.info

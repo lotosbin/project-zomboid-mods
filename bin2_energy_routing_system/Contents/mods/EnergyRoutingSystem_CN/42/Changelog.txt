@@ -1,5 +1,6 @@
 [ ALERT_CONFIG ]
 link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 [ ------ ]
 
 [ 03/15/2026 ]
