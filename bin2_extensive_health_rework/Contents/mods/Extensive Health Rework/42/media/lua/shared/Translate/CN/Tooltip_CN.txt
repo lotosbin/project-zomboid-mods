@@ -42,10 +42,8 @@ Tooltip_CN = {
     Tooltip_RifampicinComboPack = "利福平联合疗法用于结核病。<LINE> 快速治愈结核病（14天对比21天）。<LINE> <RGB:1,0.5,0> 副作用：橙色尿液、肝脏压力、疲劳",
     Tooltip_IVVancomycin = "静脉万古霉素 - 最后手段抗生素。<LINE> 快速治愈耐药感染（48小时）。<LINE> 需要输液套件。<LINE> <RGB:1,0.5,0> 副作用：红人综合征、肾脏压力",
     Tooltip_EmergencySepsisKit = "紧急败血症治疗套件。<LINE> 最快速治愈败血症（24小时）。<LINE> 需要输液套件。<LINE> <RGB:1,0.5,0> 副作用：严重疲劳、恶心、发烧",
-
-    -- Knox Virus Treatments
     Tooltip_GeneTherapyKit = "实验性诺克斯病毒基因治疗。<LINE> <RGB:1,0.3,0.3> 极其稀有 - 军事研究物品 <LINE> <LINE> 成功率取决于血型兼容性：<LINE> O-: 95% | O+: 85% | A-/B-: 75% <LINE> A+/B+: 65% | AB-: 50% | AB+: 40% <LINE> <LINE> <RGB:0,1,0> 成功：永久免疫 <LINE> <RGB:1,0,0> 失败：立即死亡 <LINE> <LINE> 先使用抗体测试检查兼容性！",
     Tooltip_PhalanxPills = "诺克斯病毒抑制药物。<LINE> <RGB:1,0.5,0> 不能治愈 - 重置感染进度 <LINE> <LINE> 每次使用效果递减：<LINE> 第一次：完全重置 | 第二次：重置至25% <LINE> 第三次：重置至50% | 第四次：重置至75% <LINE> 第五次及以上：无效果（身体已适应） <LINE> <LINE> <RGB:1,0.5,0> 副作用：<LINE> 剧烈恶心（6小时）、发烧（12小时）、<LINE> 免疫力下降（48小时）",
     Tooltip_AntibodyTestKit = "基因治疗血型兼容性测试。<LINE> 在使用基因治疗注射器之前测试存活几率。<LINE> <LINE> 基于血型的结果：<LINE> - 高兼容性（75%以上）<LINE> - 中等兼容性（50-74%）<LINE> - 低兼容性（25-49%）<LINE> - 高风险（低于25%）<LINE> <LINE> 一次性使用 - 使用后消耗。",
-    Tooltip_ImmunoboosterShot = "诺克斯病毒暴露前预防。<LINE> <RGB:0,1,0> 授予24小时免疫力 <LINE> <LINE> 必须在被咬之前服用！<LINE> 如果已经感染则无效。<LINE> <LINE> 7天冷却时间。<LINE> <LINE> <RGB:1,0.5,0> 副作用（活跃时）：<LINE> 轻微恶心、耐力恢复降低、<LINE> 偶尔震颤",
+    Tooltip_ImmunoboosterShot = "诺克斯病毒暴露前预防。<LINE> <RGB:0,1,0> 授予24小时免疫力 <LINE> <LINE> 必须在被咬之前服用！<LINE> 如果已经感染则无效。<LINE> <LINE> 7天冷却时间。<LINE> <LINE> <RGB:1,0.5,0> 副作用（活跃时）：<LINE> 轻微恶心、耐力恢复降低、<LINE> 偶尔震颤"
 }

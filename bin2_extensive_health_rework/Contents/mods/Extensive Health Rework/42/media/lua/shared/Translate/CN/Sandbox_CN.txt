@@ -1,12 +1,5 @@
 Sandbox_CN = {
-    -- ============================================
-    -- MAIN MOD PAGE (required for sandbox visibility)
-    -- ============================================
     Sandbox_ExtensiveHealthRework = "全面健康重制版",
-
-    -- ============================================
-    -- PAGE NAMES
-    -- ============================================
     Sandbox_EHR_Blood = "EHR: 血液系统",
     Sandbox_EHR_Disease = "EHR: 疾病",
     Sandbox_EHR_Loot = "EHR: 战利品",
@@ -14,10 +7,6 @@ Sandbox_CN = {
     Sandbox_EHR_Comp = "EHR: 兼容性",
     Sandbox_EHR_Other = "EHR: 其他",
     Sandbox_EHR_Debug = "EHR: 调试",
-
-    -- ============================================
-    -- BLOOD SYSTEM
-    -- ============================================
     Sandbox_EHR_BloodLossMultiplier = "失血倍率",
     Sandbox_EHR_BloodLossMultiplier_tooltip = "伤口失血速度。1.0 = 正常，2.0 = 两倍速度。",
     Sandbox_EHR_BloodThresholdHealthy = "健康血液阈值 (%)",
@@ -40,10 +29,6 @@ Sandbox_CN = {
     Sandbox_EHR_BlackoutCooldownHours_tooltip = "可能再次昏迷的游戏小时间隔。",
     Sandbox_EHR_BlackoutChance = "昏迷概率（1/X）",
     Sandbox_EHR_BlackoutChance_tooltip = "每次tick的随机概率。越低越频繁。50 = 50分之一概率。",
-
-    -- ============================================
-    -- HEALING REQUIREMENTS
-    -- ============================================
     Sandbox_EHR_HealingRequiresFed = "愈合需要饱食",
     Sandbox_EHR_HealingRequiresFed_tooltip = "身体部位只在不饥饿时愈合。",
     Sandbox_EHR_HealingRequiresHydrated = "愈合需要水分",
@@ -54,10 +39,6 @@ Sandbox_CN = {
     Sandbox_EHR_HealingRequiresCalm_tooltip = "身体部位只在不紧张时愈合。",
     Sandbox_EHR_HealingRequiresNoPain = "愈合需要无痛",
     Sandbox_EHR_HealingRequiresNoPain_tooltip = "身体部位只在无剧痛时愈合。",
-
-    -- ============================================
-    -- WOUNDS & INFECTION
-    -- ============================================
     Sandbox_EHR_WoundInfectionEnabled = "启用伤口感染",
     Sandbox_EHR_WoundInfectionEnabled_tooltip = "未处理的伤口可能感染。",
     Sandbox_EHR_WoundInfectionSpeed = "伤口感染速度",
@@ -68,20 +49,12 @@ Sandbox_CN = {
     Sandbox_EHR_SepsisSpeed_tooltip = "败血症发展速度。1.0 = 正常，2.0 = 两倍速度。",
     Sandbox_EHR_TetanusEnabled = "启用破伤风",
     Sandbox_EHR_TetanusEnabled_tooltip = "生锈/脏污的深伤口会导致致命的牙关紧闭。潜伏期长（3-7天），然后痉挛，无法进食，死亡。需要罕见的抗毒素才能存活。",
-
-    -- ============================================
-    -- DISEASES - GENERAL
-    -- ============================================
     Sandbox_EHR_DiseaseEnabled = "启用疾病",
     Sandbox_EHR_DiseaseEnabled_tooltip = "启用食物中毒和其他疾病。",
     Sandbox_EHR_DiseaseSpeed = "疾病速度",
     Sandbox_EHR_DiseaseSpeed_tooltip = "疾病发展速度。1.0 = 正常，2.0 = 两倍速度。",
     Sandbox_EHR_MisdiagnosisConsequences = "误诊后果",
     Sandbox_EHR_MisdiagnosisConsequences_tooltip = "错误的自我诊断可能导致无效治疗。急救技能越高，准确度越好。",
-
-    -- ============================================
-    -- DISEASES - FOOD & WATER
-    -- ============================================
     Sandbox_EHR_FoodPoisoningEnabled = "启用食物中毒",
     Sandbox_EHR_FoodPoisoningEnabled_tooltip = "腐烂、生或烧焦的食物会导致食物中毒。恶心、呕吐、脱水。适当补水可存活。",
     Sandbox_EHR_GastroenteritisEnabled = "启用胃肠炎",
@@ -90,10 +63,6 @@ Sandbox_CN = {
     Sandbox_EHR_TrichinosisEnabled_tooltip = "食用生/未煮熟的野生动物（老鼠、野猪、熊）导致的寄生虫感染。严重肌肉疼痛，可能致命。把肉煮熟！",
     Sandbox_EHR_DysenteryEnabled = "启用痢疾",
     Sandbox_EHR_DysenteryEnabled_tooltip = "饮用受污染的水会导致痢疾。脱水可致命。",
-
-    -- ============================================
-    -- DISEASES - ENVIRONMENTAL
-    -- ============================================
     Sandbox_EHR_CommonColdEnabled = "启用普通感冒",
     Sandbox_EHR_CommonColdEnabled_tooltip = "寒冷天气 + 潮湿暴露可能导致普通感冒。可发展为肺炎。",
     Sandbox_EHR_PneumoniaEnabled = "启用肺炎",
@@ -104,10 +73,6 @@ Sandbox_CN = {
     Sandbox_EHR_HeatExhaustionEnabled_tooltip = "炎热天气 + 劳累 + 脱水会导致热衰竭。可发展为致命的中暑。找阴凉处和水！",
     Sandbox_EHR_EnvironmentalDiseaseSpeed = "环境疾病速度",
     Sandbox_EHR_EnvironmentalDiseaseSpeed_tooltip = "环境疾病（感冒、低体温、痢疾）的发展速度。1.0 = 正常。",
-
-    -- ============================================
-    -- DISEASES - CORPSE EXPOSURE
-    -- ============================================
     Sandbox_EHR_AspergilliosisEnabled = "启用尸体真菌病",
     Sandbox_EHR_AspergilliosisEnabled_tooltip = "在潮湿环境中长期接触腐烂尸体导致的肺部真菌感染。进行性呼吸衰竭。",
     Sandbox_EHR_PutrefactionSicknessEnabled = "启用腐烂病",
@@ -116,20 +81,12 @@ Sandbox_CN = {
     Sandbox_EHR_TuberculosisEnabled_tooltip = "长期接触尸体的慢性疾病。需要数周/数月才会感染。没有持续抗生素治疗会致命（21天以上）。咳血、体重减轻。",
     Sandbox_EHR_CorpseDiseaseSpeed = "尸体疾病速度",
     Sandbox_EHR_CorpseDiseaseSpeed_tooltip = "尸体疾病（真菌病、腐烂病）的发展速度。1.0 = 正常。",
-
-    -- ============================================
-    -- BODY TEMPERATURE
-    -- ============================================
     Sandbox_EHR_BodyTemperatureEnabled = "体温系统",
     Sandbox_EHR_BodyTemperatureEnabled_tooltip = "启用自定义体温追踪，渐进效果。 <LINE> <LINE> 特性： <LINE> - 追踪摄氏体温（37C = 正常） <LINE> - 根据环境逐渐降温/升温 <LINE> - 疾病前效果（颤抖、出汗） <LINE> - 平滑过渡到低体温/热衰竭 <LINE> <LINE> 禁用时： <LINE> - 回退到基于暴露时间的疾病触发 <LINE> - 不会压制原版体温系统 <LINE> - 允许其他体温模组工作（如真实温度）",
     Sandbox_EHR_TemperatureChangeSpeed = "温度变化速度",
     Sandbox_EHR_TemperatureChangeSpeed_tooltip = "体温变化速度。 <LINE> <LINE> 示例： <LINE> - 0.25 = 非常慢（4倍时间变化） <LINE> - 1.0 = 正常速度（默认） <LINE> - 2.0 = 快速（2倍变化速度） <LINE> - 4.0 = 非常快（街机模式）",
     Sandbox_EHR_PreDiseaseEffectsEnabled = "疾病前效果",
     Sandbox_EHR_PreDiseaseEffectsEnabled_tooltip = "患病前的警告效果。 <LINE> <LINE> 效果： <LINE> - 寒冷时颤抖和对话 <LINE> - 炎热时出汗和对话 <LINE> - 极端温度时移动惩罚 <LINE> - 增加疲劳/口渴消耗 <LINE> <LINE> 在低体温/热衰竭前提供警告。",
-
-    -- ============================================
-    -- PAIN & DIALOGUE
-    -- ============================================
     Sandbox_EHR_PainSoundsEnabled = "启用疼痛声音",
     Sandbox_EHR_PainSoundsEnabled_tooltip = "受伤时角色会发出疼痛声音。疼痛声音会吸引僵尸！",
     Sandbox_EHR_PainSoundCooldown = "疼痛声音冷却（秒）",
@@ -142,24 +99,12 @@ Sandbox_CN = {
     Sandbox_EHR_DialogueFrequency_option2 = "稀少",
     Sandbox_EHR_DialogueFrequency_option3 = "正常",
     Sandbox_EHR_DialogueFrequency_option4 = "频繁",
-
-    -- ============================================
-    -- FIRST AID XP
-    -- ============================================
     Sandbox_EHR_FirstAidXPEnabled = "启用急救经验奖励",
     Sandbox_EHR_FirstAidXPEnabled_tooltip = "对服药、治疗疾病、输血和自检等医疗行为授予急救技能经验。",
     Sandbox_EHR_FirstAidXPMultiplier = "急救经验倍率",
     Sandbox_EHR_FirstAidXPMultiplier_tooltip = "EHR医疗行为获得的急救经验倍率。 <LINE> <LINE> 示例： <LINE> - 0.0 = 无经验（禁用） <LINE> - 0.5 = 一半经验 <LINE> - 1.0 = 正常经验（默认） <LINE> - 2.0 = 双倍经验 <LINE> - 5.0 = 5倍经验（快速学习） <LINE> <LINE> 基础经验值： <LINE> - 服药：1-6经验（基于等级） <LINE> - 正确治疗：3经验 <LINE> - 治愈疾病：20经验 <LINE> - 输血：10经验 <LINE> - 自检：1-5经验",
-
-    -- ============================================
-    -- KNOX VIRUS CURE
-    -- ============================================
     Sandbox_EHR_KnoxCureItemsEnabled = "启用诺克斯病毒解药物品",
     Sandbox_EHR_KnoxCureItemsEnabled_tooltip = "允许诺克斯病毒解药物品生成在世界中。 <LINE> <LINE> 受影响的物品： <LINE> - 磷化物药片（减缓感染） <LINE> - 抗体测试套件（检测感染阶段） <LINE> - 免疫增强针（提升抵抗） <LINE> - 基因治疗套件（治愈诺克斯病毒） <LINE> <LINE> 这些极其稀有的物品只在罗斯伍德附近的军事研究设施地下室生成。 <LINE> <LINE> 如果你想要更原版的僵尸体验且没有治愈可能性，请禁用此选项。",
-
-    -- ============================================
-    -- MOD COMPATIBILITY
-    -- ============================================
     Sandbox_EHR_NnCCompatEnabled = "N&C 麻醉品兼容性",
     Sandbox_EHR_NnCCompatEnabled_tooltip = "启用与N&C麻醉品模组的集成（需要加载该模组）。",
     Sandbox_EHR_NnCStimulantBloodLoss = "兴奋剂失血倍率",
@@ -170,10 +115,6 @@ Sandbox_CN = {
     Sandbox_EHR_NnCWithdrawalBlocksHealing_tooltip = "药物戒断会阻止伤口愈合。",
     Sandbox_EHR_NnCOverdoseTriggersDisease = "过量触发疾病",
     Sandbox_EHR_NnCOverdoseTriggersDisease_tooltip = "药物过量会触发EHR疾病系统。",
-
-    -- ============================================
-    -- DEBUG
-    -- ============================================
     Sandbox_EHR_DebugMode = "调试模式",
-    Sandbox_EHR_DebugMode_tooltip = "启用EHR调试菜单访问（按G）。同时启用控制台日志。不需要Steam的-debug标志。在多人游戏中还需要管理员权限。",
+    Sandbox_EHR_DebugMode_tooltip = "启用EHR调试菜单访问（按G）。同时启用控制台日志。不需要Steam的-debug标志。在多人游戏中还需要管理员权限。"
 }
