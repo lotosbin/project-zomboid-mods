@@ -10,3 +10,4 @@ bin2_extensive_power_rework/Contents/mods/Extensive Power Rework CN - learn/EPR_
 
 
 https://steamcommunity.com/sharedfiles/filedetails/?id=3006690572 How to Translate Project Zomboid
+https://pzwiki.net/wiki/Translation

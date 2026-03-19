@@ -28,17 +28,78 @@ UI_CN = {
 }
 ```
 
-## 翻译类型
+## 翻译类型完整列表
 
-| 类型 | 文件名 | Key 前缀 | 函数 |
+| 类型 | 文件名 | Key 前缀 | 用途 |
 |------|--------|----------|------|
-| UI | UI.json | UI_ | getText |
-| Sandbox | Sandbox.json | Sandbox_ | getText |
-| ContextMenu | ContextMenu.json | ContextMenu_ | getText |
-| IGUI | IG_UI.json | IGUI_ | getText |
-| Tooltip | Tooltip.json | Tooltip_ | getText |
+| UI | UI.json | UI_ | 主菜单、选项界面 |
+| Sandbox | Sandbox.json | Sandbox_ | 沙盒设置选项 |
+| ContextMenu | ContextMenu.json | ContextMenu_ | 右键菜单 |
+| IGUI | IG_UI.json | IGUI_ | 游戏内界面 |
+| Tooltip | Tooltip.json | Tooltip_ | 物品提示 |
+| ItemName | ItemName.json | **(无前缀)** | 物品名称 |
+| Recipe | Recipe.json | **(无前缀)** | 制作配方 |
+| EvolvedRecipeName | EvolvedRecipeName.json | **(无前缀)** | 烹饪食谱 |
+| Farming | Farming.json | Farming_ | 农业相关 |
+| Moodles | Moodles.json | Moodles_ | 角色状态 |
+| GameSound | GameSound.json | GameSound_ | 游戏音效描述 |
+| Moveables | Moveables.json | Moveables_ | 可移动物体 |
+| Challenge | Challenge.json | Challenge_ | 挑战模式 |
+| MultiStageBuild | MultiStageBuild.json | MultiStageBuild_ | 多阶段建筑 |
+| News | News.json | News_ | 新闻/电台内容 |
+| Recorded_Media | Recorded_Media.json | Recorded_Media_ | 录制媒体 |
+| DynamicRadio | DynamicRadio.json | DynamicRadio_ | 动态电台 |
+| MakeUp | MakeUp.json | MakeUp_ | 化妆/面容 |
+| Stash | Stash.json | Stash_ | 藏匿点 |
+| SurvivalGuide | SurvivalGuide.json | SurvivalGuide_ | 生存指南 |
 
-更多类型参考: [pzwiki.net/wiki/Translation](https://pzwiki.net/wiki/Translation)
+> **注意**: ItemName、Recipe、EvolvedRecipeName 类型的 key prefix 是空的！翻译键就是完整的键名。
+
+## 官方翻译资源
+
+- **翻译仓库**: https://github.com/TheIndieStone/ProjectZomboidTranslations
+- **贡献方式**: Fork 后提交 PR 或联系管理员获取贡献权限
+- **TV/电台翻译**: `_TVRADIO_TRANSLATIONS` 文件夹 (需要 WordZed 解析)
+
+## 翻译键命名规则
+
+### 原版游戏物品
+```json
+{
+  "ItemName_Base.Glue": "胶水",
+  "ItemName_Base.Apple": "苹果"
+}
+```
+
+### 模组新增物品
+```json
+{
+  "ItemName_ExtensiveHealth.BloodBagONeg": "血液袋 (O-)",
+  "ItemName_ModName.CustomItem": "自定义物品"
+}
+```
+
+### UI 元素 (带提示)
+```json
+{
+  "UI_KeyName": "显示文本",
+  "UI_KeyName_Tooltip": "提示文本"
+}
+```
+
+### 沙盒设置
+```json
+{
+  "Sandbox_OptionName": "选项名称",
+  "Sandbox_OptionName_tooltip": "选项描述"
+}
+```
+
+## 特殊格式
+
+- **换行符**: 使用 `<LINE>` (不是 \n)
+- **变量占位符**: `%d`, `%.1f`, `%s` 等保持原样
+- **颜色代码**: 使用 `[RGB(r,g,b)]` 格式
 
 ## 模组更新记录
 

@@ -14,6 +14,20 @@
 - **learn/**: 开发/学习区域，包含 UI 框架和制作系统模组
 - **eat_whole_stack-main/**: 用于一次性食用整堆食物的独立 QoL 模组
 
+**翻译文件目录结构（B42.15+）：**
+```
+<mod_id>/
+├── media/
+│   └── lua/
+│       └── shared/
+│           └── Translate/
+│               └── CN/
+│                   ├── UI.json          # UI 文本
+│                   ├── ItemName.json    # 物品名称
+│                   ├── Tooltip.json     # 提示文本
+│                   └── Sandbox.json     # 沙盒设置
+```
+
 **模组结构模式：**
 每个模组遵循标准的 Zomboid 模组结构：
 ```
@@ -38,8 +52,12 @@
 
 **版本管理：**
 - 每个模组指定 `versionMin=` 以确保兼容性
-- 主要专注于 Build 42（42.12/42.13）
+- 主要专注于 Build 42（42.12/42.13/42.15）
 - 需要时为不同游戏版本使用单独的目录
+
+**翻译文件格式：**
+- B42.13 及之前：TXT 格式，文件含语言代码（如 `UI_CN.txt`）
+- B42.15+：JSON 格式，文件不含语言代码（如 `UI.json`）
 
 **Lua 脚本模式：**
 - 客户端：UI、玩家交互、视觉效果
@@ -57,8 +75,13 @@
 5. 包含预览图像（poster.png、preview.png）
 
 **本地化支持：**
-在 `media/lua/shared/Translate/<LANG>/<FILENAME>_<LANG>.txt` 中添加翻译文件
+在 `media/lua/shared/Translate/<LANG>/` 中添加翻译文件
 支持的语言包括：CN、EN、DE、ES、FR、HU、IT、JP、KO、NL、PL、PT、PTBR、RU、TH、TR、UA、CH、DA
+
+**翻译物品 Display Name：**
+- 模组新增物品：使用 `ItemName_<模组名>.<物品ID>` 格式
+- 翻译原版物品：使用 `ItemName_Base.<物品ID>` 格式
+- 配方名称：使用 `Recipe_<配方名>` 格式
 
 **测试模组：**
 在 Project Zomboid 游戏环境中通过主菜单启用模组进行测试。无需构建过程 - Lua 脚本在运行时直接加载。
