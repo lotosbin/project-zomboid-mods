@@ -1,0 +1,79 @@
+{
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/Recipes.schema.json",
+    "MakeRubberProjectiles": "制作橡胶弹丸",
+    "MakeMetalProjectilesFromBar": "制作金属弹丸",
+    "MakeMetalProjectilesFromBarHalf": "制作金属弹丸",
+    "MakeMetalProjectilesFromBarQuarter": "制作金属弹丸",
+    "OpenBoxOfProjectiles50": "打开弹丸盒",
+    "PlaceProjectiles50": "包装弹丸盒",
+
+    "SmashAnimalBone": "敲碎骨头",
+    "SmashLargeAnimalBone": "敲碎大骨头",
+    "SmashJawbone": "敲碎颌骨",
+
+    "RipClothing": "撕碎衣物",
+    "RipShoes": "拆解鞋子",
+    "RipBoots": "拆解靴子",
+
+    "MakeImprovisedGlovesSurgical": "制作简易外科手套",
+
+    "MakeFliesCureFromCigar": "用雪茄制作苍蝇药",
+
+    "CleanGlueBottle": "清洁空胶水瓶",
+
+    "PlaceBonesInCookingPot": "将骨头放入锅具",
+    "MakeLyeBase": "制作碱液基",
+    "MakeSoapBase": "制作肥皂基",
+
+    "UnpackGlue": "装填胶水",
+    "UnpackLye": "装填碱液",
+    "UnpackSoap": "取出肥皂",
+
+    "MakeWoodCharcoalTiny": "将小块木材烧制成木炭",
+    "MakeWoodAsh": "将木炭烧制成木灰",
+    "HardenSpring": "硬化弹簧",
+
+    "CutWallet": "切割钱包",
+
+    "SewSmallLeatherTogether": "缝合小皮革",
+    "SewMediumLeatherTogether": "缝合中皮革",
+
+    "MakeWireFromMetalPlate": "制作金属丝",
+    "MakeSpring": "制作弹簧",
+
+    "SawIronBar": "锯开铁锭",
+    "SawIronBarHalf": "锯开半根铁锭",
+    "SawHeavyChain": "锯开重锁链",
+
+    "ScrapWatches": "拆解手表",
+    "ScrapLock": "拆解锁",
+    "ScrapBuckle": "拆解扣件",
+    "ScrapEmptyCan": "拆解空罐",
+    "ScrapEmptyTinCan": "拆解空罐",
+    "ScrapCan": "拆解空罐",
+
+    "MakeBoxOfIronJunkSmallBase": "打包可熔废铁箱 (小)",
+    "MakeBoxOfIronJunkMediumBase": "打包可熔废铁箱 (中)",
+    "MakeBoxOfIronJunkMediumAlt": "打包可熔废铁箱 (中)",
+    "MakeBoxOfIronJunkMediumPlusBase": "打包可熔废铁箱 (中+)",
+    "MakeBoxOfIronJunkMediumPlusBase2": "合并可熔废铁箱 (中+)",
+    "MakeBoxOfIronJunkMediumPlusAlt": "打包可熔废铁箱 (中+)",
+    "MakeBoxOfIronJunkMediumLargeBase": "打包可熔废铁箱 (大)",
+    "MakeBoxOfIronJunkMediumLargeBase2": "合并可熔废铁箱 (大)",
+    "MakeBoxOfIronJunkMediumLargeAlt": "打包可熔废铁箱 (大)",
+
+    "MakeStonesFromLargeStone": "从大石制作石块",
+    "MakeStonesAndGravelFromLargeStone": "从大石制作石块 (收集碎石)",
+    "MakeStonesFromFlatStone": "从扁平石制作石块",
+    "MakeStonesAndGravelFromFlatStone": "从扁平石制作石块 (收集碎石)",
+    "MakeFlatStonesFromLargeStone": "从大石制作扁平石",
+    "MakeFlatStonesAndGravelFromLargeStone": "从大石制作扁平石 (收集碎石)",
+
+    "ConvertVarmintRifle": "将 MSR700 改为气步枪",
+    "ChangeVarmintRifleAmmoType": "调整弹丸类型",
+    "MakeGolfclub": "制作高尔夫球杆",
+
+    "SawPlank": "锯木板",
+
+    "CarveStake": "削尖木桩"
+}

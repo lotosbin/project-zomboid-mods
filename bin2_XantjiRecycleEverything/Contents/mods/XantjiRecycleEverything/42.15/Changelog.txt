@@ -1,0 +1,13 @@
+[ ALERT_CONFIG ]
+link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+[ ------ ]
+
+[ 03/19/2026 ]
+- 修复 ItemName.json 翻译 key 格式：添加 ItemName_ 前缀
+[ ------ ]
+
+[ 03/15/2026 ]
+- 版本升级至 42.15
+- 更新翻译文件格式为 JSON (PZ 42.15+)
+[ ------ ]

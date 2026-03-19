@@ -1,0 +1,48 @@
+ItemName_CN = {
+
+    /*** 原版物品补丁 ***/
+    ItemName_Base.Glue = "胶水",
+    ItemName_Base.WoodGlue = "木胶",
+
+    /*** 弹药 ***/
+    ItemName_Xantji.RubberProjectile223 = "橡胶弹丸",
+    ItemName_Xantji.RubberProjectiles223Box = "盒装橡胶弹丸",
+    ItemName_Xantji.MetalProjectile223 = "金属弹丸",
+    ItemName_Xantji.MetalProjectiles223Box = "盒装金属弹丸",
+
+    /*** 服装 ***/
+    ItemName_Xantji.ImprovisedGlovesSurgical = "简易外科手套",
+
+    /*** 食物 ***/
+    ItemName_Xantji.Pot_GlueBase = "锅具 - 胶水基",
+    ItemName_Xantji.PotForged_GlueBase = "锅具 - 胶水基",
+    ItemName_Xantji.Pot_Glue = "锅具 - 满胶水",
+    ItemName_Xantji.PotForged_Glue = "锅具 - 满胶水",
+    ItemName_Xantji.Pot_LyeBase = "锅具 - 碱液基",
+    ItemName_Xantji.PotForged_LyeBase = "锅具 - 碱液基",
+    ItemName_Xantji.Pot_Lye = "锅具 - 满碱液",
+    ItemName_Xantji.PotForged_Lye = "锅具 - 满碱液",
+    ItemName_Xantji.Saucepan_SoapBase = "长柄锅 - 肥皂基",
+    ItemName_Xantji.SaucepanCopper_SoapBase = "铜长柄锅 - 肥皂基",
+    ItemName_Xantji.Saucepan_Soap = "长柄锅 - 满肥皂",
+    ItemName_Xantji.SaucepanCopper_Soap = "铜长柄锅 - 满肥皂",
+
+    /*** 材料 ***/
+    ItemName_Xantji.DirtyGlueBottle = "空胶水瓶 (堵塞)",
+    ItemName_Xantji.CleanedGlueBottle = "空胶水瓶 (已清洁)",
+    ItemName_Xantji.WoodAsh = "木灰",
+    ItemName_Xantji.Spring = "弹簧",
+    ItemName_Xantji.SpringHardened = "硬化弹簧",
+    ItemName_Xantji.RubberFlakes = "橡胶碎片",
+    ItemName_Xantji.LyeBottle = "碱液",
+
+    /*** 废品 ***/
+    ItemName_Xantji.BoxOfIronJunkSmall = "可熔废铁箱 (小)",
+    ItemName_Xantji.BoxOfIronJunkMedium = "可熔废铁箱 (中)",
+    ItemName_Xantji.BoxOfIronJunkMediumPlus = "可熔废铁箱 (中+)",
+    ItemName_Xantji.BoxOfIronJunkLarge = "可熔废铁箱 (大)",
+
+    /*** 武器 ***/
+    ItemName_Xantji.ConvertedVarmintRifle_MetalAmmo = "MSR700 气步枪 (金属弹丸)",
+    ItemName_Xantji.ConvertedVarmintRifle_RubberAmmo = "MSR700 气步枪 (橡胶弹丸)",
+}

@@ -1,0 +1,39 @@
+{
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/ItemName.schema.json",
+
+    "Xantji.RubberProjectile223": "橡胶弹丸",
+    "Xantji.RubberProjectiles223Box": "盒装橡胶弹丸",
+    "Xantji.MetalProjectile223": "金属弹丸",
+    "Xantji.MetalProjectiles223Box": "盒装金属弹丸",
+
+    "Xantji.ImprovisedGlovesSurgical": "简易外科手套",
+
+    "Xantji.Pot_GlueBase": "锅具 - 胶水基",
+    "Xantji.PotForged_GlueBase": "锅具 - 胶水基",
+    "Xantji.Pot_Glue": "锅具 - 满胶水",
+    "Xantji.PotForged_Glue": "锅具 - 满胶水",
+    "Xantji.Pot_LyeBase": "锅具 - 碱液基",
+    "Xantji.PotForged_LyeBase": "锅具 - 碱液基",
+    "Xantji.Pot_Lye": "锅具 - 满碱液",
+    "Xantji.PotForged_Lye": "锅具 - 满碱液",
+    "Xantji.Saucepan_SoapBase": "长柄锅 - 肥皂基",
+    "Xantji.SaucepanCopper_SoapBase": "铜长柄锅 - 肥皂基",
+    "Xantji.Saucepan_Soap": "长柄锅 - 满肥皂",
+    "Xantji.SaucepanCopper_Soap": "铜长柄锅 - 满肥皂",
+
+    "Xantji.DirtyGlueBottle": "空胶水瓶 (堵塞)",
+    "Xantji.CleanedGlueBottle": "空胶水瓶 (已清洁)",
+    "Xantji.WoodAsh": "木灰",
+    "Xantji.Spring": "弹簧",
+    "Xantji.SpringHardened": "硬化弹簧",
+    "Xantji.RubberFlakes": "橡胶碎片",
+    "Xantji.LyeBottle": "碱液",
+
+    "Xantji.BoxOfIronJunkSmall": "可熔废铁箱 (小)",
+    "Xantji.BoxOfIronJunkMedium": "可熔废铁箱 (中)",
+    "Xantji.BoxOfIronJunkMediumPlus": "可熔废铁箱 (中+)",
+    "Xantji.BoxOfIronJunkLarge": "可熔废铁箱 (大)",
+
+    "Xantji.ConvertedVarmintRifle_MetalAmmo": "MSR700 气步枪 (金属弹丸)",
+    "Xantji.ConvertedVarmintRifle_RubberAmmo": "MSR700 气步枪 (橡胶弹丸)"
+}

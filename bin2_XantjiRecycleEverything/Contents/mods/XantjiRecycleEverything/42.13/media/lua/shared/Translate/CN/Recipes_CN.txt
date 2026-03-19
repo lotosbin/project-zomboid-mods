@@ -1,0 +1,80 @@
+Recipes_CN = {
+
+    Recipe_MakeRubberProjectiles = "制作橡胶弹丸",
+    Recipe_MakeMetalProjectilesFromBar = "制作金属弹丸",
+    Recipe_MakeMetalProjectilesFromBarHalf = "制作金属弹丸",
+    Recipe_MakeMetalProjectilesFromBarQuarter = "制作金属弹丸",
+    Recipe_OpenBoxOfProjectiles50 = "打开弹丸盒",
+    Recipe_PlaceProjectiles50 = "包装弹丸盒",
+
+    Recipe_SmashAnimalBone = "敲碎骨头",
+    Recipe_SmashLargeAnimalBone = "敲碎大骨头",
+    Recipe_SmashJawbone = "敲碎颌骨",
+
+    Recipe_RipClothing = "撕碎衣物",
+    Recipe_RipShoes = "拆解鞋子",
+    Recipe_RipBoots = "拆解靴子",
+
+    Recipe_MakeImprovisedGlovesSurgical = "制作简易外科手套",
+
+    Recipe_MakeFliesCureFromCigar = "用雪茄制作苍蝇药",
+
+    Recipe_CleanGlueBottle = "清洁空胶水瓶",
+
+    Recipe_PlaceBonesInCookingPot = "将骨头放入锅具",
+    Recipe_MakeLyeBase = "制作碱液基",
+    Recipe_MakeSoapBase = "制作肥皂基",
+
+    Recipe_UnpackGlue = "装填胶水",
+    Recipe_UnpackLye = "装填碱液",
+    Recipe_UnpackSoap = "取出肥皂",
+
+    Recipe_MakeWoodCharcoalTiny = "将小块木材烧制成木炭",
+    Recipe_MakeWoodAsh = "将木炭烧制成木灰",
+    Recipe_HardenSpring = "硬化弹簧",
+
+    Recipe_CutWallet = "切割钱包",
+
+    Recipe_SewSmallLeatherTogether = "缝合小皮革",
+    Recipe_SewMediumLeatherTogether = "缝合中皮革",
+
+    Recipe_MakeWireFromMetalPlate = "制作金属丝",
+    Recipe_MakeSpring = "制作弹簧",
+
+    Recipe_SawIronBar = "锯开铁锭",
+    Recipe_SawIronBarHalf = "锯开半根铁锭",
+    Recipe_SawHeavyChain = "锯开重锁链",
+
+    Recipe_ScrapWatches = "拆解手表",
+    Recipe_ScrapLock = "拆解锁",
+    Recipe_ScrapBuckle = "拆解扣件",
+    Recipe_ScrapEmptyCan = "拆解空罐",
+    Recipe_ScrapEmptyTinCan = "拆解空罐",
+    Recipe_ScrapCan = "拆解空罐",
+
+    Recipe_MakeBoxOfIronJunkSmallBase = "打包可熔废铁箱 (小)",
+    Recipe_MakeBoxOfIronJunkMediumBase = "打包可熔废铁箱 (中)",
+    Recipe_MakeBoxOfIronJunkMediumAlt = "打包可熔废铁箱 (中)",
+    Recipe_MakeBoxOfIronJunkMediumPlusBase = "打包可熔废铁箱 (中+)",
+    Recipe_MakeBoxOfIronJunkMediumPlusBase2 = "合并可熔废铁箱 (中+)",
+    Recipe_MakeBoxOfIronJunkMediumPlusAlt = "打包可熔废铁箱 (中+)",
+    Recipe_MakeBoxOfIronJunkMediumLargeBase = "打包可熔废铁箱 (大)",
+    Recipe_MakeBoxOfIronJunkMediumLargeBase2 = "合并可熔废铁箱 (大)",
+    Recipe_MakeBoxOfIronJunkMediumLargeAlt = "打包可熔废铁箱 (大)",
+
+    Recipe_MakeStonesFromLargeStone = "从大石制作石块",
+    Recipe_MakeStonesAndGravelFromLargeStone = "从大石制作石块 (收集碎石)",
+    Recipe_MakeStonesFromFlatStone = "从扁平石制作石块",
+    Recipe_MakeStonesAndGravelFromFlatStone = "从扁平石制作石块 (收集碎石)",
+    Recipe_MakeFlatStonesFromLargeStone = "从大石制作扁平石",
+    Recipe_MakeFlatStonesAndGravelFromLargeStone = "从大石制作扁平石 (收集碎石)",
+
+    Recipe_ConvertVarmintRifle = "将 MSR700 改为气步枪",
+    Recipe_ChangeVarmintRifleAmmoType = "调整弹丸类型",
+    Recipe_MakeGolfclub = "制作高尔夫球杆",
+
+    Recipe_SawPlank = "锯木板",
+
+    Recipe_CarveStake = "削尖木桩",
+
+}

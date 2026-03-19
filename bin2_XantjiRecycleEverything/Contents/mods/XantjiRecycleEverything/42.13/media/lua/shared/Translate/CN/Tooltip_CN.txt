@@ -1,0 +1,25 @@
+Tooltip_CN = {
+
+    Tooltip_Item_DirtyGlueBottle = "胶水已经堵塞了瓶口。",
+    Tooltip_Item_CleanedGlueBottle = "已清洁的瓶子，可以重新装填胶水。",
+
+    /*** 弹药 ***/
+    Tooltip_Item_RubberProjectile223 = ".223 橡胶弹丸。伤害很低，但用于练习或吸引注意力很有趣...",
+    Tooltip_Item_RubberProjectiles223Box = "盒装 .223 橡胶弹丸。伤害很低，但用于练习或吸引注意力很有趣...",
+    Tooltip_Item_MetalProjectile223 = ".223 金属弹丸。伤害较低，但有合适的武器总比没有好...",
+    Tooltip_Item_MetalProjectiles223Box = "盒装 .223 金属弹丸。伤害较低，但有合适的武器总比没有好...",
+
+    /*** 废品 ***/
+    Tooltip_Item_BoxOfIronJunkSmall = "一小箱可熔炼的铁锭（可简化熔炼过程）",
+    Tooltip_Item_BoxOfIronJunkMedium = "一箱可熔炼的铁锭（可简化熔炼过程）",
+    Tooltip_Item_BoxOfIronJunkMediumPlus = "一箱+可熔炼的铁锭（可简化熔炼过程）",
+    Tooltip_Item_BoxOfIronJunkLarge = "一大箱可熔炼的铁锭（可简化熔炼过程）",
+
+    /*** 武器 ***/
+    Tooltip_Item_ConvertedVarmintRifle_MetalAmmo = "击发机构已被弹簧替代，需要手动上膛。威力确实很弱，但至少在没有火药的情况下应该有用。该武器适配橡胶弹丸。",
+    Tooltip_Item_ConvertedVarmintRifle_RubberAmmo = "击发机构已被弹簧替代，需要手动上膛。威力确实很弱，但至少在没有火药的情况下应该有用。该武器适配金属弹丸。",
+
+    /*** 武器 ***/
+    Tooltip_Recipe_ConvertVarmintRifle = "击发机构可以更换为弹簧机制。穿透力会大幅下降，但至少在没有火药的情况下也能使用。足以用于练习或吸引僵尸。",
+    Tooltip_Recipe_ChangeVarmintRifleAmmoType = "调整为其他弹丸类型。",
+}

@@ -1,0 +1,8 @@
+version=1
+id=3687667402
+title=bin2 的Xantji's Recycle Everything 中文补丁
+description=bin2 的Xantji's Recycle Everything 中文补丁
+description=包含模组：
+description=- Xantji's Recycle Everything 中文补丁
+tags=Build 42;Language/Translation;QoL
+visibility=public
