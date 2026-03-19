@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/Sandbox.schema.json",
     "Sandbox_LingeringVoices": "徘徊的声音",
     "Sandbox_LingeringVoices_RespondToSound": "僵尸被说话声吸引",
     "Sandbox_LingeringVoices_RespondToSound_tooltip": "僵尸对僵尸说话的反应就像玩家大喊一样",
