@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/Tooltip.schema.json",
     "Tooltip_BloodBagONeg": "O-型血液血袋（万能供血者）。<LINE> 可输给任何血型。<LINE> 用于恢复500毫升血液。",
     "Tooltip_BloodBagOPos": "O+型血液血袋。<LINE> 兼容：O+、A+、B+、AB+<LINE> 用于恢复500毫升血液。",
     "Tooltip_BloodBagANeg": "A-型血液血袋。<LINE> 兼容：A-、A+、AB-、AB+<LINE> 用于恢复500毫升血液。",

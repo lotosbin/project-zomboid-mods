@@ -3,5 +3,5 @@ id=EHR_CN
 author=bin^2
 description=Extensive Health Rework B42 中文补丁
 modversion=1.1.3
-versionMin=42.0.0
+versionMin=42.15.0
 require=\EHR,\EHR_TranslationFix

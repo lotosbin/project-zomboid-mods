@@ -4,11 +4,7 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ ------ ]
 
 [ 03/19/2026 ]
-- 添加 ItemName 物品翻译（49个医疗物品）
-[ ------ ]
-
-[ 03/17/2026 ]
-- 修复翻译不生效问题：添加 .txt 格式翻译文件覆盖主模组英文内容
+- 添加疾病手册翻译 (DiseaseFlyer 9个)
 [ ------ ]
 
 [ 03/15/2026 ]

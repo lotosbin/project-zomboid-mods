@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/UI.schema.json",
     "UI_EHR_ToggleMedicalMonitor": "切换医疗监视器",
     "UI_EHR_ToggleMedicalMonitor_tt": "打开/关闭医疗监视器面板，显示血液、疾病和药物。",
     "UI_EHR_ToggleDebugMenu": "切换调试菜单",

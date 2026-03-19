@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/Sandbox.schema.json",
     "Sandbox_ExtensiveHealthRework": "全面健康重制版",
     "Sandbox_EHR_Blood": "EHR: 血液系统",
     "Sandbox_EHR_Disease": "EHR: 疾病",

@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/UI.schema.json",
     "UI_EPR_ToggleLight": "切换灯光（已恢复电力）",
     "UI_EPR_ToggleLightTooltip": "使用已恢复的电网来操作此灯",
     "UI_EPR_Dialogue_NeedSkill": "我不知道怎么做这个...",

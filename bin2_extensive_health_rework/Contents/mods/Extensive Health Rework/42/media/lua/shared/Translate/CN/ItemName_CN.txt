@@ -1,0 +1,63 @@
+ItemName_CN = {
+
+    /*** 血液袋 (Blood Bags) ***/
+    ItemName_ExtensiveHealth.BloodBagONeg = "血液袋 (O-)",
+    ItemName_ExtensiveHealth.BloodBagOPos = "血液袋 (O+)",
+    ItemName_ExtensiveHealth.BloodBagANeg = "血液袋 (A-)",
+    ItemName_ExtensiveHealth.BloodBagAPos = "血液袋 (A+)",
+    ItemName_ExtensiveHealth.BloodBagBNeg = "血液袋 (B-)",
+    ItemName_ExtensiveHealth.BloodBagBPos = "血液袋 (B+)",
+    ItemName_ExtensiveHealth.BloodBagABNeg = "血液袋 (AB-)",
+    ItemName_ExtensiveHealth.BloodBagABPos = "血液袋 (AB+)",
+    ItemName_ExtensiveHealth.EmptyBloodBag = "空血液袋",
+
+    /*** 静脉输液 (IV Supplies) ***/
+    ItemName_ExtensiveHealth.SalineBag = "生理盐水输液袋",
+    ItemName_ExtensiveHealth.IVKit = "静脉输液套件",
+    ItemName_ExtensiveHealth.Syringe = "无菌注射器 (包)",
+    ItemName_ExtensiveHealth.Epinephrine = "肾上腺素自动注射器",
+
+    /*** TIER 1 - 非处方药 (OTC) ***/
+    ItemName_ExtensiveHealth.ColdFluTablets = "感冒流感片剂",
+    ItemName_ExtensiveHealth.CoughSyrup = "止咳糖浆",
+    ItemName_ExtensiveHealth.ElectrolytePowder = "电解质粉 (盒)",
+    ItemName_ExtensiveHealth.BronchodilatorInhaler = "支气管扩张吸入器",
+    ItemName_ExtensiveHealth.AntiNauseaTablets = "止吐片",
+    ItemName_ExtensiveHealth.AntiInflammatory = "消炎药",
+    ItemName_ExtensiveHealth.AntiDiarrheal = "止泻片",
+    ItemName_ExtensiveHealth.MuscleRelaxants = "肌肉松弛剂",
+    ItemName_ExtensiveHealth.CoughSuppressant = "镇咳剂",
+    ItemName_ExtensiveHealth.AntisepticCream = "抗菌药膏",
+
+    /*** TIER 2 - 处方药 (Prescription) ***/
+    ItemName_ExtensiveHealth.AntiviralCapsules = "抗病毒胶囊",
+    ItemName_ExtensiveHealth.PrescriptionAntibiotics = "处方抗生素",
+    ItemName_ExtensiveHealth.AntifungalTablets = "抗真菌片",
+    ItemName_ExtensiveHealth.ActivatedCharcoal = "活性炭",
+    ItemName_ExtensiveHealth.AntiparasiticPills = "抗寄生虫药",
+    ItemName_ExtensiveHealth.OralRehydrationKit = "口服补液包",
+    ItemName_ExtensiveHealth.TetanusAntitoxin = "破伤风抗毒素",
+    ItemName_ExtensiveHealth.TBAntibiotics = "肺结核抗生素 (异烟肼)",
+    ItemName_ExtensiveHealth.AntibioticOintment = "抗生素软膏",
+    ItemName_ExtensiveHealth.BroadSpectrumAntibiotics = "广谱抗生素",
+
+    /*** TIER 3 - 临床级药物 (Clinical Grade) ***/
+    ItemName_ExtensiveHealth.CorticosteroidInjection = "皮质类固醇注射剂",
+    ItemName_ExtensiveHealth.IVAntibiotics = "静脉抗生素",
+    ItemName_ExtensiveHealth.IVMetronidazole = "静脉甲硝唑",
+    ItemName_ExtensiveHealth.IVAmphotericin = "静脉两性霉素B",
+    ItemName_ExtensiveHealth.ChelationKit = "螯合治疗包",
+    ItemName_ExtensiveHealth.AlbendazoleInjection = "阿苯达唑注射剂",
+    ItemName_ExtensiveHealth.IVCiprofloxacin = "静脉环丙沙星",
+    ItemName_ExtensiveHealth.TetanusImmunoglobulin = "破伤风免疫球蛋白",
+    ItemName_ExtensiveHealth.RifampicinComboPack = "利福平组合包",
+    ItemName_ExtensiveHealth.IVVancomycin = "静脉万古霉素",
+    ItemName_ExtensiveHealth.EmergencySepsisKit = "脓毒症急救包",
+
+    /*** KNOX 感染治疗 (Knox Infection Treatment) ***/
+    ItemName_ExtensiveHealth.GeneTherapyKit = "基因治疗注射器",
+    ItemName_ExtensiveHealth.PhalanxPills = "阻断剂片",
+    ItemName_ExtensiveHealth.AntibodyTestKit = "抗体兼容性测试盒",
+    ItemName_ExtensiveHealth.ImmunoboosterShot = "免疫增强针",
+
+}

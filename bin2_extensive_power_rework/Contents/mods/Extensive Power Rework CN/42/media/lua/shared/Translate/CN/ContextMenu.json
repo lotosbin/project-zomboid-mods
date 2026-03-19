@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/ContextMenu.schema.json",
     "EPR Grid": "电网",
     "Disconnect Building from EPR Grid": "断开建筑与电网的连接",
     "Connect Building to EPR Grid": "将建筑连接到电网",
