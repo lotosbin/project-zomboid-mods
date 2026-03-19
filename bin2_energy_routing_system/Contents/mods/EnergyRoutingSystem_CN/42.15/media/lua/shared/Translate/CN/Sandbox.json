@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/Sandbox.schema.json",
     "Sandbox_EnergyRouting": "能量路由",
     "Sandbox_EnergyRoutingSystem": "能量路由系统",
     "Sandbox_EnergyRoutingSystem_LootSpawnMultiplier": "模组物品战利品倍率",

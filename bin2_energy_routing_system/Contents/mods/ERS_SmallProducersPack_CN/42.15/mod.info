@@ -1,10 +1,10 @@
-name=ERS – Small Producers Pack
+name=ERS – Small Producers Pack 中文补丁
 id=ERS_SmallProducersPack_CN
 description=Early game compact energy producers compatible with ERS Framework.
 poster=poster.png
 icon=icon.png
-modversion=1.0
-versionMin=42.13.0
-supports=42.13
-author=DarylMasterGG
+modversion=1.0.1
+versionMin=42.15.0
+supports=42.15
+author=bin^2
 require=\ERS_SmallProducersPack

@@ -1,0 +1,6 @@
+{
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/ItemName.schema.json",
+    "ERS_SmallProducersPack.MiniSolarPanel": "迷你太阳能板",
+    "ERS_SmallProducersPack.MiniWindTurbine": "迷你风力涡轮机",
+    "ERS_SmallProducersPack.MiniHydroTurbine": "迷你水力涡轮机"
+}

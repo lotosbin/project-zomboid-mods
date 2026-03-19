@@ -5,4 +5,4 @@ description=bin2 的 Energy Routing System 中文补丁
 description=包含模组：
 description=- Energy Routing System 中文补丁
 tags=Build 42;Language/Translation;QoL
-visibility=friendsOnly
+visibility=public

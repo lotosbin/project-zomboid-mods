@@ -1,0 +1,6 @@
+{
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/Tooltip.schema.json",
+    "Tooltip_ERS_SmallProducersPack_MiniSolarPanel": "兼容ERS网络的紧凑型太阳能发电器。",
+    "Tooltip_ERS_SmallProducersPack_MiniWindTurbine": "兼容ERS网络的紧凑型风力发电器。",
+    "Tooltip_ERS_SmallProducersPack_MiniHydroTurbine": "兼容ERS网络的紧凑型水力发电器。"
+}

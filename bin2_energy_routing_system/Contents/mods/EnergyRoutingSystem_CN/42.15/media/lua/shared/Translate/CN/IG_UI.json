@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/IG_UI.schema.json",
     "IGUI_SPESS_Item_SolarPanel_Tooltip": "垂直太阳能板。产生日间能量，必须连接到控制器。",
     "IGUI_SPESS_Item_SolarPanelHorizontal_Tooltip": "水平太阳能板。紧凑型日间能量生产装置。",
     "IGUI_SPESS_Item_Aerogenerador_Tooltip": "风力涡轮机。根据风速和天气产生可变功率。",

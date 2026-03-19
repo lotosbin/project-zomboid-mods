@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/ItemName.schema.json",
+    "EnergyRouting.SolarPanel": "太阳能板",
+    "EnergyRouting.SolarPanelHorizontal": "水平太阳能板",
+    "EnergyRouting.Aerogenerador": "风力涡轮机",
+    "EnergyRouting.TurbinaHidraulica": "水力涡轮机",
+    "EnergyRouting.SolarPanel_Individual": "单片太阳能板",
+    "EnergyRouting.WindTurbineMotor": "风力涡轮机电机",
+    "EnergyRouting.TurbineHelice": "涡轮叶轮",
+    "EnergyRouting.BatteryTank": "太阳能电池",
+    "EnergyRouting.WindBattery": "风能电池",
+    "EnergyRouting.EnergyController": "能量控制器",
+    "EnergyRouting.WireTransferEnergy": "能量传输电缆"
+}

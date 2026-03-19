@@ -1,0 +1,10 @@
+{
+    "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/Recipes.schema.json",
+    "CraftEnergyController": "组装能量控制器",
+    "CraftBatteryTank": "组装太阳能电池",
+    "CraftWindBattery": "组装风能电池",
+    "CraftSolarPanel": "组装太阳能板",
+    "CraftSolarPanelHorizontal": "组装水平太阳能板",
+    "CraftAerogenerador": "组装风力涡轮机",
+    "CraftTurbinaHidraulica": "组装水力涡轮机"
+}
