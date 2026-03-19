@@ -1,13 +1,33 @@
-移除过时的模组
+[ ALERT_CONFIG ]
+link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+[ ------ ]
+
+[ 03/19/2026 ]
+- 同步模组列表与 penglai.ini
+- 添加模组: SideBarCS, MREfood4213, ERS_SmallProducersPack_CN
+- 移除模组: simpleStatusFixed
+- 更新 modversion: 1.0.6
+[ ------ ]
+
+[ 03/19/2026 ]
+- 添加模组: CaffeineMakesSense, EHR_TranslationFix, EnergyRoutingSystem_CN, IndustrialWorks, NoBoringWork, SimpleStatusFix, SolarFloodlight, TacHold, TacHold AR, TacHold Pistol, TacHold Pistol AR, XantjiRecycleEverything_CN
+- 移除模组: CleanHotBar, ModernFirearmsSystem, ShelterHold_Beehive_B42_13, SideBarCS, TheShortcut_Fix
+- 更新 modversion: 1.0.5
+[ ------ ]
+
+[ 03/19/2026 ]
+- 移除过时的模组
 - Skill Recovery Journal - B42.13.2 Temp Fix [OUTDATED]
 
-移除崩溃的模组
+- 移除崩溃的模组
 - [B42]说话描述情绪B42.13
 - [B42] Nested Containers
 
-翻译更新
+- 翻译更新
 - Respawn2: 翻译文件转换为 JSON
 - Lingering Voices CN: 翻译文件转换为 JSON
 - Extensive Power Rework CN: 翻译文件转换为 JSON
 - Extensive Health Rework: 翻译文件转换为 JSON
 - EnergyRoutingSystem_CN: 翻译文件转换为 JSON
+[ ------ ]
