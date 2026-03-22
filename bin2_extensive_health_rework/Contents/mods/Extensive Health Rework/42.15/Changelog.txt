@@ -3,6 +3,10 @@ link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 [ ------ ]
 
+[ 03/22/2026 ]
+- 修复加载顺序: 在统一汉化模组后加载
+[ ------ ]
+
 [ 03/19/2026 ]
 - 添加疾病手册翻译 (DiseaseFlyer 9个)
 [ ------ ]
