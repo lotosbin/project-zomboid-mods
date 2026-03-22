@@ -3,15 +3,15 @@ link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 [ ------ ]
 
-[ 03/22/2026 ]
-- 修复加载顺序: 在统一汉化模组后加载
+[ 03/15/2026 ]
+- 更新翻译文件格式为 JSON (PZ 42.15+)
+- 转换所有 CN 翻译文件从 .txt 到 .json 格式
 [ ------ ]
 
 [ 03/19/2026 ]
 - 添加疾病手册翻译 (DiseaseFlyer 9个)
 [ ------ ]
 
-[ 03/15/2026 ]
-- 更新翻译文件格式为 JSON (PZ 42.15+)
-- 转换所有 CN 翻译文件从 .txt 到 .json 格式
+[ 03/22/2026 ]
+- 修复加载顺序: 在统一汉化模组后加载
 [ ------ ]
