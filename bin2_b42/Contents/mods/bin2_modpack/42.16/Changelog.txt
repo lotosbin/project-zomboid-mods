@@ -37,3 +37,9 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 - Extensive Health Rework: 翻译文件转换为 JSON
 - EnergyRoutingSystem_CN: 翻译文件转换为 JSON
 [ ------ ]
+
+[ 04/08/2026 ]
+移除报错模组:
+- Expanded Attachments
+- TheShortcut
+[ ------ ]
