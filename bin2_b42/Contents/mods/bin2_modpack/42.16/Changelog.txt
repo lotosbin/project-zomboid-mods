@@ -38,6 +38,14 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 - EnergyRoutingSystem_CN: 翻译文件转换为 JSON
 [ ------ ]
 
+[ 04/10/2026 ]
+- 同步模组列表与 penglai.ini (B42.15.2 服务器)
+- 新增模组 (136): 大量载具模组、技能磁带系列、ssr-quests 系列、Modular Firearms System、现代家具等
+- 移除模组 (8): Authentic Z - Current, B42Trans_CN, BLTRandomZombies, CleanUI_Compat_42_14, FantasyWorkshopVS42_3.0, ReplaceBandage, ReplaceBandage42.13patch, WelcomeMessageBegone
+- 总模组数: 187 → 315
+- 更新 modversion: 1.0.8
+[ ------ ]
+
 [ 04/08/2026 ]
 移除报错模组:
 - Expanded Attachments
