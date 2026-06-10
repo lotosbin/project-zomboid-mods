@@ -1,3 +1,15 @@
+版本 1.0.2 (2026-06-10)
+- 修复 bin2_extension 拆解简易木钳配方报错 (item not found: Base.WoodenStick)
+- 修复 outputs 引用游戏中不存在的物品 ID
+  - Base.WoodenStick → Base.Plank (木板 ×2)
+  - Base.Rag → Base.RippedSheets (碎布条 ×1)
+- 同步修复 B41 旧版 (42.15.0) 同一 BUG
+- 补全 B42 配方的 time / timedAction 字段
+- 修复 Recipe.json 翻译键缺 Recipe_ 前缀问题
+- 修复 inputs 跨 module 引用未带 Base. 前缀问题
+- 补全 ItemName.json 翻译条目 (木板、碎布条)
+- B41/B42 双版本 modversion 同步 patch 升级
+
 版本 1.0.0 (2025-12-26)
 - 初始发布
 - 添加 Lingering Voices CN 中文化补丁，包含所有僵尸台词翻译
