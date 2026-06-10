@@ -412,4 +412,57 @@ bin2_extensive_health_rework/Contents/mods/Extensive Health Rework/42/media/lua/
 
 **关联 memory:** [[recipe-translation-key-format]] (B42 翻译 key 格式)
 
+### Steam Workshop B42 模组扫描
+
+为 `/Users/liubinbin/Library/Application Support/Steam/steamapps/workshop/content/108600` (1164 个 workshop item) 编写专门的扫描脚本,只处理 B42 模组。
+
+**新增文件:**
+- `mod_dependency_analyzer/scan_workshop.py` — Workshop 专用扫描 CLI
+- `mod_dependency_analyzer/__init__.py` — 包初始化文件 (使 import 路径生效)
+- `mod_dependency_analyzer/exports/2026-06-10-workshop/` — Workshop 扫描数据
+
+**B42 识别规则 (优先级):**
+1. mod.info 含 `versionMin=42.x`
+2. 父目录名匹配 `42.x` 模式 (如 `42.0`、`42.13.1`、`42.19.0`)
+3. mod name 含 `B42` / `[B42]`
+
+**扫描结果:**
+- 2420 个 mod.info → 980 个识别为 B42 → 602 个 Mod 节点 (去重)
+- 2611 个 recipe 文件 → 3268 个 Recipe 节点
+- 9038 条 ItemName 翻译 + 26478 条 Recipe 翻译
+- 4334 个 Item 节点 (跨模组去重)
+- 731 REQUIRES + 5143 BELONGS_TO + 19641 CONSUMES + 4741 PRODUCES
+
+**Mod_id 冲突处理:**
+- 部分 mod 同时有短 id (`ToadTraits`) 与长 id (`1299328280/ToadTraits`)
+- 优先保留短 id,合并 requires 中的长 id 引用
+- 子 mod (如 `2256623447/firearmmodbeta`) 保留原 id,作为独立节点
+
+**翻译加载警告:**
+- 多个 ItemName.json / Recipe.json 有 JSON 语法错误 (trailing comma 等)
+- 库未明确支持,解析失败时跳过 (WARNING 但不中断)
+- 影响: 这些 mod 的中文翻译缺失,英文 key 仍在图中
+
+**命令:**
+```bash
+python3 -m mod_dependency_analyzer.scan_workshop
+# 默认扫描 /Users/liubinbin/Library/Application Support/Steam/steamapps/workshop/content/108600
+# 导出到 mod_dependency_analyzer/exports/<date>-workshop/
+```
+
+**导出文件大小:**
+- nodes.csv: 516 KB
+- relationships.csv: 1.93 MB
+- import.cypher: 6.18 MB
+- summary.md: 253 KB
+
+**经验沉淀:**
+- macOS 上 `python3 -m package.module` 需要包内 `__init__.py` 文件
+- Steam Workshop 同一 mod 可能在多个 mod.info 中重复 (顶层 + 版本目录),需要去重
+- 部分 mod 用 `<workshop_id>/<mod_id>` 形式命名,不能简单 merge
+- B42 识别**不能只靠 `versionMin`**,很多 mod 漏写这个字段,需结合 name 与父目录名
+- JSON 文件常见 trailing comma 错误 (作者手写时遗留),需宽容解析
+
+**关联:** [[../../mod_dependency_analyzer/docs/recipe_graph_import]] (工具使用文档)
+
 ### ExtensivelyHealthRework 物品翻译更新 (历史)
