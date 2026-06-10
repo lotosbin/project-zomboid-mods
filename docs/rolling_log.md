@@ -83,6 +83,253 @@ learn/ExtensiveHealthReworkB42/42/media/lua/shared/Translate/CN/ItemName_EN.txt
 - TIER 3 临床级药物 (静脉注射药物、急救包等)
 - KNOX 感染治疗物品 (基因治疗、阻断剂等)
 
+## 2026-06-10
+
+### CraftRecipe Wiki 学习(完整版)
+
+通过 Wayback Machine 抓取 PZ Wiki `CraftRecipe` 页面(Cloudflare 防护绕过)及 B41 对照页 `Recipe (scripts)`,整理出 B42 完整字段、inputs/outputs 语法、itemMapper/Tags/OnCreate/OnTest/OnCanPerform/OnGiveXP 等 Lua 钩子、B42 配方修改局限性等。
+
+**抓取方式:**
+- `pzwiki.net` 直接访问被 Cloudflare 拦截(返回 403)
+- 改用 `web.archive.org/web/2025/https://pzwiki.net/wiki/CraftRecipe` 获取存档
+- B42 页面: oldid=1263201 (2025-10-30)
+- B41 页面: oldid=874781 (2025-03-02)
+
+**关键产出:**
+- `docs/craft-recipe-study.md`: 完整学习笔记
+  - 完整字段表(20+ 字段)
+  - inputs/outputs 语法与示例
+  - mode:keep / mode:destroy 取代 B41 的 keep/destroy 前缀
+  - flags[] 列表取代部分 B41 散落字段
+  - itemMapper / overlayMapper 新机制
+  - 完整代码示例(SawLogs / RefillHurricaneLantern / CarveWhistle)
+  - Lua 钩子签名(OnCreate/OnTest/OnCanPerform/OnGiveXP)
+  - 模块系统 / needToBeLearn / AutoLearnAll / AutoLearnAny
+  - B41↔B42 字段对照表
+  - 修改现有配方的两种方法
+
+**关键发现:**
+1. B42 `Tags` 必填且必须含工作台标签(如 `AnySurfaceCraft`)
+2. 液体使用 `-fluid 1.0 [Petrol]` 形式,单位升
+3. 修改 B42 现有配方受限,只能加 `itemMapper` / `overlayMapper` 或通过 `ScriptManager:getCraftRecipe()` Lua API
+4. B42 已无独立 `Module` Wiki 页面,module 主要用作命名空间
+5. `allowDestroyed` / `allowBatch` / `allowMultiple` 这些 B41 字段在 B42 wiki 中**未出现**,已替换为 flags / 字段
+
+### 仓库内 B42 craftRecipe 实际案例
+
+仓库内已有 B41 与 B42 两种语法的对照样本,可作为模组开发模板:
+
+**B41 旧式 (42.15.0):**
+```lua
+module Bin2Recipe
+{
+    recipe DisassembleCrudeWoodenTongs
+    {
+        CrudeWoodenTongs,
+        Result:WoodenStick=2,
+        Result:Rag=1,
+        Time:5.0,
+        OnGiveXP:Recipe_GiveXP,
+    }
+}
+```
+
+**B42 新式 (42.19.0):**
+```lua
+module Bin2Recipe
+{
+    craftRecipe Bin2DisassembleCrudeWoodenTongs
+    {
+        Tags = AnySurfaceCraft,
+        category = Cooking,
+        inputs  { item 1 [CrudeWoodenTongs], }
+        outputs { item 2 Base.WoodenStick, item 1 Base.Rag, }
+    }
+}
+```
+
+**演进要点 (同一模组跨版本):**
+- 命名空间从 `DisassembleCrudeWoodenTongs` 改为 `Bin2DisassembleCrudeWoodenTongs`(加 mod 前缀,避免 RecipeID 冲突)
+- 字段名从 `属性:值` 改为 `属性 = 值`
+- 原料/产出物独立 `inputs {}` / `outputs {}` 块
+- `OnGiveXP:Recipe_GiveXP` 简写(直接引用) → B42 需要 `OnCreate = Recipe.OnCreate.XXX` 显式命名
+- 拆解原版物品时用 `[CrudeWoodenTongs]` 简化(同 module 内可省略 `Base.` 前缀)
+
+### 经验沉淀
+
+- **pzwiki.net 抓取策略**: Cloudflare 防护严格,直接抓取与 WebFetch 均 403;**优先使用 web.archive.org 存档**,路径 `https://web.archive.org/web/2025/<原 URL>`
+- **B41→B42 迁移清单**:
+  - `属性:值` → `属性 = 值`
+  - `Result:X=Y` → `outputs { item Y Base.X }`
+  - `keep` / `destroy` → `mode:keep` / `mode:destroy`
+  - `Prop1:Screwdriver` → `flags[Prop1]`
+  - `AnimNode:X` → `timedAction = X`
+  - `CanBeDoneFromFloor:true` → `Tags = ...;CanBeDoneFromFloor`
+  - `AllowDestroyedItem:true` → `flags[AllowDestroyedItem]`
+- **RecipeID 命名**: 加 mod 前缀(如 `Bin2DisassembleCrudeWoodenTongs`)避免与原版或他人模组冲突
+- **拼写陷阱**: `needTobeLearn` 和 `needToBeLearn` 两种 wiki 拼写都出现,以游戏实际源码为准
+- **B42 Module**: 仍需用 `module` 包裹,但 Module 不再控制可见性,只作命名空间
+- **MCP 工具优先级**: context7 > Wayback Machine > 直接 WebFetch
+
+### 后续建议
+
+- [ ] 整理 `docs/recipes_b42_cheatsheet.md` 作为开发速查表
+- [ ] 把仓库内 B41 旧 Recipes.txt 全部迁到 B42 craftRecipe 语法
+- [ ] 研究 `ScriptManager:getCraftRecipe()` Lua API 的实际接口,补充到学习笔记
+
+### bin2_extension 配方校验与修复
+
+对 `bin2_extension/42.19.0` 的 `bin2_Recipes.txt` 进行 B42 规范校验,发现并修复两项问题。
+
+**问题 1:recipe 缺 `time` 与 `timedAction`**
+
+- 文件: `bin2_b42/Contents/mods/bin2_extension/42.19.0/media/scripts/recipes/bin2_Recipes.txt`
+- 现状: B42 缺省 `time` 会使用默认值 50,实际耗时比预期长 10 倍;`timedAction` 缺省则使用默认动画
+- 修复: 补 `time = 5,` 与 `timedAction = Making,`(与 B41 旧版 Time:5.0 对齐)
+
+**问题 2:Recipe 翻译键缺 `Recipe_` 前缀**
+
+- 文件: `bin2_b42/Contents/mods/bin2_extension/42.19.0/media/lua/shared/Translate/CN/Recipe.json`
+- 修复前: `"Bin2DisassembleCrudeWoodenTongs": "拆解简易木钳"`
+- 修复后: `"Recipe_Bin2DisassembleCrudeWoodenTongs": "拆解简易木钳"`
+- 原因: B42.15+ Recipe 类型 key 强制要求 `Recipe_` 前缀(参考 `MEMORY.md` 翻译类型表)
+
+**校验结果:**
+- ✅ `craftRecipe` 语法正确
+- ✅ `module` 包裹正确
+- ✅ RecipeID `Bin2DisassembleCrudeWoodenTongs` 加了 mod 前缀,无冲突
+- ✅ `Tags = AnySurfaceCraft` 必填字段已写
+- ✅ `inputs` / `outputs` 块语法正确
+- ✅ `category = Cooking` 用 `=` 赋值(B42 规范)
+
+### inputs / outputs 严格校验与跨 module 引用修复
+
+**问题 3:inputs 跨 module 引用未带 `Base.` 前缀**
+
+- 文件: `bin2_b42/Contents/mods/bin2_extension/42.19.0/media/scripts/recipes/bin2_Recipes.txt`
+- 修复前: `item 1 [CrudeWoodenTongs],`
+- 修复后: `item 1 [Base.CrudeWoodenTongs],`
+
+**校验依据:**
+
+| 项 | 校验结果 | 说明 |
+|----|----------|------|
+| `item <数量> [<fullType>]` 形式 | ✅ inputs 形式正确 | 与 Wiki 一致 |
+| `item <数量> <fullType>` 形式 | ✅ outputs 形式正确 | outputs 不带 `[]` 包裹,B42 与 inputs 差异 |
+| 数量 1 / 2 / 1 | ✅ 正确 | 与 B41 旧版 `Result:WoodenStick=2` 一致 |
+| 跨 module 引用 | ⚠️→✅ 修复 | inputs 简写可能跨版本解析失败,显式 `Base.` 前缀最稳 |
+| 逗号结尾 | ✅ 正确 | B42 块内逗号合法 |
+| 末项后多余逗号 | ✅ 允许 | B42 不严格禁止 |
+| `mode:keep` / `mode:destroy` 缺省 | ✅ 正确 | 默认消耗,符合拆解语义 |
+| `flags[]` 缺省 | ✅ 正确 | 简易木钳无需特殊占用 |
+
+**修复后完整 inputs/outputs 块:**
+
+```lua
+inputs
+{
+    item 1 [Base.CrudeWoodenTongs],
+}
+outputs
+{
+    item 2 Base.WoodenStick,
+    item 1 Base.Rag,
+}
+```
+
+**经验沉淀:**
+- B42 outputs 必须显式带 `Base.` 前缀(跨 module)
+- B42 inputs 建议统一带 `Base.` 前缀(避免不同 B42 子版本解析差异)
+- outputs 写法是 `item N Base.X` 不带 `[]`,与 inputs 形式 `item N [Base.X]` 区分
+- 末项逗号在 B42 中是允许的,不需要去掉
+
+**TODO 完成:**
+- [x] 补全 `bin2_extension/42.19.0` 的 `time` 与 `timedAction` 字段
+- [x] 修复 `Recipe.json` 翻译键缺前缀问题
+- [x] 修复 `inputs` 跨 module 引用未带 `Base.` 前缀
+
+### 错误诊断与修复:outputs 引用不存在的物品
+
+**console.txt 报错:**
+
+```
+ERROR: ScriptManager.PostWorldDictionaryInit> Exception thrown
+  java.lang.Exception: Bin2DisassembleCrudeWoodenTongs item not found: Base.WoodenStick
+  at OutputMapper.getItem(OutputMapper.java:98)
+ERROR: GameLoadingState$1.run> Exception thrown
+  zombie.world.WorldDictionaryException: World loading could not proceed, there are script load errors.
+```
+
+**根本原因:outputs 引用了游戏中不存在的物品 ID**
+
+通过对游戏目录 `/Users/liubinbin/Library/Application Support/Steam/steamapps/common/ProjectZomboid/` 中 B42Trans_CN_As1 模组的 `ItemName.json` 反查,确认了:
+
+| 引用 ID | 游戏中是否存在 | 正确名称 |
+|---------|---------------|----------|
+| `Base.WoodenStick` | ❌ **不存在** | (无此基础物品) |
+| `Base.Plank` | ✅ 存在 | 木板 |
+| `Base.Rag` | ❌ **不存在** | (只有 `Bandeau_Rag` 等服装类) |
+| `Base.RippedSheets` | ✅ 存在 | 碎布条 |
+| `Base.CrudeWoodenTongs` | ✅ 存在 | 简易夹钳 |
+
+**修复:outputs 改正为真实存在的物品**
+
+- `item 2 Base.WoodenStick` → `item 2 Base.Plank`(木板 ×2)
+- `item 1 Base.Rag` → `item 1 Base.RippedSheets`(碎布条 ×1)
+
+**同步修复 B41 旧版(同一 BUG 跨版本遗留):**
+
+- `42.15.0/Recipes.txt`: `Result:WoodenStick=2,Result:Rag=1` → `Result:Plank=2,Result:RippedSheets=1`
+
+**补充 ItemName 翻译条目:**
+
+- `ItemName_Base.Plank`: 木板
+- `ItemName_Base.RippedSheets`: 碎布条
+
+**经验沉淀:**
+
+1. **校验物品 ID 必须查游戏本体**:B41 引擎对不存在的物品 ID 容忍度高(只警告),B42 引擎在 `OnPostWorldDictionaryInit` 阶段**严格校验**,导致世界加载直接失败
+2. **加载顺序敏感**:B42 的 `OutputMapper.getItem` 在 `WorldDictionary.init()` 阶段就强制要求所有 outputs fullType 必须已注册,这个阶段早于游戏内任何物品生成
+3. **真实物品 ID 反查方法**:
+   - 反查 Steam 模组的翻译文件 (`ItemName_Base.XXX` 键) — 翻译键就是物品 ID
+   - 检查 `ItemName.json` 中实际出现的 Base. 条目
+4. **B41 旧版配方需重新校验**:B41 `Result:WoodenStick=2` 实际上是**沉默 BUG**,产物永远拿不到,需要补错误
+5. **完整错误的全貌**:B42 报错时只指出**第一个**找不到的物品;若 fix 完第一个还会冒出第二个(`Base.Rag`)。**遇到 `item not found` 必须把所有 outputs 全部过一遍**,不能只 fix 报错行
+
+**TODO 完成:**
+- [x] 修复 `outputs` 中 `Base.WoodenStick` 不存在 → 改为 `Base.Plank`
+- [x] 修复 `outputs` 中 `Base.Rag` 不存在 → 改为 `Base.RippedSheets`
+- [x] 同步修复 B41 旧版的 `Result:` 同样 BUG
+- [x] 补全 ItemName 翻译条目
+
+**修复后完整 `bin2_Recipes.txt` (42.19.0):**
+
+```lua
+module Bin2Recipe
+{
+    craftRecipe Bin2DisassembleCrudeWoodenTongs
+    {
+        time = 5,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Cooking,
+        inputs
+        {
+            item 1 [Base.CrudeWoodenTongs],
+        }
+        outputs
+        {
+            item 2 Base.Plank,
+            item 1 Base.RippedSheets,
+        }
+    }
+}
+```
+
+**TODO 完成:**
+- [x] 补全 `bin2_extension/42.19.0` 的 `time` 与 `timedAction` 字段
+- [x] 修复 `Recipe.json` 翻译键缺前缀问题
+
 ### ExtensiveHealthRework 物品翻译更新
 
 将物品翻译添加到 bin2_extensive_health_rework 模组（B42.15+ JSON 格式）。
