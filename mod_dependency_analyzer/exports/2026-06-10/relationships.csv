@@ -1,0 +1,35 @@
+:START_ID,:END_ID,:TYPE,count,mode,prop,chance
+bin2_B42_13_1_Collection,Lingering Voices CN,REQUIRES,,,,
+bin2_B42_14_1_Collection,EHR_CN,REQUIRES,,,,
+bin2_B42_14_1_Collection,EPR_B42_CN,REQUIRES,,,,
+bin2_B42_14_1_Collection,Lingering Voices CN,REQUIRES,,,,
+bin2_B42_Collection,EnergyRoutingSystem_CN,REQUIRES,,,,
+bin2_B42_Collection,EHR_CN,REQUIRES,,,,
+bin2_B42_Collection,EPR_B42_CN,REQUIRES,,,,
+bin2_B42_Collection,Lingering Voices CN,REQUIRES,,,,
+bin2_B42_Collection,XantjiRecycleEverything_CN,REQUIRES,,,,
+bin2_B42_Collection,ERS_SmallProducersPack_CN,REQUIRES,,,,
+Bin2DisassembleCrudeWoodenTongs,bin2_extension,BELONGS_TO,,,,
+Bin2DisassembleSplint,bin2_extension,BELONGS_TO,,,,
+Bin2MakeCheese,bin2_extension,BELONGS_TO,,,,
+DisassembleCrudeWoodenTongs,bin2_extension,BELONGS_TO,,,,
+DisassembleSplint,bin2_extension,BELONGS_TO,,,,
+Bin2DisassembleCrudeWoodenTongs,Base.CrudeWoodenTongs,CONSUMES,1,consume,,
+Bin2DisassembleSplint,Base.Splint,CONSUMES,1,consume,,
+Bin2MakeCheese,Base.Bowl,CONSUMES,1,keep,Prop1,
+Bin2MakeCheese,Base.CheeseCloth,CONSUMES,1,consume,,
+Bin2MakeCheese,Base.Milk,CONSUMES,1,consume,,
+Bin2MakeCheese,Base.Sugar,CONSUMES,1,consume,,
+Bin2MakeCheese,Base.Salt,CONSUMES,1,consume,,
+Bin2MakeCheese,Base.Vinegar2,CONSUMES,1,consume,,
+DisassembleCrudeWoodenTongs,Base.CrudeWoodenTongs,CONSUMES,1,consume,,
+DisassembleSplint,Base.Splint,CONSUMES,1,consume,,
+Bin2DisassembleCrudeWoodenTongs,Base.ShortBat,PRODUCES,2,,,1.0
+Bin2DisassembleCrudeWoodenTongs,Base.RippedSheets,PRODUCES,1,,,1.0
+Bin2DisassembleSplint,Base.ShortBat,PRODUCES,2,,,1.0
+Bin2DisassembleSplint,Base.RippedSheets,PRODUCES,1,,,1.0
+Bin2MakeCheese,Base.Cheese,PRODUCES,1,,,1.0
+DisassembleCrudeWoodenTongs,Base.ShortBat,PRODUCES,2,,,1.0
+DisassembleCrudeWoodenTongs,Base.RippedSheets,PRODUCES,1,,,1.0
+DisassembleSplint,Base.ShortBat,PRODUCES,2,,,1.0
+DisassembleSplint,Base.RippedSheets,PRODUCES,1,,,1.0

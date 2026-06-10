@@ -346,3 +346,70 @@ bin2_extensive_health_rework/Contents/mods/Extensive Health Rework/42/media/lua/
 - TIER 2 处方药
 - TIER 3 临床级药物
 - KNOX 感染治疗物品
+
+### Neo4j 合成图导入工具 (mod_dependency_analyzer)
+
+为仓库内 mod 与 recipe 关系建立 Neo4j 图模型,实现可视化合成树与依赖分析。
+
+**新增文件 (5 个):**
+- `mod_dependency_analyzer/recipe_graph.py` — RecipeGraph 数据模型 (扩展 ModDependencyGraph)
+- `mod_dependency_analyzer/scanners/mod_scanner.py` — 扫描 mod.info (id/name/require/versionMin 等)
+- `mod_dependency_analyzer/scanners/recipe_scanner_b41.py` — 解析 B41 `recipe X {}` 语法 (Result:X=N / keep/destroy/Prop1)
+- `mod_dependency_analyzer/scanners/recipe_scanner_b42.py` — 解析 B42 `craftRecipe X {}` 语法 (inputs/outputs/fluid/mode:keep/flags)
+- `mod_dependency_analyzer/exporters/csv_exporter.py` — Neo4j CSV 导出
+- `mod_dependency_analyzer/exporters/cypher_exporter.py` — Cypher 脚本导出
+- `mod_dependency_analyzer/import_workshop.py` — 一键 CLI 入口
+- `mod_dependency_analyzer/docs/recipe_graph_import.md` — 使用文档 (8 个 Cypher 查询示例)
+
+**数据模型:**
+- 节点: Mod / Recipe / Item
+- 关系: REQUIRES (Mod→Mod) / BELONGS_TO (Recipe→Mod) / CONSUMES (Recipe→Item, 带 count/mode/prop) / PRODUCES (Recipe→Item, 带 count/chance)
+
+**首次扫描结果 (2026-06-10):**
+- 14 Mod 节点 (去除多版本重复)
+- 5 Recipe 节点 (3 B42 + 2 B41)
+- 11 Item 节点 (全部带中文名)
+- 10 REQUIRES 关系 (modpack 间依赖)
+- 5 BELONGS_TO / 10 CONSUMES / 9 PRODUCES
+
+**B41 vs B42 解析器实现差异:**
+- B41: 用 `Result:Item=N` 提取产出, 简单 `Item,` 提取原料, `keep`/`destroy` 标记消耗模式
+- B42: 用 `inputs {}` / `outputs {}` 嵌套块, 显式 `item N [Type]` 语法, `mode:keep`/`flags[Prop1]` 写在同一行
+- B42 独有: 液体输入 `-fluid N [FluidID]` / `itemMapper` / `overlayMapper` / 嵌套 module
+
+**CSV 与 Cypher 取舍:**
+- CSV: 适合 neo4j-admin import 批量导入,快但需重启 Neo4j
+- Cypher: 适合 MERGE 增量,可在 Browser 直接粘贴调试,可读性差但能精确控制
+
+**ItemName/Recipe 翻译自动加载:**
+- 扫描所有 `ItemName.json` / `Recipe.json` 翻译文件
+- `ItemName_Base.X` → fullType `Base.X`
+- `Recipe_X` (B42 官方) 或 `X` (裸 key,本仓库方案) → recipeId `X`
+
+**modpack require 过滤策略:**
+- modpack 的 require 列表含大量外部 mod (Steam Workshop 已装但不在本仓库)
+- 只添加**本仓库存在的 mod_id** 之间的 REQUIRES 关系,避免创建孤立节点
+- 外部 mod 不在图数据库中,后续可扩展扫描 Workshop 目录
+
+**Recipe 文件识别策略:**
+- 文件名包含 "recipe" (不区分大小写) 且不包含 "item"
+- 关键特征: 识别 `recipes/foo.txt` (B42) 和 `Recipes.txt` (B41) 都用同一规则
+- 排除 item 定义文件 (如 Death Token Item.txt)
+
+**经验沉淀:**
+- **B41/B42 模块前缀自动补全**: B41 原料 `CrudeWoodenTongs,` 写时省略 `Base.` 前缀 (同 module),导入图时自动补 `Base.` 以保证 fullType 完整
+- **PZ_BUILTIN_MODULES 集合**: 标记 `Base` / `Radio` / `farming` 等 PZ 内置 module, 这些物品的 source_mod 设为 `Base` 而不是 module 名
+- **重复 mod 合并**: 同一 mod_id 在多个版本目录下出现 (如 `bin2_extension/42.15.0` 和 `42.19.0`),只保留最高 versionMin
+- **CSV 列顺序**: `:LABEL` 必须放在最后,否则 neo4j-admin 解析失败
+- **Cypher 转义**: 字符串字面量需双引号包裹,反斜杠与引号需双重转义
+- **JSON schema 转换**: key 格式不统一 (Recipe_ 前缀 vs 裸 key),导入时需处理两种
+
+**验证方法 (无 Neo4j 实例时):**
+1. 检查导出的 `summary.md` 节点/关系计数
+2. 打开 `nodes.csv` 看关键节点 (如 `Bin2MakeCheese` / `Base.Cheese`) 是否存在
+3. 打开 `relationships.csv` 看 CONSUMES 关系是否覆盖所有 inputs
+4. 用 Cypher 模拟器 (如 https://cypher-query.com/) 测试 import.cypher 语法
+
+**关联 memory:** [[recipe-translation-key-format]] (B42 翻译 key 格式)
+
+### ExtensivelyHealthRework 物品翻译更新 (历史)

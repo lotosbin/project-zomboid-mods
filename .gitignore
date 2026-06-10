@@ -3,3 +3,7 @@
 default.txt
 reset-mods-41_51.txt
 learn
+
+# Python 缓存
+**/__pycache__/
+*.pyc

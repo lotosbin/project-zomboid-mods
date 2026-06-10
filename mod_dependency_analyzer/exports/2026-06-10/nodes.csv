@@ -1,0 +1,31 @@
+modId:ID,name,version,author,pzVersion,description,:LABEL
+XantjiRecycleEverything_CN,Xantji's Recycle Everything 中文补丁,1.0.13,bin^2,42.15,Sincerely Xantji,Mod
+EPR_B42_CN,Extensive Power Rework B42 CN,1.1.0,bin^2,42.0.0,Extensive Power Rework B42 中文补丁,Mod
+Lingering Voices CN,Lingering Voices CN,1.1.0,bin^2,42.13.1,包括扑击、踉跄、假死、敲门和攻击时的台词，让中文玩家获得更好的游戏体验。,Mod
+bin2_B42_13_1_Collection,[Obsoleted]bin2的B42.13.1合集,1.0.3,bin^2,42.13.1,bin2的B42.13.1合集 | 包含29个精选mod的组合，包括中文汉化、UI增强、建筑系统、食物扩展等。本modpack已为B42.13.1版本优化。,Mod
+bin2_B42_13_Collection,[Obsoleted]bin2的B42.13合集,1.0.3,bin^2,42.13,bin2的B42.13合集 | 包含29个精选mod的组合，包括中文汉化、UI增强、建筑系统、食物扩展等。本modpack已为B42.13版本优化。,Mod
+bin2_B42_14_1_Collection,[Obsoleted]bin2的B42.14.1合集,1.0.3,bin^2,42.14.1,bin2的B42.14.1合集 | 包含精选mod的组合，包括中文汉化、UI增强、建筑系统、食物扩展等。本modpack已为B42.14.1版本优化。,Mod
+bin2_B42_Collection,bin2的B42合集,1.0.8,bin^2,42.16.0,bin2的B42合集 | 包含精选mod的组合，包括中文汉化、UI增强、建筑系统、食物扩展等。本modpack已为B42.15.0版本优化。,Mod
+bin2_extension,bin2扩展,1.1.1,bin^2,42.15.0,bin2的扩展模组 - 添加各种便利配方,Mod
+Project_Cook_Controller_Support,Project Cook Controller Support,1.0.0,bin^2,42.13.1,需要 Project Cook (Workshop ID: 3490188370),Mod
+EHR_CN,Extensive Health Rework B42 CN,1.1.4,bin^2,42.15.0,Extensive Health Rework B42 中文补丁,Mod
+Respawn2,Keep XP When Respawn 2,,,,Respawn character with reduced perk level,Mod
+NotTheEnd2,Death Is Not The End 2,,,,Retrieve XP from your corpse.,Mod
+ERS_SmallProducersPack_CN,ERS – Small Producers Pack 中文补丁,1.0.1,bin^2,42.15.0,Early game compact energy producers compatible with ERS Framework.,Mod
+EnergyRoutingSystem_CN,ERS – Energy Routing System - CN,1.5.0,bin^2,42.13.0,"Advanced off-grid energy management system for Project Zomboid. Adds a server-authoritative Energy Routing Controller with real-time UI, solar panels, wind turbines, batteries, energy storage, consumption groups, priority modes, degradation, and maintenance-ready mechanics. Designed for realistic survival gameplay.",Mod
+Bin2DisassembleCrudeWoodenTongs,,bin2_extension,B42,5,Making,Recipe
+Bin2DisassembleSplint,,bin2_extension,B42,5,Making,Recipe
+Bin2MakeCheese,,bin2_extension,B42,50,Making,Recipe
+DisassembleCrudeWoodenTongs,,bin2_extension,B41,5.0,,Recipe
+DisassembleSplint,,bin2_extension,B41,5.0,,Recipe
+Base.CrudeWoodenTongs,简易木钳,Base,Base,,,Item
+Base.ShortBat,短棒,Base,Base,,,Item
+Base.RippedSheets,碎布条,Base,Base,,,Item
+Base.Splint,夹板,Base,Base,,,Item
+Base.Bowl,碗,Base,Base,,,Item
+Base.CheeseCloth,奶酪布,Base,Base,,,Item
+Base.Milk,牛奶,Base,Base,,,Item
+Base.Sugar,糖,Base,Base,,,Item
+Base.Salt,盐,Base,Base,,,Item
+Base.Vinegar2,醋,Base,Base,,,Item
+Base.Cheese,奶酪,Base,Base,,,Item
