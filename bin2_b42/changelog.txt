@@ -1,3 +1,9 @@
+[ ALERT_CONFIG ]
+link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+[ ------ ]
+
+[ 06/10/2026 ]
 版本 1.1.0 (2026-06-10)
 - 新增 Bin2MakeCheese 制作奶酪配方 (原版无此配方)
 - 奶酪制作: 1 奶酪布 + 1 牛奶 + 1 糖 + 1 盐 + 1 醋 → 1 奶酪
@@ -32,9 +38,12 @@
 - 修复 inputs 跨 module 引用未带 Base. 前缀问题
 - 补全 ItemName.json 翻译条目 (木板、碎布条)
 - B41/B42 双版本 modversion 同步 patch 升级
+[ ------ ]
 
+[ 12/26/2025 ]
 版本 1.0.0 (2025-12-26)
 - 初始发布
 - 添加 Lingering Voices CN 中文化补丁，包含所有僵尸台词翻译
 - 添加 Neat_Controller_Support 手柄支持功能
 - 添加 bin2_B42_13_1 模组合集
+[ ------ ]
