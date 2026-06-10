@@ -465,4 +465,80 @@ python3 -m mod_dependency_analyzer.scan_workshop
 
 **关联:** [[../../mod_dependency_analyzer/docs/recipe_graph_import]] (工具使用文档)
 
+### Neo4j 数据导入 (Docker)
+
+将扫描数据实际导入到 Neo4j 5.26 Docker 容器 `steam-workshop-neo4j` (端口 7474/7687)。
+
+**Neo4j 连接信息:**
+- 容器名: `steam-workshop-neo4j` (Docker image: neo4j:5)
+- 端口: 7474 (HTTP) / 7687 (Bolt)
+- 认证: `neo4j` / `please_change_me` (从 docker inspect 获取)
+
+**导入命令:**
+```bash
+# 把 cypher 脚本拷到 docker 容器 (避免 stdin 重定向问题)
+docker cp <export>/import.cypher steam-workshop-neo4j:/tmp/
+
+# 注入数据
+docker exec -i steam-workshop-neo4j bash -c \
+  "cypher-shell -u neo4j -p please_change_me < /dev/stdin" \
+  < <export>/import.cypher
+```
+
+**导入耗时:**
+- 2026-06-10-workshop (38479 行 Cypher): **2 小时 7 分钟**
+- 2026-06-10 (83 行,本仓库 bin2_extension): **14 秒**
+
+**导入后数据库状态 (合并后):**
+
+| 节点类型 | 数量 | 来源 |
+|----------|------|------|
+| Mod | 2804 | 原有 2200 + Workshop 602 + 本仓库 2 |
+| Collection | 3 | 原有 (旧爬虫数据) |
+| Author | 767 | 原有 (旧爬虫数据) |
+| Recipe | 3273 | Workshop 3268 + 本仓库 5 |
+| Item | 4337 | Workshop 4334 + 本仓库 3 |
+
+| 关系类型 | 数量 |
+|----------|------|
+| CONSUMES | 13288 |
+| PRODUCES | 3281 |
+| BELONGS_TO | 1907 |
+| AUTHORED | 1527 |
+| REQUIRES | 1440 |
+| CONTAINS | 479 |
+| ASSEMBLED | 3 |
+
+**注意:关系数低于预期**:
+- 预期 CONSUMES 19641 → 实际 13288 (67%)
+- 预期 PRODUCES 4741 → 实际 3281 (69%)
+- 预期 BELONGS_TO 5143 → 实际 1907 (37%)
+- 原因: cypher-shell 默认单事务大小限制 + 长时间导入可能丢失部分行
+- 影响: 部分 recipe 的某些关系缺失,但节点全部到位,可基于现有关系做合成树查询
+
+**验证查询 (bin2_extension):**
+```cypher
+MATCH (r:Recipe {recipe_id: 'Bin2MakeCheese'})-[:CONSUMES]->(i:Item)
+RETURN r.recipe_id, r.syntax, r.time, r.category, i.full_type AS input, i.display_name AS name
+```
+返回 6 行 (醋、盐、糖、牛奶、奶酪布、碗) ✓
+
+```cypher
+MATCH (r:Recipe {recipe_id: 'Bin2MakeCheese'})-[:PRODUCES]->(i:Item)
+RETURN r.recipe_id, i.full_type AS output, i.display_name AS name
+```
+返回 1 行 (Base.Cheese 奶酪) ✓
+
+**环境配置踩坑:**
+- 系统 Python (3.14) PEP 668 限制,需要 `python3 -m venv .venv` 隔离环境
+- py2neo 5.x 移除了 `Cursor.single()` 方法,改用 `Graph.evaluate()` 返回标量
+- py2neo 6.x 进一步重构,API 兼容性需注意
+- docker exec 直接 `<` 重定向被当参数,必须用 `bash -c "< /dev/stdin"` 模式
+
+**经验沉淀:**
+- 现有 Neo4j 数据库中残留了之前抓虫的数据 (2200 Mod + 767 Author + 3 Collection),**不能简单清空**,需保留
+- 新导入数据用 `MERGE` 语义,不与现有冲突
+- 长时间 Cypher 导入 (2+ 小时) 容易出现事务超时或部分丢失,生产环境建议用 CSV + `neo4j-admin import` 批量
+- cypher-shell 默认 buffer 较小,大文件可能丢失尾部,导入后**必须验证**节点/关系数与预期一致
+
 ### ExtensivelyHealthRework 物品翻译更新 (历史)
