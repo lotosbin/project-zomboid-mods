@@ -1,0 +1,9 @@
+name=bin2扩展
+id=bin2_extension
+poster=poster.png
+versionMin=42.15.0
+description=bin2的扩展模组 - 添加各种便利配方
+tags=QoL;Recipe;Chinese
+author=bin^2
+modversion=1.0.0
+category=content

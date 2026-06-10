@@ -1,0 +1,15 @@
+module Bin2Recipe
+
+{
+
+recipe DisassembleCrudeWoodenTongs
+{
+    CrudeWoodenTongs,
+
+    Result:Plank=2,
+    Result:RippedSheets=1,
+    Time:5.0,
+    OnGiveXP:Recipe_GiveXP,
+}
+
+}

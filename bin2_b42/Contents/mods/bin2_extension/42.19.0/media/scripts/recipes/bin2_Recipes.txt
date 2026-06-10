@@ -1,0 +1,19 @@
+module Bin2Recipe
+{
+    craftRecipe Bin2DisassembleCrudeWoodenTongs
+    {
+        time = 5,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Cooking,
+        inputs
+        {
+            item 1 [Base.CrudeWoodenTongs],
+        }
+        outputs
+        {
+            item 2 Base.Plank,
+            item 1 Base.RippedSheets,
+        }
+    }
+}

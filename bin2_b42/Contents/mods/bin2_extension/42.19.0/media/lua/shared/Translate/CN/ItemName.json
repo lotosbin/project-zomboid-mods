@@ -1,0 +1,6 @@
+{
+  "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/ItemName.schema.json",
+  "ItemName_Base.CrudeWoodenTongs": "简易木钳",
+  "ItemName_Base.Plank": "木板",
+  "ItemName_Base.RippedSheets": "碎布条"
+}
