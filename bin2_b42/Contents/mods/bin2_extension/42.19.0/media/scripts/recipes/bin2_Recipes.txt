@@ -16,4 +16,20 @@ module Bin2Recipe
             item 1 Base.RippedSheets,
         }
     }
+    craftRecipe Bin2DisassembleSplint
+    {
+        time = 5,
+        timedAction = Making,
+        Tags = InHandCraft;CanBeDoneFromFloor,
+        category = Cooking,
+        inputs
+        {
+            item 1 [Base.Splint],
+        }
+        outputs
+        {
+            item 2 Base.ShortBat,
+            item 1 Base.RippedSheets,
+        }
+    }
 }

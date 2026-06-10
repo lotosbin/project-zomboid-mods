@@ -12,4 +12,14 @@ recipe DisassembleCrudeWoodenTongs
     OnGiveXP:Recipe_GiveXP,
 }
 
+recipe DisassembleSplint
+{
+    Splint,
+
+    Result:ShortBat=2,
+    Result:RippedSheets=1,
+    Time:5.0,
+    OnGiveXP:Recipe_GiveXP,
+}
+
 }

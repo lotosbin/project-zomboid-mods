@@ -1,3 +1,11 @@
+版本 1.0.5 (2026-06-10)
+- 新增 Bin2DisassembleSplint 拆解夹板配方 (与拆解简易木钳相同行为)
+- 夹板拆解: 1 夹板 → 2 短棒 + 1 碎布条
+- 同样支持手持制作,无需工作台 (InHandCraft + CanBeDoneFromFloor)
+- 同步更新 B41 旧版 (42.15.0) 同一变更
+- 同步补全 ItemName 翻译 (夹板 Splint)
+- 同步补全 Recipe 翻译 (拆解夹板)
+
 版本 1.0.4 (2026-06-10)
 - 拆解简易木钳改为手持制作 (InHandCraft + CanBeDoneFromFloor),不再依赖工作台
 - 拆解产出物从木板 (Plank) 改为短棒 (ShortBat)
