@@ -3,6 +3,3 @@
 default.txt
 reset-mods-41_51.txt
 learn
-
-# 模组自带的 Changelog.txt 是模板自动生成的,不在仓库维护范围
-**/Contents/mods/**/Changelog.txt

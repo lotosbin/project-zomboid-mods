@@ -1,0 +1,19 @@
+[ ALERT_CONFIG ]
+link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+[ ------ ]
+
+[ 06/10/2026 ]
+- 修复: 拆解简易木钳配方 outputs 引用不存在的物品 ID
+  (Base.WoodenStick → Base.Plank, Base.Rag → Base.RippedSheets)
+- 修复: 补全 B42 配方的 time / timedAction 字段
+- 修复: Recipe.json 翻译键缺 Recipe_ 前缀
+- 修复: inputs 跨 module 引用未带 Base. 前缀
+- 优化: 拆解简易木钳改为手持制作 (InHandCraft + CanBeDoneFromFloor)
+- 优化: 拆解产出物从木板改为短棒 (ShortBat)
+- 新增: Bin2DisassembleSplint 拆解夹板配方
+- 新增: Bin2MakeCheese 制作奶酪配方
+  (1 奶酪布 + 1 牛奶 + 1 糖 + 1 盐 + 1 醋 → 1 奶酪)
+- 翻译: 补全多个物品/配方中文条目
+  (短棒、夹板、奶酪、奶酪布、牛奶、糖、盐、醋、拆解夹板、制作奶酪)
+- 标记: 42.15.0 版本进入 EOL,不再同步更新
