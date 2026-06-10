@@ -32,4 +32,23 @@ module Bin2Recipe
             item 1 Base.RippedSheets,
         }
     }
+    craftRecipe Bin2MakeCheese
+    {
+        time = 50,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Cooking,
+        inputs
+        {
+            item 1 [Base.CheeseCloth],
+            item 1 [Base.Milk],
+            item 1 [Base.Sugar],
+            item 1 [Base.Salt],
+            item 1 [Base.Vinegar2],
+        }
+        outputs
+        {
+            item 1 Base.Cheese,
+        }
+    }
 }

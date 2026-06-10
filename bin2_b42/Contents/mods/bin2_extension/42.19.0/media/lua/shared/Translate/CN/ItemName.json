@@ -3,5 +3,11 @@
   "ItemName_Base.CrudeWoodenTongs": "简易木钳",
   "ItemName_Base.Splint": "夹板",
   "ItemName_Base.ShortBat": "短棒",
-  "ItemName_Base.RippedSheets": "碎布条"
+  "ItemName_Base.RippedSheets": "碎布条",
+  "ItemName_Base.Cheese": "奶酪",
+  "ItemName_Base.CheeseCloth": "奶酪布",
+  "ItemName_Base.Milk": "牛奶",
+  "ItemName_Base.Sugar": "糖",
+  "ItemName_Base.Salt": "盐",
+  "ItemName_Base.Vinegar2": "醋"
 }

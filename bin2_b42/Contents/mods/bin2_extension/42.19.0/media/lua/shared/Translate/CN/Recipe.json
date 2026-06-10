@@ -1,5 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/Recipes.schema.json",
   "Recipe_Bin2DisassembleCrudeWoodenTongs": "拆解简易木钳",
-  "Recipe_Bin2DisassembleSplint": "拆解夹板"
+  "Recipe_Bin2DisassembleSplint": "拆解夹板",
+  "Recipe_Bin2MakeCheese": "制作奶酪"
 }
