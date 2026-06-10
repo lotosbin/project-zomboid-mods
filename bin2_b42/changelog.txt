@@ -11,6 +11,7 @@
 - 拆解产出物从木板 (Plank) 改为短棒 (ShortBat)
 - 同步更新 B41 旧版 (42.15.0) 的同一变更
 - 同步补全 ItemName 翻译 (短棒 ShortBat)
+- [EOL] 此版本为 42.15.0 最后一个维护快照,后续仅维护 42.19.0+
 
 版本 1.0.2 (2026-06-10)
 - 修复 bin2_extension 拆解简易木钳配方报错 (item not found: Base.WoodenStick)

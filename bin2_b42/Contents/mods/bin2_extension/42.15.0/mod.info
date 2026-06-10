@@ -1,9 +1,9 @@
-name=bin2扩展
+name=bin2扩展 [EOL] 请使用 42.19.0+
 id=bin2_extension
 poster=poster.png
 versionMin=42.15.0
-description=bin2的扩展模组 - 添加各种便利配方
-tags=QoL;Recipe;Chinese
+description=bin2的扩展模组 - 添加各种便利配方 [EOL 已停止维护, 请使用 42.19.0+]
+tags=QoL;Recipe;Chinese;EOL
 author=bin^2
 modversion=1.0.4
 category=content
