@@ -4,7 +4,7 @@ module Bin2Recipe
     {
         time = 5,
         timedAction = Making,
-        Tags = AnySurfaceCraft,
+        Tags = InHandCraft;CanBeDoneFromFloor,
         category = Cooking,
         inputs
         {
@@ -12,7 +12,7 @@ module Bin2Recipe
         }
         outputs
         {
-            item 2 Base.Plank,
+            item 2 Base.ShortBat,
             item 1 Base.RippedSheets,
         }
     }
