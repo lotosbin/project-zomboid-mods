@@ -52,4 +52,24 @@ module Bin2Recipe
             item 1 Base.Cheese,
         }
     }
+    craftRecipe Bin2MakeWeldingRods
+    {
+        time = 50,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Metalworking,
+        SkillRequired = MetalWelding:1,
+        xpAward = MetalWelding:5,
+        inputs
+        {
+            item 1 [Base.SteelBar],
+            item 4 [Base.Charcoal],
+            item 1 [Base.Glue],
+            item 1 [Base.Salt],
+        }
+        outputs
+        {
+            item 2 Base.WeldingRods,
+        }
+    }
 }

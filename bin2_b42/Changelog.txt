@@ -4,6 +4,31 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ ------ ]
 
 [ 06/10/2026 ]
+版本 1.2.2 (2026-06-10)
+- 兼容: Recipe 翻译 key 两种格式都提供
+  - 裸 key (Bin2MakeCheese): B42Trans_CN_As1 / ERS_CN 风格
+  - 带 Recipe_ 前缀 (Recipe_Bin2MakeCheese): PZ 官方 Wiki 风格
+- 兼容: 翻译文件名 Recipe.json + Recipes.json 都提供
+  - 适配不同 PZ 版本大小写敏感/不敏感行为
+- 修复: 此前 Recipe.json 在 PZ 中被静默忽略,翻译键不生效
+- 修复: Bin2MakeWeldingRods category 拼写错误
+  - MetalWelding → Metalworking (PZ 标准类目名,与其他工业 mod 一致)
+  - 影响: 此前 'MetalWelding' 被 PZ 当作自定义类,无法归入金工分类
+- 修复: SkillRequired/xpAward 字段值仍为 MetalWelding
+  (这是 PerkFactory 技能 ID,与 category 不同,保留 MetalWelding 不变)
+- 新增 Bin2MakeWeldingRods 制作焊条配方 (原版无此配方)
+- 焊条结构: 钢芯 + 助焊剂涂层
+  - 1 钢条 (钢芯)
+  - 4 木炭 (助焊剂主成分: 碳,占涂层主要重量)
+  - 1 胶水 (黏合剂,使涂层附着于钢芯)
+  - 1 盐 (助熔剂,降低金属氧化物熔点)
+- 产出: 2 焊条
+- 工作台制作 (AnySurfaceCraft),time = 50, animated as Making
+- 需要 MetalWelding 技能 1 级
+- 经验奖励: MetalWelding +5
+- 补全 ItemName 翻译 (钢条、木炭、胶水、盐、焊条)
+- 补全 Recipe 翻译 (制作焊条)
+
 版本 1.1.1 (2026-06-10)
 - 优化: Bin2MakeCheese 添加碗 (Base.Bowl) 作为工具
   - 占用主手 (flags[Prop1]), 制作后保留 (mode:keep)

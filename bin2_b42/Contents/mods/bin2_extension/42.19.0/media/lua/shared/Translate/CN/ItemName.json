@@ -10,5 +10,9 @@
   "ItemName_Base.Sugar": "糖",
   "ItemName_Base.Salt": "盐",
   "ItemName_Base.Vinegar2": "醋",
-  "ItemName_Base.Bowl": "碗"
+  "ItemName_Base.Bowl": "碗",
+  "ItemName_Base.SteelBar": "钢条",
+  "ItemName_Base.Charcoal": "木炭",
+  "ItemName_Base.Glue": "胶水",
+  "ItemName_Base.WeldingRods": "焊条"
 }
