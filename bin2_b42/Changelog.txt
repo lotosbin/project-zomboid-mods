@@ -4,7 +4,23 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ ------ ]
 
 [ 06/10/2026 ]
-版本 1.2.2 (2026-06-10)
+版本 1.3.0 (2026-06-10)
+- 新增 Bin2MakeSalt 制盐配方 (原版无此配方)
+- 制盐工艺: 蒸发法,需要装满液体的平底煮锅 + 木炭(燃料) + 任意工作台
+- inputs:
+  - item 1 [Base.Saucepan] mode:keep flags[Prop1;NotEmpty;ItemCount]
+    (平底煮锅,装满液体,制作后保留,占用主手)
+  - item 1 [Base.Charcoal]  (木炭,蒸发用燃料)
+- outputs:
+  - item 1 Base.Salt          (盐)
+  - item 1 Base.Saucepan      (空煮锅,液体被蒸发)
+- 工作台制作 (AnySurfaceCraft),time = 80, animated as Making
+- 需要 Cooking 技能 1 级
+- 经验奖励: Cooking +5
+- 补全 ItemName 翻译 (平底煮锅)
+- 补全 Recipe 翻译 (制盐)
+
+版本 1.2.1 (2026-06-10)
 - 兼容: Recipe 翻译 key 两种格式都提供
   - 裸 key (Bin2MakeCheese): B42Trans_CN_As1 / ERS_CN 风格
   - 带 Recipe_ 前缀 (Recipe_Bin2MakeCheese): PZ 官方 Wiki 风格
@@ -28,7 +44,9 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 - 经验奖励: MetalWelding +5
 - 补全 ItemName 翻译 (钢条、木炭、胶水、盐、焊条)
 - 补全 Recipe 翻译 (制作焊条)
+[ ------ ]
 
+[ 06/10/2026 ]
 版本 1.1.1 (2026-06-10)
 - 优化: Bin2MakeCheese 添加碗 (Base.Bowl) 作为工具
   - 占用主手 (flags[Prop1]), 制作后保留 (mode:keep)

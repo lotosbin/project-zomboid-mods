@@ -72,4 +72,23 @@ module Bin2Recipe
             item 2 Base.WeldingRods,
         }
     }
+    craftRecipe Bin2MakeSalt
+    {
+        time = 80,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Cooking,
+        SkillRequired = Cooking:1,
+        xpAward = Cooking:5,
+        inputs
+        {
+            item 1 [Base.Saucepan] mode:keep flags[Prop1;NotEmpty;ItemCount],
+            item 1 [Base.Charcoal;Base.CharcoalCrafted;Base.Coke],
+        }
+        outputs
+        {
+            item 1 Base.Salt,
+            item 1 Base.Saucepan,
+        }
+    }
 }
