@@ -63,7 +63,7 @@ module Bin2Recipe
         inputs
         {
             item 1 [Base.SteelBar],
-            item 4 [Base.Charcoal],
+            item 4 [Base.Charcoal;Base.CharcoalCrafted;Base.Coke],
             item 1 [Base.Glue],
             item 1 [Base.Salt],
         }
