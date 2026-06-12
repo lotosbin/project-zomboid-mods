@@ -4,6 +4,12 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ ------ ]
 
 [ 06/10/2026 ]
+版本 1.3.2 (2026-06-10)
+- 修复: 移除冗余 Recipe.json (单数)
+  - PZ 实际只加载 Recipes.json (复数,见 console 'overrides ...recipes.json')
+  - 此前同时提供两个文件造成维护负担
+  - 合并后只剩 Recipes.json,内容包含所有 5 个配方翻译键
+
 版本 1.3.1 (2026-06-10)
 - 优化: Bin2MakeWeldingRods / Bin2MakeSalt 燃料支持 3 种炭任选
   - Base.Charcoal         (木炭)
