@@ -4,7 +4,66 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ ------ ]
 
 [ 06/10/2026 ]
-版本 1.3.2 (2026-06-10)
+版本 1.5.3 (2026-06-10)
+- 清理: 移除 Bin2MakeCheeseFromBucket 配方
+  - 用户反馈: 与 Bin2MakeCheese 重复 (都用 4 升牛奶)
+  - 简化: 只保留 Bin2MakeCheese 一条奶酪路径
+- 清理: 删除 media/lua/client/Bin2Recipe.lua
+  - Lua 钩子 (OnTest/OnCreate) 仅服务于 FromBucket
+  - 现无其他配方需要,整文件删除
+- 清理: 移除 media/lua/client/ 空目录
+- 清理: Recipes.json 移除 Bin2MakeCheeseFromBucket 翻译键
+
+版本 1.5.2 (2026-06-10)
+- 优化: 按用户原料清单重做奶酪配方
+  - 移除 Base.Lemon / Base.Salt (用户清单中无)
+  - 加 -fluid 0.5 [Water] (回到稀释)
+  - 保留: 容器 + 糖 + 醋 + 奶酪布 + -fluid 4.0 牛奶
+- 终态:
+  - Bin2MakeCheese: 1 容器 + 1 奶酪布 + 1 糖 + 1 醋 + 4 升牛奶 + 0.5 升水 → 1 奶酪
+  - Bin2MakeCheeseFromBucket: 1 容器 + 1 奶酪布 + 1 糖 + 1 醋 + 0.5 升水 → 1 奶酪 (桶装液体验证)
+  - 之前: item 4 [Base.Milk] (4 瓶 Base.Milk 物品)
+  - 现在: -fluid 4.0 [CowMilk;SheepMilk] (4 升流体)
+  - 参考 SourdoughSP StrainSourmilk 奶酪工艺
+  - 优势: 1 升流体 = 1 升牛奶,与 4 升奶酪用量更直接
+  - 多选: CowMilk (牛奶) 或 SheepMilk (羊奶) 都可
+  - 移除 -fluid 0.5 [Water] (现实奶酪不需额外稀释)
+
+版本 1.5.0 (2026-06-10)
+- 学习 SourdoughSP&Dedicated 重做奶酪配方 (Bin2MakeCheese + Bin2MakeCheeseFromBucket)
+- 工艺优化:
+  - time: 50 → 100 (长时间发酵/搅拌更真实)
+  - timedAction: Making → MixingBowl (搅拌动画)
+  - Tags: AnySurfaceCraft → AnySurfaceCraft;Cooking (双 tag)
+  - category: 保留 Cooking
+  - xpAward: 5 → 10
+  - SkillRequired: Cooking 1 (无变化)
+- inputs 学习 SourdoughSP 模式:
+  - 容器多选: MixingBowl / Pot / Saucepan (mappers[CheeseContainer])
+  - flags[IsEmpty] (要求容器空,与 SourdoughSP 一致)
+  - 移除 Base.Sugar (PZ 工业烹饪中用柠檬替代糖的甜味)
+  - 加 Base.Lemon (柠檬,提供酸性 + 凝乳)
+  - 加 -fluid 0.5 [Water] (少量水,模拟稀释)
+- 补全 ItemName 翻译 (搅拌盆/陶锅/平底煮锅/奶酪布/柠檬/奶酪)
+- 参考: SourdoughSP&Dedicated 配方工艺标准
+- 新增 Bin2MakeCheeseFromBucket 桶装牛奶制作奶酪配方
+  - 容器: Base.Saucepan mode:keep flags[Prop1;NotEmpty;ItemCount]
+  - 原料: 1 装满液体的平底煮锅 + 1 奶酪布 + 1 糖 + 1 盐 + 1 醋
+  - 产出: 1 奶酪 + 1 空煮锅 (液体被消耗 1 升)
+  - OnTest = Recipe.OnTest.BucketHasMilk (校验煮锅有液体)
+  - OnCreate = Recipe.OnCreate.BucketMakeCheese (消耗煮锅 1 升液体)
+- 新增 media/lua/client/Bin2Recipe.lua Lua 钩子文件
+- 两条奶酪路径平衡:
+  - Bin2MakeCheese (4 瓶牛奶) — 适合小批量
+  - Bin2MakeCheeseFromBucket (1 桶装) — 适合大批量
+- 补全 Recipe 翻译 (桶装牛奶制作奶酪)
+- 优化: Bin2MakeCheese 牛奶消耗 1 → 4
+  - 现实依据: 1 kg 奶酪需 8-10 升牛奶,PZ 中 1 瓶约 1 升
+  - 平衡: Bin2MakeCheese (4 瓶) 与 Bin2MakeCheeseFromBucket (1 桶) 产出等价
+  - 1 块奶酪需 4 瓶 Base.Milk + 1 糖 + 1 盐 + 1 醋 + 奶酪布
+- 玩家可通过两种途径选择:
+  · 小批量: 4 瓶牛奶 (Bin2MakeCheese)
+  · 大批量: 1 桶装牛奶 (Bin2MakeCheeseFromBucket,需 OnTest 钩子)
 - 修复: 移除冗余 Recipe.json (单数)
   - PZ 实际只加载 Recipes.json (复数,见 console 'overrides ...recipes.json')
   - 此前同时提供两个文件造成维护负担

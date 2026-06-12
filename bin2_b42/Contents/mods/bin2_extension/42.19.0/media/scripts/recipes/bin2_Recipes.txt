@@ -34,18 +34,19 @@ module Bin2Recipe
     }
     craftRecipe Bin2MakeCheese
     {
-        time = 50,
-        timedAction = Making,
-        Tags = AnySurfaceCraft,
+        time = 100,
+        timedAction = MixingBowl,
+        Tags = AnySurfaceCraft;Cooking,
         category = Cooking,
+        SkillRequired = Cooking:1,
+        xpAward = Cooking:10,
         inputs
         {
-            item 1 [Base.Bowl] mode:keep flags[Prop1],
+            item 1 [Base.Pot;Base.PotForged;Base.Saucepan;Base.SaucepanCopper] mode:keep flags[IsEmpty] mappers[CheeseContainer],
             item 1 [Base.CheeseCloth],
-            item 1 [Base.Milk],
             item 1 [Base.Sugar],
-            item 1 [Base.Salt],
             item 1 [Base.Vinegar2],
+            -fluid 1 [CowMilk;SheepMilk],
         }
         outputs
         {
