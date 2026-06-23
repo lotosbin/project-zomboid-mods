@@ -1,0 +1,13 @@
+[ ALERT_CONFIG ]
+link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+[ ------ ]
+
+[ 06/23/2026 ]
+[ ------ ]
+v1.0.0 - 首个版本。
+       - 从 bin2_tikitown_cn v1.1.0 拆分 PowerPlant 部分独立成模组。
+       - 覆盖 42 ItemName / 33 Recipe / 7 Sandbox / 2 IGUI 翻译条目。
+       - 依赖: TikitownPower (原 mod)
+       - loadModAfter 引用 Tikitown_CN (原版汉化),确保覆盖生效。
+v1.0.1 - (2026-06-23): 从 bin2_b42/ 迁移到 bin2_tikitown/Contents/mods/ 统一管理。

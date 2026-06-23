@@ -1,0 +1,19 @@
+[ ALERT_CONFIG ]
+link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+[ ------ ]
+
+[ 06/23/2026 ]
+版本 1.6.0 (2026-06-23)
+- 新增 bin2_tikitown_cn 翻译模组 (v1.2.0)
+  · 蒂基镇 (Tikitown) 简体中文汉化包 (B42.15+ JSON 格式)
+  · 214 条翻译条目覆盖 8 大类型
+  · loadModAfter Tikitown_CN (覆盖并扩展原版汉化)
+- 新增 bin2_tikitown_powerplant_cn 翻译模组 (v1.0.0)
+  · 蒂基镇发电厂 (TikitownPowerPlant) 简体中文汉化包
+  · 84 条翻译条目 (零件名 / 配方 / 沙盒设置 / 物品分类)
+  · loadModAfter TikitownPower 与 Tikitown_CN
+- 由 bin2_b42 目录迁移到 bin2_tikitown 目录统一管理
+- workshop.txt 仅保留两个翻译模组描述,移除 bin2_extension / Project_Cook_Controller_Support (独立 Workshop item)
+- 集合定位: 蒂基镇系列中文翻译补丁合集 (原 title: bin2's B42 mods → bin2's tikitown mods)
+[ ------ ]

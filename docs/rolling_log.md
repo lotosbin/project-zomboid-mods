@@ -577,3 +577,162 @@ RETURN r.recipe_id, i.full_type AS output, i.display_name AS name
 **关联 memory:** [[../../.claude/projects/-Users-liubinbin-Zomboid-Workshop/memory/recipe-design-principles]]
 
 ### ExtensivelyHealthRework 物品翻译更新 (历史)
+
+## 2026-06-23
+
+### bin2_tikitown_cn 中文翻译模组创建
+
+参考 `learn/Tikitown`、`learn/Tikitown_CN`、`learn/TikitownPowerPlant` 三个原始 Steam Workshop 模组，编写了 B42.15+ JSON 格式的中文翻译包。
+
+**目标路径：** `/Users/liubinbin/Zomboid/Workshop/bin2_b42/Contents/mods/bin2_tikitown_cn/`
+
+**翻译文件清单（B42.15+ JSON 格式）：**
+
+| 类型 | 文件 | 条数 | 内容 |
+|------|------|------|------|
+| ItemName | `media/lua/shared/Translate/CN/ItemName.json` | 190 | 棒球卡 / BSSO 警服 / 历史军装 / Plush 毛绒玩具 / PowerPlant 零件 / 医疗药剂 |
+| Recipe | `media/lua/shared/Translate/CN/Recipes.json` | 50 | 收藏品配方 + 发电厂锻造/组装/修复配方 |
+| Sandbox | `media/lua/shared/Translate/CN/Sandbox.json` | 32 | 蒂基镇 + 蒂基镇发电厂沙盒选项 |
+| Tooltip | `media/lua/shared/Translate/CN/Tooltip.json` | 11 | 棒球卡叙事提示 + 三种药剂说明 |
+| IG_UI | `media/lua/shared/Translate/CN/IG_UI.json` | 4 | GoKart / 钥匙 / 发电厂零件分类 |
+| ContextMenu | `media/lua/shared/Translate/CN/ContextMenu.json` | 2 | 注射药剂 / 开启罐头 |
+| UI | `media/lua/shared/Translate/CN/UI.json` | 2 | 收藏品 / 发电厂分类标签 |
+| MapLabel | `media/lua/shared/Translate/CN/MapLabel.json` | 6 | 地图标签 |
+
+**附加文件：**
+- `common/media/lua/shared/Translate/CN/Tikitown/title.txt` - 地图标题 "肯塔基州，蒂基镇"
+- `common/media/lua/shared/Translate/CN/Tikitown/description.txt` - 地图简介
+
+**关键差异：B42.15+ JSON 键名规则**
+- `ItemName.json` 键名 = `<Module>.<ItemType>`（引擎自动加 `ItemName_` 前缀查询），如 `Tikitown.Baseball_Card_01`
+- `Recipes.json` 键名 = 裸 `RecipeID`（无前缀），如 `Dismantle_Laser_Tag_Gun`
+- `Sandbox.json` / `UI.json` / `IG_UI.json` 键名保留完整前缀 `Sandbox_*` / `UI_*` / `IGUI_*`
+- 老版本 TXT 中常见的 `ItemName_Tikitown.*` 前缀在新 JSON 中必须去除
+
+**验证结果：**
+- 8 个 JSON 文件全部通过 Python 语法校验
+- 与 EN 源文件交叉对照，缺失键 = 0，所有 EN 键 100% 覆盖
+- 额外覆盖 140+ 物品（Tikitown_CN 原版汉化的全部内容）
+
+**依赖配置：**
+- `require=\TikiTown,\Tikitown_CN`
+- `loadModAfter=\TikiTown,\Tikitown_CN`
+- `versionMin=42.15.0`
+
+**经验总结：**
+1. **跨模组翻译键统一**：当多模组共用翻译键时（如 Tikitown 与 TikitownPowerPlant 的 `ItemName`），必须确保键空间不冲突。
+2. **B42.15+ 命名空间**：JSON 键名遵循 `<Module>.<ItemType>` 格式，不要盲目加 `ItemName_` 前缀。
+3. **PowerPlant 子模组翻译**：TikitownPowerPlant 的物品 ID 带 `TikitownPower.*` 前缀（如 `TikitownPower.PumpBlades`），与主模组的 `Tikitown.*` 不混淆。
+4. **覆盖度自检**：用 Python 脚本对比 EN 与 CN 键集合差异，确保 missing=0。
+
+### bin2_tikitown_cn v1.1.0 完善翻译 (基于原版 Tikitown_CN)
+
+对比原版 Tikitown_CN 的 TXT 翻译文件 (B42 旧格式) 与 bin2 v1.0.0 JSON 文件 (B42.15+ 新格式):
+
+**对比方法**: Python 脚本解析 TXT (key 含 `ItemName_X.` / `Recipe_X.` 前缀) 并归一化到 JSON key 格式 (无前缀),逐条 diff。
+
+**对比结果 (总计 296 条原版条目 vs 298 条 bin2 条目)**:
+- ItemName: orig=189, bin2=190, missing=0 (TikitownGoKartWheelItem1 在 bin2 中已覆盖)
+- Tooltip:  orig=11,  bin2=11,  missing=0
+- Sandbox:  orig=32,  bin2=32,  missing=0
+- Recipes:  orig=50,  bin2=50,  missing=0
+- IG_UI:    orig=4,   bin2=5,   missing=0 (新增 IGUI_ItemCat_PowerPlantParts 兼容原版键名)
+- ContextMenu: orig=2, bin2=2, missing=0
+- UI:       orig=2,   bin2=2,   missing=0
+- MapLabel: orig=6,   bin2=6,   missing=0
+
+**修正的差异 (5 处)**:
+1. Tooltip 三个药剂描述: `<br>` 前补回空格,与原版排版一致 (原版格式 `激活、 <br>阻断` 而非 `激活、<br>阻断`)
+2. Sandbox `DailyDegradeChance`: 半角括号恢复 (`(-1 为永不损耗)` 而非全角`（-1 为永不损耗）`)
+3. Sandbox `DailyDegradeChance_tooltip`: 半角括号恢复 (`(数值 * 10%)`)
+4. ItemName `TikitownLootableMap`: `地图(蒂基镇)` 而非 `地图（蒂基镇）`
+5. ItemName `Plant*TechnicalManual`: `工业电力手册Vol.3` 而非 `工业电力手册 Vol.3`
+
+**新增的条目 (3 条)**:
+- `Tikitown.GoKartWheelItem1` = "卡丁车轮胎" (bin2 v1.0.0 已有, 验证确认)
+- `IGUI_ItemCat_PowerPlantParts` = "发电厂零件" (v1.1.0 新增, 兼容原版 Tikitown_CN 键名)
+- 同时保留 `ItemCat_PowerPlantParts` (兼容 PowerPlant 自身 EN JSON 键名)
+
+**v1.1.0 更新内容**:
+- modversion: 1.0.0 → 1.1.0
+- Changelog.txt: 追加 v1.1.0 条目
+- 5 处 value 还原为原版排版 (半角括号、紧凑空格)
+
+**经验沉淀**:
+1. **翻译模组的排版一致性**: 标点符号 (半角/全角括号)、空格 (紧凑 vs 松散) 等排版细节也要对齐原版,不能随意"美化"
+2. **键名兼容性的价值**: 即使 PZ 引擎会容错,保留原版键名 (如 `IGUI_ItemCat_*` vs `ItemCat_*`) 可以让多个翻译模组并存而不互相覆盖
+3. **Python 归一化函数要小心**: 检测 `ItemName_Tikitown.X` 和 `Tikitown.X` 时,需要正确处理子模块前缀 (`ItemName_TikitownPower.X` ≠ `Tikitown.X`)
+
+### 拆分: bin2_tikitown_cn v1.2.0 / bin2_tikitown_powerplant_cn v1.0.0
+
+将 PowerPlant 部分从 `bin2_tikitown_cn` 拆分为独立模组 `bin2_tikitown_powerplant_cn`。
+
+**拆分依据:**
+- 用户只需 Tikitown 翻译时, 不需要下载 PowerPlant 翻译
+- PowerPlant 是 Tikitown 的可选依赖, 拆开后用户可按需启用
+- 减少模组体积 (主模组从 298 条降到 214 条)
+
+**拆分方法 (Python):**
+```python
+def is_pp_key(k, file_name):
+    if file_name == 'ItemName.json': return k.startswith('TikitownPower.')
+    if file_name == 'Sandbox.json': return k.startswith('Sandbox_TikitownPower')
+    if file_name == 'Recipes.json': return k in PP_RECIPES_SET
+    if file_name == 'IG_UI.json': return k in PP_IGUI_SET
+    return False
+```
+
+**拆分结果:**
+
+| 类型 | bin2_tikitown_cn (主) | bin2_tikitown_powerplant_cn (新) |
+|------|----------------------|---------------------------------|
+| ItemName.json | 148 条 (Tikitown.*) | 42 条 (TikitownPower.*) |
+| Recipes.json | 17 条 (主模组配方) | 33 条 (Forge/Assemble/Repair 等) |
+| Sandbox.json | 25 条 (Tikitown.*) | 7 条 (TikitownPower.*) |
+| Tooltip.json | 11 条 | (空,删除) |
+| IG_UI.json | 3 条 (GoKart/钥匙) | 2 条 (发电厂零件分类) |
+| ContextMenu.json | 2 条 | (空,删除) |
+| UI.json | 2 条 | (空,删除) |
+| MapLabel.json | 6 条 | (空,删除) |
+| **总计** | **214 条** | **84 条** |
+
+**新模组 mod.info:**
+- `id=bin2_tikitown_powerplant_cn`
+- `require=\TikitownPower` (而非 `\TikiTown`)
+- `loadModAfter=\TikitownPower`
+
+**主模组 mod.info 调整:**
+- `modversion=1.2.0`
+- 移除 TikitownPowerPlant 隐式依赖
+
+**用户使用方式:**
+- 只用 Tikitown: 启用 `Tikitown` + `Tikitown_CN` + `bin2_tikitown_cn`
+- Tikitown + 发电厂: 启用上述 + `TikitownPower` + `bin2_tikitown_powerplant_cn`
+
+### 迁移: bin2_tikitown_cn / bin2_tikitown_powerplant_cn → bin2_tikitown/Contents/mods/
+
+两个翻译模组从 `bin2_b42/Contents/mods/` 迁移到 `bin2_tikitown/Contents/mods/`,与 `bin2_extension`、`Project_Cook_Controller_Support` 并列管理。
+
+**迁移原因:**
+- 用户希望所有 bin2 系列 mod 集中在一个 Workshop 项目下 (bin2_tikitown = bin2's B42 mods)
+- bin2_tikitown workshop.txt 已经描述了合集,新增翻译模组更符合合集定位
+- bin2_b42 目录只保留合集本身 (bin2_B42_Collection 等)
+
+**迁移后结构:**
+```
+bin2_tikitown/
+├── Changelog.txt         # 集合更新历史 (新增 1.6.0 条目)
+├── workshop.txt          # 集合描述 (新增 2 个翻译 mod 介绍)
+└── Contents/mods/
+    ├── bin2_tikitown_cn/           # 蒂基镇中文翻译 (214 条)
+    └── bin2_tikitown_powerplant_cn/ # 蒂基镇发电厂中文翻译 (84 条)
+```
+
+**workshop.txt 关键变更:**
+- "包含 2 个独立功能模组" → "包含 3 个独立功能模组、1 个手柄支持、2 个翻译补丁"
+- 新增 bin2_tikitown_cn / bin2_tikitown_powerplant_cn 详细描述
+- "中文化覆盖" 列表新增 Tikitown / TikitownPowerPlant
+
+**Changelog.txt 关键变更:**
+- 集合版本: 1.5.3 → 1.6.0
+- 新增 2026-06-23 章节,记录两个翻译模组的发布与目录迁移

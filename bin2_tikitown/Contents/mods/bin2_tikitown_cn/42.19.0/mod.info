@@ -1,0 +1,11 @@
+name=bin2扩展 - Tikitown 中文翻译
+id=bin2_tikitown_cn
+poster=poster.png
+versionMin=42.15.0
+description=蒂基镇 (Tikitown) 简体中文汉化包,包含物品名、配方、沙盒设置、工具提示、IGUI、上下文菜单、UI 与地图标签。
+tags=Chinese;Translation;Tikitown
+author=bin^2
+modversion=1.2.0
+category=content
+require=tikitown
+loadModAfter=tikitown,Tikitown_CN,B42ModTrans_CN,B42Trans_CN

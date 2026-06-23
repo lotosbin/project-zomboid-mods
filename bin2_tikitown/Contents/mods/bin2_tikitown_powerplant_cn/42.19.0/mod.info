@@ -1,0 +1,11 @@
+name=bin2扩展 - TikitownPowerPlant 中文翻译
+id=bin2_tikitown_powerplant_cn
+poster=poster.png
+versionMin=42.15.0
+description=蒂基镇发电厂 (TikitownPowerPlant) 简体中文汉化包,包含零件名、配方、沙盒设置与 IGUI 物品分类。
+tags=Chinese;Translation;TikitownPowerPlant;PowerPlant
+author=bin^2
+modversion=1.0.0
+category=content
+require=TT_PowerPlant
+loadModAfter=TT_PowerPlant,Tikitown_CN,B42ModTrans_CN,B42Trans_CN

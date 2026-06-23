@@ -1,0 +1,24 @@
+[ ALERT_CONFIG ]
+link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+[ ------ ]
+
+[ 06/23/2026 ]
+[ ------ ]
+v1.2.0 - 拆分 PowerPlant 部分到独立模组 bin2_tikitown_powerplant_cn。
+       - 本模组仅保留 Tikitown 主模组翻译 (148 ItemName / 17 Recipe / 25 Sandbox / 11 Tooltip / 3 IGUI / 2 ContextMenu / 2 UI / 6 MapLabel)。
+       - PowerPlant 相关翻译 (42 ItemName / 33 Recipe / 7 Sandbox / 2 IGUI) 已移至 bin2_tikitown_powerplant_cn。
+       - mod.info: require/loadModAfter 改用 Tikitown_CN (不带反斜杠),匹配原 mod id。
+
+v1.1.0 - 完善翻译,与原版 Tikitown_CN 100% 对齐。
+       - Tooltip: 还原原版药剂描述的 <br> 前空格 (与原版排版一致)。
+       - Sandbox: 还原 (-1 为永不损耗) 等半角括号用法。
+       - ItemName: 还原"地图(蒂基镇)"等不带空格的紧凑排版,以及
+                  工业电力手册 Vol.3 等不带空格的格式。
+       - IG_UI: 新增 IGUI_ItemCat_PowerPlantParts (兼容原版 Tikitown_CN 键名)。
+
+v1.0.0 - 首个版本。
+       - 适配 Tikitown + TikitownPowerPlant (B42.15+) JSON 翻译格式。
+       - 覆盖 ItemName / Recipe / Sandbox / Tooltip / IG_UI / ContextMenu / UI / MapLabel 八大翻译类型。
+       - 同步标题 (title.txt) 与描述 (description.txt)。
+v1.2.1 - (2026-06-23): 从 bin2_b42/ 迁移到 bin2_tikitown/Contents/mods/ 统一管理。

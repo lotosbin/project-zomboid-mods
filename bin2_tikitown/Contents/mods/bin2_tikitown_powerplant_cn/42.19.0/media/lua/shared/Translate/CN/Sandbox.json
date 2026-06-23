@@ -1,0 +1,9 @@
+{
+  "Sandbox_TikitownPower": "蒂基镇发电厂",
+  "Sandbox_TikitownPower_DailyDegradeChance": "部件损耗几率 (-1 为永不损耗) 需重启生效 ",
+  "Sandbox_TikitownPower_DailyDegradeChance_tooltip": "部件发生损耗的百分比概率 (数值 * 10%) ",
+  "Sandbox_TikitownPower_PartsCanBeDestroyed": "已损耗部件可被摧毁 需重启生效",
+  "Sandbox_TikitownPower_PartsCanBeDestroyed_tooltip": "标记已损耗部件是否可能自毁并需要更换",
+  "Sandbox_TikitownPower_RunningWearMultiplier": "基础损耗率系数 需重启生效",
+  "Sandbox_TikitownPower_RunningWearMultiplier_tooltip": "每日应用物品基础损耗率的比例"
+}
