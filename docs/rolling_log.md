@@ -736,3 +736,147 @@ bin2_tikitown/
 **Changelog.txt 关键变更:**
 - 集合版本: 1.5.3 → 1.6.0
 - 新增 2026-06-23 章节,记录两个翻译模组的发布与目录迁移
+
+### 收藏品合成配方翻译核对 (2026-06-23)
+
+用户反馈"收藏品合成配方缺少中文翻译"。经核对实际已覆盖:
+
+**Tikitown 主模组 `category = Collections` 的 7 个 craftRecipe**:
+| 英文键 | 中文翻译 |
+|--------|----------|
+| Sort_Cards | 整理卡片 |
+| Create_Baseball_Card_Box | 制作棒球卡收纳盒 |
+| Trace_Cards_Picture | 临摹卡片图案 |
+| Open_Large_Box | 打开大箱子 |
+| Open_Medium_Box | 打开中箱子 |
+| Open_Small_Box | 打开小箱子 |
+| Add_Cards_to_Box | 将卡片放入盒中 |
+
+**核对方法 (Python 脚本):**
+```python
+import re
+src = 'Tikitown_Recipes.txt'
+content = open(src).read()
+for m in re.finditer(r'craftRecipe\s+([\w ]+?)\s*\{(.*?)\n\t\}', content, re.DOTALL):
+    name = m.group(1).strip()
+    body = m.group(2)
+    if re.search(r'category\s*=\s*Collections', body):
+        print(f"  Collections: {name}")
+```
+
+**结论: 收藏品合成配方已 100% 翻译,无需补充。**
+
+**顺便核对 Tikitown_CN 原版 vs bin2 Recipes.json:**
+- 原版 TXT 有 13 个 key,bin2 JSON 有 17 个 key
+- 原版有但 bin2 没有: EmptyIndustrialCan, RepairPumpImpeller
+  → 这两个属于 PowerPlant 而非 Tikitown 主模组,已正确归位到 bin2_tikitown_powerplant_cn/Recipes.json
+- bin2 有但原版没有: MakeGlassBatDisplayCover, MakeWoodenBatDisplayMount, MountSpecialBat, OpenPocketPalsCan, RemoveSpecialBat, RepairTitaniumBat
+  → 这些是 bin2 新增的翻译 (Tikitown_CN 原版作者漏掉了)
+
+**PowerPlant Recipes 完整性核对:**
+- PowerPlant 脚本中所有 32 个 craftRecipe + 1 个别名 (CraftEmptyIndustrialCan) 已全部翻译
+- Recipes.json 实际 33 条,缺失 = 0
+
+**User 调整:**
+- 用户把 `EmptyIndustrialCan` 翻译从"工业罐(空)"改为"倒空工业罐" (更符合实际是"倒空"动作)
+- 翻译版本号: bin2_tikitown_cn 保持 v1.2.0, PowerPlant 保持 v1.0.0 (无版本变更,只更新值)
+
+### Recipes.json 翻译键格式修复 v1.3.0
+
+**问题:** 用户报告"收藏品配方翻译没有生效"(Sort Cards, Open Large Box 等)
+
+**根本原因:**
+- v1.2.0 用 `"Sort_Cards"`(下划线) 作为 JSON key
+- 但根据 PZ Wiki 官方规范,Recipes.json 中含空格 craftRecipe 的翻译键应该是 **`"Sort Cards"`**(带空格)
+- EN JSON 用下划线是为了人类可读,但 PZ 实际查找时可能优先空格版本
+
+**PZ Wiki 原文:**
+```
+script: 'recipe Convert A B {...}'
+translation key: 'Convert A B'
+```
+
+**修复方案: 双格式兼容 (v1.3.0)**
+```json
+{
+  "Sort Cards": "整理卡片",
+  "Sort_Cards": "整理卡片"
+}
+```
+对 9 个含空格的 craftRecipe (Dismantle Laser Tag Gun, Dismantle VCR, Sort Cards, Create Baseball Card Box, Trace Cards Picture, Open Large Box, Open Medium Box, Open Small Box, Add Cards to Box) 同时提供两种 key。
+
+**结果:**
+- Recipes.json 总条目: 17 → 26 (双格式)
+- CamelCase 单字符串 recipe (如 RepairTitaniumBat) 仍只用一种 key
+
+**modversion 升级:**
+- bin2_tikitown_cn: v1.2.0 → v1.3.0
+- bin2_tikitown_powerplant_cn: v1.0.0 (无需变,无含空格的 Recipe)
+
+**经验沉淀:**
+- 新建 memory `recipe-translation-key-format-v2.md`
+- 引用旧版 `recipe-translation-key-format.md` (Recipes.json 无前缀)
+
+### 电厂的面板信息和菜单翻译 (v1.1.0)
+
+用户报告"电厂的面板信息和菜单没有翻译"。
+
+**调查发现:**
+1. PowerPlant 客户端 Lua 中硬编码了大量英文（右键菜单、面板标题、按钮文字）
+2. PZ 原版 CN 中已翻译部分通用 UI 键名（UI_Loading / UI_btn_close / UI_btn_install 等）
+3. 但 PowerPlant 自己的 Lua 代码直接用字面量字符串, 不通过 getText() 查询
+
+**PZ 原版 CN 已翻译的 key (可复用):**
+- UI.json: UI_Loading (载入中), UI_btn_close (关闭), UI_btn_install (安装), UI_prof_Repairman (修理工)
+- IG_UI.json: IGUI_JobType_Repair (修理)
+- Tooltip.json: Tooltip_NeedWrench (你需要一个 %1 来做这个.)
+
+**修复方案 v1.1.0:**
+将这些通用 key 写入 bin2_tikitown_powerplant_cn 作为冗余备份 (虽然 PZ 原版已翻译, 但写入翻译模组可确保加载优先级, 避免遗漏)
+
+**新增翻译文件:**
+- UI.json: 4 条 (新文件)
+- IG_UI.json: 3 条 (新增 IGUI_JobType_Repair)
+- Tooltip.json: 1 条 (新文件)
+
+**重要限制:**
+PowerPlant 客户端 Lua 中的硬编码英文 (如右键菜单 "Power Grid Control", 面板标题 "Shut Down Grid") 无法通过 JSON 翻译。
+要彻底翻译这些, 必须提供 patch Lua 文件覆盖原 mod 的 Lua (loadModAfter TikitownPower + require 替换)。
+本版本未提供, 标记为后续考虑项。
+
+**modversion 升级:**
+- bin2_tikitown_powerplant_cn: 1.0.0 → 1.1.0
+
+**经验沉淀:**
+- 翻译模组应主动包含 PZ 原版 CN 的通用 key (冗余备份), 防止特定 mod 不加载原版 CN
+- 硬编码 Lua 字符串需要 patch Lua, 不能仅靠 JSON 翻译
+- 遇到 mod 客户端 UI 文本无法翻译时, 应主动打 patch
+
+### PowerPlant 字面量默认翻译 (v1.2.0)
+
+**用户洞察:** "字面量在使用时应该也是可以翻译的,提供默认的翻译"
+
+**实施:**
+- 即使 PowerPlant Lua 代码直接使用字面量字符串(如 `addOption("Power Grid Control", ...)`),
+  也可以在翻译 JSON 中提供默认翻译键
+- 同时提供两种 key 格式 (冗余备份):
+  - 带规范前缀: `ContextMenu_PowerGridControl`
+  - 裸字符串匹配: `Power Grid Control`
+
+**新增翻译条目 (v1.2.0):**
+| 文件 | 条数 | 内容 |
+|------|------|------|
+| ContextMenu.json | 12 | 右键菜单 Power Grid Control / Turbine Status Report 等 |
+| UI.json | 20 | 面板 Shut Down Grid / Restore Grid / Power Plant Systems 等 |
+| IG_UI.json | 30 | 部件标签 Rotor / Stator / Condenser Chamber 等 |
+| Tooltip.json | 28 | 修复提示 Repairs locked / Required tools OK 等 |
+
+**翻译总数:** 91 → 173 (+82 条)
+
+**经验沉淀:**
+- 写翻译模组时, 不仅要翻译 `getText()` 查找到的 key
+- 也要主动提供"裸字符串"作为字面量翻译, 防止 mod 客户端 Lua 未用 getText() 时出现英文
+- 双格式冗余备份是 PZ 翻译模组的最佳实践
+
+**modversion 升级:**
+- bin2_tikitown_powerplant_cn: 1.1.0 → 1.2.0

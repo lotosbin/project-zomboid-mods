@@ -1,0 +1,22 @@
+{
+  "UI_Loading": "载入中",
+  "UI_btn_close": "关闭",
+  "UI_btn_install": "安装",
+  "UI_prof_Repairman": "修理工",
+  "Power Plant Systems": "发电厂系统",
+  "Shut Down Grid": "关闭电网",
+  "Restore Grid": "恢复电网",
+  "Louisville Power Plant is providing global power": "路易斯维尔发电厂正在提供全局电力",
+  "The global grid is still active. Plant controls are offline.": "全局电网仍然活跃。发电厂控制已下线。",
+  "Grid shutdown engaged.": "电网已关闭。",
+  "Grid restored temporarily.": "电网已临时恢复。",
+  "Admin/debug only.": "仅管理员/调试模式。",
+  "%s Status Report - %s %s": "%s 状态报告 - %s %s",
+  "Delivery": "输电",
+  "Turbines": "涡轮",
+  "Condensers": "冷凝器",
+  "Furnaces": "锅炉",
+  "Pumps": "泵",
+  "== %s ==": "== %s ==",
+  "X": "X"
+}

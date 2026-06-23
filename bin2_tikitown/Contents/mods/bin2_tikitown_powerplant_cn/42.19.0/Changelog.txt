@@ -11,3 +11,14 @@ v1.0.0 - 首个版本。
        - 依赖: TikitownPower (原 mod)
        - loadModAfter 引用 Tikitown_CN (原版汉化),确保覆盖生效。
 v1.0.1 - (2026-06-23): 从 bin2_b42/ 迁移到 bin2_tikitown/Contents/mods/ 统一管理。
+v1.2.0 - 为 PowerPlant 客户端 Lua 字面量提供默认翻译键。
+       - ContextMenu.json: 新增 12 条 (右键菜单 Power Grid Control 等字面量)
+       - UI.json: 扩展到 20 条 (面板标题 Shut Down Grid / Restore Grid 等)
+       - IG_UI.json: 扩展到 30 条 (部件标签 Rotor / Stator / Condenser Chamber 等)
+       - Tooltip.json: 新增 28 条 (修复提示 Repairs locked / Required tools OK 等)
+       - 修复总条目: 91 → 169 条 (+78)
+v1.1.0 - 补充 PZ 原版 CN 已有的 UI 键名冗余备份,确保 PowerPlant 面板通用按钮翻译生效。
+       - UI.json 新增 4 条 (UI_Loading / UI_btn_close / UI_btn_install / UI_prof_Repairman)
+       - IG_UI.json 新增 IGUI_JobType_Repair = "修理"
+       - Tooltip.json 新增 Tooltip_NeedWrench
+       - 注: PowerPlant 客户端 Lua 中硬编码的英文 (如 "Power Grid Control" 右键菜单) 无法通过 JSON 翻译,需要 patch Lua 文件覆盖 (本版本未提供,后续考虑)。

@@ -1,0 +1,14 @@
+{
+  "ContextMenu_PowerGridControl": "电网控制",
+  "ContextMenu_TurbineStatusReport": "涡轮状态报告",
+  "ContextMenu_CondenserStatusReport": "冷凝器状态报告",
+  "ContextMenu_FurnaceStatusReport": "锅炉状态报告",
+  "ContextMenu_PumpStatusReport": "泵状态报告",
+  "ContextMenu_InspectPowerSystems": "检查电力系统",
+  "Power Grid Control": "电网控制",
+  "Turbine Status Report": "涡轮状态报告",
+  "Condenser Status Report": "冷凝器状态报告",
+  "Furnace Status Report": "锅炉状态报告",
+  "Pump Status Report": "泵状态报告",
+  "Inspect Power Systems": "检查电力系统"
+}

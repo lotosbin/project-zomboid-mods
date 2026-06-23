@@ -5,6 +5,14 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 
 [ 06/23/2026 ]
 [ ------ ]
+v1.3.0 - 修复收藏品合成配方翻译不生效问题。
+       - 9 个含空格 craftRecipe (Sort Cards / Open Large Box 等) 同时提供
+         空格版本和下划线版本的双格式 JSON key (PZ Wiki 规范)。
+       - Recipes.json 总条目: 17 → 26 (双格式兼容)。
+       - modversion: 1.2.0 → 1.3.0
+
+v1.2.1 - 从 bin2_b42/ 迁移到 bin2_tikitown/Contents/mods/ 统一管理。
+
 v1.2.0 - 拆分 PowerPlant 部分到独立模组 bin2_tikitown_powerplant_cn。
        - 本模组仅保留 Tikitown 主模组翻译 (148 ItemName / 17 Recipe / 25 Sandbox / 11 Tooltip / 3 IGUI / 2 ContextMenu / 2 UI / 6 MapLabel)。
        - PowerPlant 相关翻译 (42 ItemName / 33 Recipe / 7 Sandbox / 2 IGUI) 已移至 bin2_tikitown_powerplant_cn。
