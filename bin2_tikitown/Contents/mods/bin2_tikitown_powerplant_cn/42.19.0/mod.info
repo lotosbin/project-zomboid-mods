@@ -7,5 +7,5 @@ tags=Chinese;Translation;TikitownPowerPlant;PowerPlant
 author=bin^2
 modversion=1.0.0
 category=content
-require=TT_PowerPlant
-loadModAfter=TT_PowerPlant,Tikitown_CN,B42ModTrans_CN,B42Trans_CN
+require=TikitownPower
+loadModAfter=TikitownPower,Tikitown_CN,B42ModTrans_CN,B42Trans_CN
