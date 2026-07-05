@@ -92,4 +92,23 @@ module Bin2Recipe
             item 1 Base.Saucepan,
         }
     }
+    craftRecipe Bin2MakeEpoxy
+    {
+        time = 60,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Repair,
+        SkillRequired = Maintenance:2,
+        xpAward = Maintenance:5,
+        inputs
+        {
+            item 1 [Base.DuctTape],
+            item 1 [Base.Glue],
+            item 1 [Base.Salt],
+        }
+        outputs
+        {
+            item 1 Base.Epoxy,
+        }
+    }
 }

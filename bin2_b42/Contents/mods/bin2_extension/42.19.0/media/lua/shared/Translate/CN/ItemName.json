@@ -19,5 +19,7 @@
   "ItemName_Base.WeldingRods": "焊条",
   "ItemName_Base.Saucepan": "平底煮锅",
   "ItemName_Base.Pot": "陶锅",
-  "ItemName_Base.Lemon": "柠檬"
+  "ItemName_Base.Lemon": "柠檬",
+  "ItemName_Base.Epoxy": "环氧树脂",
+  "ItemName_Base.DuctTape": "管道胶带"
 }
