@@ -94,21 +94,21 @@ module Bin2Recipe
     }
     craftRecipe Bin2MakeEpoxy
     {
-        time = 60,
-        timedAction = Making,
+        time = 80,
+        timedAction = MixingBowl,
         Tags = AnySurfaceCraft,
         category = Repair,
-        SkillRequired = Maintenance:2,
-        xpAward = Maintenance:5,
+        SkillRequired = Maintenance:3,
+        xpAward = Maintenance:10,
         inputs
         {
-            item 1 [Base.DuctTape],
-            item 1 [Base.Glue],
-            item 1 [Base.Salt],
+            item 1 [LabItems.ChHydrochloricAcidCan],
+            item 1 [LabItems.ChSodiumHydroxideBag],
+            item 1 [LabItems.ChAmmonia],
         }
         outputs
         {
-            item 1 Base.Epoxy,
+            item 2 Base.Epoxy,
         }
     }
 }

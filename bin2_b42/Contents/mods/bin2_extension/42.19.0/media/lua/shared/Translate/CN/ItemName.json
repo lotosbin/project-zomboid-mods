@@ -21,5 +21,8 @@
   "ItemName_Base.Pot": "陶锅",
   "ItemName_Base.Lemon": "柠檬",
   "ItemName_Base.Epoxy": "环氧树脂",
-  "ItemName_Base.DuctTape": "管道胶带"
+  "ItemName_Base.DuctTape": "管道胶带",
+  "ItemName_LabItems.ChHydrochloricAcidCan": "盐酸",
+  "ItemName_LabItems.ChSodiumHydroxideBag": "氢氧化钠",
+  "ItemName_LabItems.ChAmmonia": "氨水"
 }

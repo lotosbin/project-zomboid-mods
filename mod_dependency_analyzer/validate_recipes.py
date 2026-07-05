@@ -48,6 +48,8 @@ def index_known_items() -> Set[str]:
         "/Users/liubinbin/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Resources/steamapps/workshop/content/108600/3556544454/mods/B42Trans_CN_As1/42.0/media/lua/shared/Translate/CN",
         # 本仓库 bin2_extension
         "/Users/liubinbin/Zomboid/Workshop/bin2_b42/Contents/mods/bin2_extension/42.19.0/media/lua/shared/Translate/CN",
+        # ZVirusVaccine (化学物品索引)
+        "/Users/liubinbin/Zomboid/Workshop/learn/ZVirusVaccine42BETA/42.14/media/lua/shared/Translate/CN",
     ]
 
     for d in idx_dirs:
