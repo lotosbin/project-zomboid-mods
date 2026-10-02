@@ -1,22 +1,24 @@
 version=1
-id=3811931390
 title=嵌套容器 · 单品拿取 (Nested Containers - Take Single Item)
-description=联机下从"嵌在板条箱/衣柜/尸体里的包"中拿取物品，支持多选/全拿的批量拿取，并刷新包内视图。
+description=联机下从"嵌在板条箱/衣柜/货架/尸体里的包"中拿取物品：可以只拿一件，也可以多选 / 全拿（一次服务端往返）。
 description=
-description=[h3]原理（沿用 Picking Meister 的机制）[/h3]
+description=[h3]为什么原版拿不出来[/h3]
+description=原版联机搬运用 ContainerID 表示容器位置，而"嵌在物体容器里的包"它表达不了：会写入 containerIndex = -1，服务端解析出 null 后直接拒绝该次事务。单机不走这条链路，所以"单机能拿、联机不能拿"。
 description=
-description=原版拿不出来是因为容器地址表达不了嵌套包：ContainerID 写入 containerIndex = -1，服务端 findObject() 解析出 null 后拒绝事务。本模组改走引擎自带的网络动作通道 —— 动作放在 shared/ 并定义 complete()，引擎就会把客户端请求同步给服务端权威执行（LuaTimedActionNew -> ActionManager.createNetTimedAction -> NetTimedActionPacket）。参数只带物品 id + 容器引用，服务端自己按 id 还原路径，不依赖任何容器地址。
+description=[h3]怎么修[/h3]
+description=不修容器地址，改走引擎自带的网络动作通道：动作放在 shared/ 并定义 complete()，引擎就会把客户端的请求同步给服务端权威执行（LuaTimedActionNew -> ActionManager.createNetTimedAction -> NetTimedActionPacket）。参数只带物品 id 和容器引用，服务端自己按 id 还原路径（外层容器 -> 包 -> 物品），完全不依赖容器地址。
 description=
-description=complete() 里手动 Remove/AddItem 并显式同步；其中 sendReplaceItemInContainer(外层容器, 包, 包) 会把整只包重发给客户端（InventoryContainer 连同包内内容一起序列化），补上嵌套包容器"没有相对广播锚点"的洞。
+description=拿取后用 sendReplaceItemInContainer 把整只包重发一次（InventoryContainer 会连包内内容一起序列化），客户端再把正开着的面板重新指向刷新后的容器 —— 因此包内视图会立刻更新。
+description=
+description=批量：队列里同源容器、同目标容器的连续搬运动作会合并成一次动作，多选 / 全拿只花一次服务端往返。
 description=
 description=[h3]要求与限制[/h3]
-description=
-description=* 客户端与服务端都要装本模组
-description=* 覆盖"包直接位于可寻址容器里"（板条箱/衣柜/尸体/载具部件/地面/玩家背包），更深嵌套需配合三步法或协议版
-description=* 建议与界面模组 "Nested Containers - Complete" 一起用
+description=* 客户端与服务端都要安装本模组（搬运在服务端执行）
+description=* 只覆盖"包直接位于可寻址容器里"：板条箱 / 衣柜 / 货架 / 冰箱 / 尸体 / 载具部件 / 地面 / 玩家背包；更深的嵌套（包里再套包）不会生效，需先把外层包取到背包
+description=* 单机不介入（单机本来就能直接开包拿单品）
+description=* 建议与界面模组 "Nested Containers - Complete" 配合使用（嵌套容器按钮由它提供）
 description=
 description=[h3]English[/h3]
-description=
-description=Take a single item out of a bag that sits inside a crate/wardrobe/corpse in multiplayer. Uses the engine's network timed-action channel (a shared action that defines complete() is automatically requested from the client and executed authoritatively on the server), resolves the container by item id instead of ContainerID, and forces a whole-bag refresh with sendReplaceItemInContainer. Must be installed on clients and on the server. Covers the common single-level nesting case.
+description=Take a single item - or a whole selection - out of a bag that sits inside a crate, wardrobe or corpse in multiplayer. Uses the engine's network timed-action channel (a shared action that defines complete() is requested by the client and executed authoritatively on the server), resolves containers by item id instead of ContainerID, and forces a whole-bag refresh so the bag contents update immediately. Works with normal and batch (take-all) transfers, one server round-trip per batch. Must be installed on clients and on the server.
 tags=Build 42;Misc
-visibility=public
+visibility=private
