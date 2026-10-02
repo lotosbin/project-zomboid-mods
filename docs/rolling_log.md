@@ -880,3 +880,100 @@ PowerPlant 客户端 Lua 中的硬编码英文 (如右键菜单 "Power Grid Cont
 
 **modversion 升级:**
 - bin2_tikitown_powerplant_cn: 1.1.0 → 1.2.0
+
+## 2026-10-02
+
+### 嵌套容器联机修复：根因定位（引擎层，非模组 bug）
+
+**症状：** 联机下无法从"嵌套包"（板条箱/衣柜/货架/尸体里的包）中拿取物品；单机正常。
+
+**根因（反编译 `projectzomboid.jar` 逐条证实）：**
+- 联机搬运走 `ISInventoryTransferAction:start()` → `createItemTransaction()` → `zombie.core.TransactionManager` → `Transaction.set()` 为源/目标容器各建一个 `zombie.network.fields.ContainerID` 作为网络地址。
+- `ContainerID#set(ItemContainer)` 对"嵌在物体容器里的容器"会走 `setObject(container, o, o.square)`，写入
+  `containerType = ObjectContainer`、`containerIndex = o.getContainerIndex(container)`，而该容器**不属于**这个物体 ⇒ **`containerIndex = -1`**。
+- 服务端 `ContainerID#findObject()` 执行 `object.getContainerByIndex(-1)` → **null**（`zombie.iso.IsoObject`）。
+- `Transaction#updateItem()` 拿到 null 容器后走 `return false` ⇒ 事务 **Reject**，物品从未移动；且诊断走 `DebugType.noise`，
+  首句 `if (!Core.debug) return` ⇒ 玩家侧**毫无提示**。
+- 单机不用事务：`ISTransferAction:transferItem` 直接用对象引用搬运，所以单机正常。
+- 原版自认此限制：`media/lua/client/TimedActions/ISInventoryTransferAction.lua` 注释
+  "This isn't done for bags inside bags in object containers."
+
+**参考：**
+- ContainerID Javadoc：https://projectzomboid.com/modding/zombie/network/fields/ContainerID.html
+- 被修复的模组 Nested Containers - Complete（工坊 3801776436）：https://steamcommunity.com/sharedfiles/filedetails/?id=3801776436
+- 原始 Nested Containers（Sioyth，工坊 2946221823）：https://steamcommunity.com/sharedfiles/filedetails/?id=2946221823
+
+### 方案评估：保留 2 个，放弃 3 个
+
+共评估 5 种方案：
+
+| # | 方案 | 依赖 | 结论 |
+|---|------|------|------|
+| 1 | ZombieBuddy Java 补丁 `ContainerID` | 客户端+服务端都要 ZombieBuddy | **放弃** |
+| 2 | 纯 Lua 客户端+服务端自定义命令协议 | 服务端必须装 | **放弃** |
+| 3 | 纯客户端"三步法"（提升→搬运→放回） | 无 | **放弃** |
+| 4 | 拿包即倒空 `bin2_nested_containers_auto_unpack` | 无（纯客户端） | **保留** |
+| 5 | 单品拿取 `bin2_nested_containers_take` | 客户端+服务端装本模组 | **保留** |
+
+**放弃原因（用户决定，2026-10-02）：** 前三个都是"修容器地址"的路线，实现与维护成本高、边界多；
+最终选用第 5 个（直接按物品 id 还原容器 + 引擎网络动作），它正面解决了"从嵌套包里拿**单个**物品"这个原始诉求；
+第 4 个作为"不想装服务端"时的纯客户端备选保留。三个方案对应的模组目录已由用户删除，`~/Zomboid` 下的 6 个软链已清理，
+`docs/` 里保留其三份设计文档并加"已放弃"标注（根因证据仍被保留方案引用）。
+
+**关键技术发现（决定方案取舍）：** 引擎自带"共享动作 → 服务端权威执行"通道 ——
+`zombie.characters.CharacterTimedActions.LuaTimedActionNew` 构造函数里
+`if (table.getMetatable().rawget("complete") == null) useCustomRemoteTimedActionSync = true;`；
+`start()` 里 `if (GameClient.client && !useCustomRemoteTimedActionSync)` 才
+`ActionManager.createNetTimedAction(...)` 发 `NetTimedActionPacket`；服务端 `processServer` 校验后 `ActionManager.start(act)`；
+`complete()` 只在 `!GameClient.client`（服务端）回调 Lua 的 `complete()`。
+⇒ **只要动作定义了 `complete()`，就自动获得"客户端请求、服务端执行"的能力**，无需任何自定义协议。
+
+**先例模组 Picking Meister（工坊 3422220305）：** 它的 `P4PickingAction` 正是这么做的，并且
+`complete()` 里用 `sendReplaceItemInContainer(srcParent, bag, bag)` 把**整只包重发**一次
+（`InventoryContainer.save()` 会连包内内容一起序列化），补上"嵌套包容器三个相对广播锚点全空"的洞。
+参考：https://steamcommunity.com/sharedfiles/filedetails/?id=3422220305
+（本地：`~/Library/Application Support/Steam/steamapps/workshop/content/108600/3422220305/mods/P4PickingMeister/42.20/media/lua/shared/TimedActions/P4PickingAction.lua`，该目录 modversion=1.9.1）
+
+### bin2_nested_containers_take（保留，已提交推送）
+
+联机下从嵌套包里拿物品，**支持批量**，并在拿取后**刷新包内视图**。
+
+- 共享动作 `NCFNestedTakeAction`（`media/lua/shared/TimedActions/`）：`new(character, itemIdsCsv, bagId, bagParent, destContainer)`，
+  服务端侧 `complete()` 里按 id 还原（`bagParent:getItemById(bagId)` → `bag:getInventory()` → `getItemById(itemId)`）后手动搬运 + 显式同步。
+- 客户端 `Client.lua` 拦截 `ISInventoryTransferAction:start()`：仅当源容器是原版寻址不了的嵌套包、且 id 链检查通过时接管；
+  并把队列里**同源同目标**的连续搬运动作合并成一次动作 ⇒ 多选/全拿只花一次服务端往返。
+- 校验复刻原版：`isItemAllowed` / `hasRoomFor` / `isRemoveItemAllowed`，且服务端 `complete()` 前再校验一次。
+- 防丢物品：改为**先 `AddItem` 再发同步包**（`ItemContainer.AddItem` 内部会把物品从原容器摘下），返回 nil 则源端未被动过。
+- 包内视图刷新：拿完 `sendReplaceItemInContainer` 整包重发后，客户端按包 id 把正开着的面板重新指向刷新后的容器
+  （短时重试，最多 3 秒，只在该面板确实看着这只包时才动手）。
+- 单机不介入（`isClient()` 早退）；命中失败回落原版行为。
+
+**提交：** `0edb1fe bin2_nested_containers_take`（已推送 origin/main，`f96de5c..0edb1fe`）。
+**校验：** `luaparse`(Lua 5.1) 通过；`tools/apicheck.sh` `== 全部命中（34 项）==`；**未做运行时验证**。
+
+### bin2_nested_containers_auto_unpack（保留，未提交）
+
+"拿包即倒空"：拿取容器时自动把包内物品一起搬进玩家背包（逐层递归，`MAX_DEPTH=6`），
+纯客户端、服务端零安装。关键顺序：包必须先落进玩家背包，其容器才被原版寻址
+（`ContainerID` 的 `InventoryContainer` 分支用 `player:getInventory():getItemWithIDRecursiv(包id)`），
+之后每一步都是普通原版事务。校验：`tools/apicheck.sh` `== 全部命中（16 项）==`。
+
+### 经验沉淀
+
+- **引擎层缺陷要往引擎里找证据**：`javap -p -c` / CFR 反编译 `projectzomboid.jar` 是把"猜"变成"证"的最快路径；
+  本次全部结论（`containerIndex = -1`、`getContainerByIndex(-1) → null`、`updateItem → ireturn false`、
+  `LuaTimedActionNew` 的 `complete()` 开关）都来自字节码。
+- **能用引擎现成通道就不要自造协议**：定义 `complete()` 即获得"服务端权威执行 + Done/Reject + 时长回写 + 动画"，
+  比自写 `sendClientCommand`/`OnClientCommand` 干净得多。
+- **嵌套容器没有相对广播锚点**（`getCharacter()`/`getParent()`/`getWorldItem()` 全为空）：
+  用 `sendReplaceItemInContainer(外层容器, 包, 包)` 整包重发即可刷新，代价是"每拿一次重发一只包"。
+- **客户端会重建物品/容器对象** ⇒ 任何跨帧/跨包保留的容器引用都可能"陈旧"（`getContainer() == nil`），
+  必须按物品 id 重新解析；把陈旧引用交回原版可能走进 floor 分支甚至产生永远等不到回执的事务（动作卡死）。
+- **手动搬运的顺序**：先 `AddItem`（它内部会摘下源物品）再发同步包，避免 `AddItem` 失败时物品已经离开源容器。
+- **离线自检要工具化**：`luaparse`（Lua 5.1 语法）+ `tools/apicheck.sh`（把用到的每个游戏 API 回查游戏自带 `media/lua`，
+  改名即报 MISS）是这台机器上唯一可复现的验证手段；运行时不具备，必须如实标注"未实测"。
+- **子代理复核真的能抓到缺陷**：本次由文档子代理读码发现"SP 下也会接管""缺容量/白名单校验""AddItem 失败丢物品窗口"
+  三处真实问题，均已修。
+- **构建环境的坑**：B42.21 的 `projectzomboid.jar` 是 **Java 25**（class 主版本 69）编译的，
+  `javac 17` 读不了游戏 class；JDK 需 ≥ 游戏版本（已装 Temurin 25 到 `~/Library/Java/JavaVirtualMachines/temurin-25.jdk`，
+  且 `/usr/libexec/java_home -v 25` 认不出手工解包版，构建脚本要自己遍历目录）。ZombieBuddy 2.3.2 仍是 Java 17 字节码。
