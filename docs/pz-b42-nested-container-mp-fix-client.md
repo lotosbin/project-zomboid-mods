@@ -1,7 +1,7 @@
 # Project Zomboid B42 联机嵌套容器：纯客户端"三步法"设计
 
 > ⚠️ **本方案已于 2026-10-02 放弃**（用户决定）。模组目录已删除，仅保留本文档作为根因与证据记录；
-> 现役方案见 `docs/pz-b42-nested-container-take.md`（单品拿取）与 `docs/pz-b42-nested-container-auto-unpack.md`（拿包即倒空）。
+> 现役方案见 `docs/pz-b42-nested-container-take.md`（物品拿取）与 `docs/pz-b42-nested-container-auto-unpack.md`（拿包即倒空）。
 
 > 记录时间：2026-10-02　对象：模组 **NestedContainersMPFixClient v1.0.0**
 > （[`bin2_nested_containers_mp_fix_client/`](../bin2_nested_containers_mp_fix_client/README.md)）
