@@ -480,7 +480,7 @@ end
 
 ### 12.1 本文档对应的源码修订
 
-以 `bin2_nested_containers_take/Contents/mods/NestedContainersTake/42.21/` 为基准：
+以 `bin2_nested_containers_take/Contents/mods/NestedContainersTake/common/` 为基准：
 
 | 文件 | 行数 | mtime | SHA-256 |
 |---|---|---|---|

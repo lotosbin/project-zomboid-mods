@@ -17,5 +17,5 @@ description=<LINE>
 description=* 拿完会把整只包重发一次，并把正开着的面板重新指向刷新后的容器（解决"包内容显示没更新"）
 description=<LINE>
 description=* 只覆盖"包直接位于可寻址容器里"这一层（板条箱/衣柜/尸体/载具部件/地面/玩家背包），这是最常见的情形；更深的嵌套请先用三步法或协议版把外层包提到背包。
-modversion=1.0.0
+modversion=1.0.1
 versionMin=42.20.0

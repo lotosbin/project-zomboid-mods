@@ -97,7 +97,7 @@ bin2_nested_containers_take/
 ├── changelog.txt                   # 版本 1.0.0 (2026-10-02)
 ├── workshop.txt / README.md
 ├── tools/apicheck.sh               # 34 项游戏 API 契约自检
-└── Contents/mods/NestedContainersTake/42.21/
+└── Contents/mods/NestedContainersTake/common/
     ├── mod.info
     └── media/lua/
         ├── shared/TimedActions/NCFNestedTakeAction.lua   # 204 行：共享动作（定义 complete() ⇒ 自动同步）
