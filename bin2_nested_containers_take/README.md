@@ -188,8 +188,8 @@ bin2_nested_containers_take/                          ← Steam 工坊物品目�
 
 > 注：`tools/apicheck.sh` 现已把校验用的 `isItemAllowed` / `hasRoomFor` / `isRemoveItemAllowed` 一并纳入自检（共 **34 项**，本机实测 `== 全部命中（34 项）==`）。
 
-> 模组管理里的名字：**嵌套容器 · 单品拿取**（`mod.info` 的 `name` 是
-> `嵌套容器 · 单品拿取 (Nested Containers - Take Single Item)`；`id` = `NestedContainersTake`）。
+> 模组管理里的名字：**嵌套容器 · 物品拿取**（`mod.info` 的 `name` 是
+> `嵌套容器 · 物品拿取 (Nested Containers - Take Items)`；`id` = `NestedContainersTake`）。
 >
 > 日志前缀是 `[NestedContainersTake]`（与 mod id 一致）。
 
@@ -388,7 +388,7 @@ end
    ln -s "/Volumes/StorageMacMini/liubinbin/Github/lotosbin/project-zomboid-mods/bin2_nested_containers_take" \
          ~/Zomboid/Workshop/bin2_nested_containers_take
    ```
-2. 启动游戏 → **模组管理** → 勾选 **Nested Containers - Take Single Item**。
+2. 启动游戏 → **模组管理** → 勾选 **Nested Containers - Take Items**。
 3. 进游戏即可，**没有构建步骤、没有授权弹窗、没有额外依赖**。
 
 ### 专用服务器（**必须，否则本模组完全不生效**）

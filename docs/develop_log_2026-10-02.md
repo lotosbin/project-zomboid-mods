@@ -46,7 +46,7 @@ ISInventoryTransferAction:start()            -- media/lua/client/TimedActions/IS
 | 2 | 纯 Lua 客户端+服务端自定义命令协议 | 服务端必须装 | 放弃 |
 | 3 | 纯客户端"三步法"（提升→搬运→放回） | 无 | 放弃 |
 | 4 | 拿包即倒空 `bin2_nested_containers_auto_unpack` | 无（纯客户端） | **保留** |
-| 5 | 单品拿取 `bin2_nested_containers_take` | 客户端+服务端都要装本模组 | **保留** |
+| 5 | 物品拿取 `bin2_nested_containers_take` | 客户端+服务端都要装本模组 | **保留** |
 
 放弃 1/2/3 是用户决定（2026-10-02）：三者都是"修容器地址"路线，实现与边界复杂；方案 5 正面解决了原始诉求
 （从嵌套包里拿**单个**物品），方案 4 作为"服务端不能装模组"时的纯客户端备选保留。
@@ -88,7 +88,7 @@ if (!GameClient.client) { ...pcall( table.rawget("complete") )... }
   正好补上"嵌套包容器没有相对广播锚点"的洞（其 `getCharacter()` / `getParent()` / `getWorldItem()` 全为空，
   `sendRemoveItemFromContainer` 对它是空操作）。
 
-### 三、交付物 1：`bin2_nested_containers_take`（单品拿取，已提交推送）
+### 三、交付物 1：`bin2_nested_containers_take`（物品拿取，已提交推送）
 
 ```
 bin2_nested_containers_take/

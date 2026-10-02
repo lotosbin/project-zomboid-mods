@@ -1,6 +1,6 @@
 version=1
 id=3811931390
-title=嵌套容器 · 单品拿取 (Nested Containers - Take Single Item)
+title=嵌套容器 · 物品拿取 (Nested Containers - Take Items)
 description=联机下从"嵌在板条箱/衣柜/货架/尸体里的包"中拿取物品：可以只拿一件，也可以多选 / 全拿（一次服务端往返）。
 description=
 description=[h3]为什么原版拿不出来[/h3]

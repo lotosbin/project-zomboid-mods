@@ -1,4 +1,4 @@
-# Project Zomboid B42 嵌套容器：单品拿取（Take Single Item）设计
+# Project Zomboid B42 嵌套容器：物品拿取（Take Single Item）设计
 
 > 记录时间：2026-10-02　对象：模组 **NestedContainersTake v1.0.0**
 > （[`bin2_nested_containers_take/`](../bin2_nested_containers_take/README.md)）

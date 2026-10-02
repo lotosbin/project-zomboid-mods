@@ -8,7 +8,7 @@
 > [`docs/pz-b42-nested-container-multiplayer-fix.md`](pz-b42-nested-container-multiplayer-fix.md)；
 > 纯 Lua 客户端/服务端协议见 [`docs/pz-b42-nested-container-mp-fix-lua.md`](pz-b42-nested-container-mp-fix-lua.md)；
 > 纯客户端"三步法"见 [`docs/pz-b42-nested-container-mp-fix-client.md`](pz-b42-nested-container-mp-fix-client.md)；
-> 同仓库的"单品拿取"（沿用 Picking Meister 机制）见 [`docs/pz-b42-nested-container-take.md`](pz-b42-nested-container-take.md)。
+> 同仓库的"物品拿取"（沿用 Picking Meister 机制）见 [`docs/pz-b42-nested-container-take.md`](pz-b42-nested-container-take.md)。
 > **本文件不重复那些字节码证据**，只重述一段根因，然后讲"**不改地址、把坏操作的数量降到 0**"的第四条路。
 >
 > **结论一句话**：本方案**不修容器寻址**，而是**换掉工作流** ——
@@ -43,7 +43,7 @@
 
 本仓库对同一个根因现在有五条路。它们的差别不在"能不能用"，而在**把哪一层当成要修的对象**：
 
-| | (a) Java 版 `mp_fix` | (b) 协议版 `mp_fix_lua` | (c) 三步法 `mp_fix_client` | **(d) 本方案 auto unpack** | (e) 单品拿取 `take` |
+| | (a) Java 版 `mp_fix` | (b) 协议版 `mp_fix_lua` | (c) 三步法 `mp_fix_client` | **(d) 本方案 auto unpack** | (e) 物品拿取 `take` |
 |---|---|---|---|---|---|
 | 修的对象 | `ContainerID`（引擎，字节码补丁） | 搬运动作 + 自定义命令通道 | 一次搬运的**时序** | **玩家的工作流本身** | 一次搬运改由**服务端权威动作**执行 |
 | 服务端安装 | **必须**（ZombieBuddy + 模组） | **必须**（模组） | 什么都不用 | **什么都不用** | **必须**（客户端与服务端都要装） |
@@ -375,8 +375,8 @@ sendAddItemToContainer(self.destContainer, addedItem)
 |---|---|---|
 | 纯原版（什么都没装） | 装了本模组 | ✅ **目标场景**：拿包时内容物自动跟进背包，逐层递归 |
 | 装了 Java 版 / Lua 版 / 三步法版 | 同时装了本模组 | ⚠️ **不推荐**：三者假设"服务端也装"，本方案假设"服务端是纯原版"，故障时无法判断是谁在生效；且它们处理的坏操作在本方案下不会再产生 |
-| 装了 `NestedContainersTake`（单品拿取，**服务端也装了**） | 同时装了本模组 | ✅ 兼容：两者补丁点不同（(e) 只在"源端是物体容器里的包"时接管，(d) 只在"把包搬进背包"时追加回调），互不抢占 |
-| 装了 `NestedContainersTake`（**只装了客户端**） | 同时装了本模组 | ⚠️ 单品拿取会失败（服务端不认识那个动作），本模组的整包拿取不受影响 |
+| 装了 `NestedContainersTake`（物品拿取，**服务端也装了**） | 同时装了本模组 | ✅ 兼容：两者补丁点不同（(e) 只在"源端是物体容器里的包"时接管，(d) 只在"把包搬进背包"时追加回调），互不抢占 |
+| 装了 `NestedContainersTake`（**只装了客户端**） | 同时装了本模组 | ⚠️ 物品拿取会失败（服务端不认识那个动作），本模组的整包拿取不受影响 |
 | 装了 Nested Containers 界面模组 | 装了本模组 | ✅ 兼容（本模组不替换任何 UI；嵌套按钮在"拿包"时用不上） |
 | 纯原版 | 原版客户端 | ❌ 原 bug |
 | 单机 | — | ✅ **零影响**（`not isClient()` ⇒ `Client.lua` 直接 `return`，见 6.5） |
@@ -477,7 +477,7 @@ sendAddItemToContainer(self.destContainer, addedItem)
 * 引擎级根因与 `javap` 字节码证据：[`docs/pz-b42-nested-container-multiplayer-fix.md`](pz-b42-nested-container-multiplayer-fix.md)
 * 纯 Lua 客户端 / 服务端协议方案：[`docs/pz-b42-nested-container-mp-fix-lua.md`](pz-b42-nested-container-mp-fix-lua.md)
 * 纯客户端"三步法"方案：[`docs/pz-b42-nested-container-mp-fix-client.md`](pz-b42-nested-container-mp-fix-client.md)
-* "单品拿取"方案（互补，走引擎网络定时动作通道）：[`bin2_nested_containers_take/`](../bin2_nested_containers_take/README.md)、[`docs/pz-b42-nested-container-take.md`](pz-b42-nested-container-take.md)
+* "物品拿取"方案（互补，走引擎网络定时动作通道）：[`bin2_nested_containers_take/`](../bin2_nested_containers_take/README.md)、[`docs/pz-b42-nested-container-take.md`](pz-b42-nested-container-take.md)
 * 另外三个修复（与本模组**不要混装**）：[`bin2_nested_containers_mp_fix/`](../bin2_nested_containers_mp_fix/README.md)、[`bin2_nested_containers_mp_fix_lua/`](../bin2_nested_containers_mp_fix_lua/README.md)、[`bin2_nested_containers_mp_fix_client/`](../bin2_nested_containers_mp_fix_client/README.md)
 * Picking Meister（同一个点子的独立实现，工坊 `3422220305`）— https://steamcommunity.com/sharedfiles/filedetails/?id=3422220305
 * Nested Containers - Complete（界面模组，工坊 `3801776436`）— https://steamcommunity.com/sharedfiles/filedetails/?id=3801776436

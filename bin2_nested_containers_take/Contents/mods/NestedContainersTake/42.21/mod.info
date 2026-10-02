@@ -1,4 +1,4 @@
-name=嵌套容器 · 单品拿取 (Nested Containers - Take Single Item)
+name=嵌套容器 · 物品拿取 (Nested Containers - Take Items)
 poster=poster.png
 id=NestedContainersTake
 description=联机下从"嵌在板条箱/衣柜/尸体里的包"中拿取物品（**支持多选/全拿的批量拿取**，不必整包拿走），并刷新包内视图。
