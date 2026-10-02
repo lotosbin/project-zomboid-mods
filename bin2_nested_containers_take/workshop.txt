@@ -1,4 +1,5 @@
 version=1
+id=3811931390
 title=嵌套容器 · 单品拿取 (Nested Containers - Take Single Item)
 description=联机下从"嵌在板条箱/衣柜/货架/尸体里的包"中拿取物品：可以只拿一件，也可以多选 / 全拿（一次服务端往返）。
 description=
@@ -21,4 +22,4 @@ description=
 description=[h3]English[/h3]
 description=Take a single item - or a whole selection - out of a bag that sits inside a crate, wardrobe or corpse in multiplayer. Uses the engine's network timed-action channel (a shared action that defines complete() is requested by the client and executed authoritatively on the server), resolves containers by item id instead of ContainerID, and forces a whole-bag refresh so the bag contents update immediately. Works with normal and batch (take-all) transfers, one server round-trip per batch. Must be installed on clients and on the server.
 tags=Build 42;Misc
-visibility=private
+visibility=public
