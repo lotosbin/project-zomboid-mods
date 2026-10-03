@@ -977,3 +977,102 @@ PowerPlant 客户端 Lua 中的硬编码英文 (如右键菜单 "Power Grid Cont
 - **构建环境的坑**：B42.21 的 `projectzomboid.jar` 是 **Java 25**（class 主版本 69）编译的，
   `javac 17` 读不了游戏 class；JDK 需 ≥ 游戏版本（已装 Temurin 25 到 `~/Library/Java/JavaVirtualMachines/temurin-25.jdk`，
   且 `/usr/libexec/java_home -v 25` 认不出手工解包版，构建脚本要自己遍历目录）。ZombieBuddy 2.3.2 仍是 Java 17 字节码。
+
+## 2026-10-03
+
+### 定位并修复 PZ 在 macOS/Linux 无法上传创意工坊（B42.20.4/42.21）
+
+来源：[Steam 讨论帖 "error requesting Steam to update the item"](https://steamcommunity.com/app/108600/discussions/1/582806854239939623/)
+（Linux Bazzite + macOS 两位用户症状相同）。完整文档：`docs/pz-steam-workshop-upload-macos-linux-fix.md`。
+
+**根因**：`zombie.core.znet.SteamWorkshopItem.submitUpdate()` 把 LWJGL tinyfd 原生确认框的返回值
+（必须 `== 1`）当作上传前置条件。macOS 上 tinyfd 拼 AppleScript 交给 `osascript` 执行，
+脚本把按钮名与写死的 `"Yes"/"OK"/"No"` 比较；非英文系统的默认按钮是本地化的
+（本机 `AppleLanguages = zh-Hans-CN`，实测 `button returned:好`），三个分支都不中 → `return 0`
+→ `submitUpdate()` 返回 false → Lua 打出 `error requesting Steam to update the item`，
+`SubmitItemUpdate` 从未被调用（Steam 客户端 `workshop_log.txt` 里只有 `Create new workshop item ... (OK)`，物品永远 0 B）。
+Windows 走 `MessageBoxA`（IDOK=1/IDCANCEL=2，与语言无关）所以正常；Linux 缺 zenity/kdialog 时返回 -1，同样 `!= 1`。
+
+**修复**：`bin2_workshop_upload_fix/tools/pz_fix_workshop_upload.py` 改写 `projectzomboid.jar` 里
+`SteamWorkshopItem.class` 的 `submitUpdate()`：`iload_1; ifeq +N` → 4×`nop`（去掉这个前置条件，确认框仍会弹），
+jar 用**整包重写**替换该成员（其余 26140 条目原样保留，CRC/长度/descriptor 自洽，inode/权限/xattr 保留）。
+已应用并验证（javap 反汇编 + 游戏自带 JRE 25 加载校验 + `unzip -t` + `ZipInputStream` 全量读 26140 条目 +
+逐条目比对"只有目标成员不同" + patch/restore 逐字节往返 + `--restore --dry-run` 不写盘），
+备份 `projectzomboid.jar.pzfix.bak`。另外写了个"停在提交前"的自检：起 Steam 后逐个调用
+`StartItemUpdate/SetItemTitle/.../SetItemContent/SetItemPreview`，**全部 true**（不调 `n_SubmitItemUpdate`，不上传）
+⇒ 唯一返回 false 的就是那个确认框，排除了"后面的 native 调用在 macOS 上也会失败"这一替代解释。
+
+### 经验沉淀
+
+- **"只在一个平台坏"要先找平台相关的那一层**：同一条 `submitUpdate()` 里只有 tinyfd 这一个跨平台分支
+  （Windows=Win32 MessageBox、macOS=osascript+AppleScript、Linux=zenity/kdialog），答案就在那里。
+  不要先去怀疑路径分隔符、Steam 沙箱、`StartItemUpdate` 之类的"看起来更底层"的东西。
+- **把"返回值"当证据**：直接写 20 行 Java 用游戏自带 jar 调 `TinyFileDialogs.tinyfd_messageBox(...)`，
+  一次就拿到 `returned = 0`；比读半天源码快得多。工程上这叫把"猜"变成"测"。
+- **抓真实 argv 的土办法**：在 PATH 前面放一个假的 `osascript` 把 `"$@"` 落盘，
+  就能拿到 tinyfd 真正拼出来的 AppleScript；再用真的 `/usr/bin/osascript` 重放，stdout 直接给出 `0`。
+- **本地化是最容易被忽略的"平台差异"**：`display dialog` 不写 `buttons` 时按钮名由系统语言决定
+  （本机实测中文是"好"；英文系统恰好就是字面量 OK），而调用方 `strcmp("OK")`。凡是"英文机器上好好的"的原生弹窗都要怀疑这一点。
+- **改 jar 要"整包重写"，不要图省事"就地补零"**：第一版实现把新的 deflate 流写回原位置、
+  尾部补 `\x00` 对齐原压缩长度（好处是全 jar 偏移量不用动，`ZipFile` 与 `unzip -t` 也确实都过），
+  结果被子代理复核抓到两个真缺陷：① 成员带 data descriptor（flag bit 3）时 descriptor 里的 CRC 没同步改写；
+  ② `java.util.zip.ZipInputStream` 是按流位置找 descriptor 的，尾部多余字节会让它报
+  `invalid entry size (expected ... but got 20721 bytes)`。**"能读"不等于"结构自洽"**，
+  而且测试只覆盖了 `ZipFile` 就等于没覆盖。改成 `zipfile` 整包重写后：除目标成员外
+  26140 个条目逐条目内容一致、CRC/长度/descriptor 全部自洽，`ZipInputStream` 全量读 142 MB 无异常，
+  代价只有约 5 秒；再用"临时文件自检 + 覆写原路径"保住 inode/权限/xattr。
+- **入口参数要成对测试**：`--dry-run` 只接在 `cmd_patch` 上，`--restore`/`--verify` 那条分支就漏了 ——
+  `--restore --dry-run` 会真的还原。破坏性开关要么转发 dry_run，要么用 `add_mutually_exclusive_group()`。
+- **哈希要落在实处**：备份只"存在时跳过创建"，却不校验内容，等于把"已打补丁的 jar"当成原始文件备份。
+  记录 `original_member_sha256` 并在 restore 前核对，才能让"还原"这个承诺成立。
+- **字节码补丁必须"唯一命中否则拒绝"**：定位用 21 字节特征串并要求**恰好命中一次**，
+  游戏更新后字节码一变就安全退出，而不是改坏 jar；同时脚本要幂等 + 自带 `--restore`。
+- **失败信息不落盘是最大的定位障碍**：这个 bug 的原因只出现在 UI 文本框里（源码里 `-- TODO: write to WorkshopLog.txt`
+  至今仍在），只能靠 Steam 客户端日志"缺一条 Update 记录"反推。给 TIS 报 bug 时这条本身就是建议。
+
+### 同一问题的第二种修法：ZombieBuddy 运行时补丁（新增 `bin2_workshop_upload_fix/`）
+
+用户问"能不能用 ZombieBuddy 修"。本机已装 ZB 2.3.2（workshop `3619862853`），它是注解式 ByteBuddy 补丁框架，
+**它的官方示例 `ZBetterWorkshopUpload` 补的就是 `zombie.core.znet.SteamWorkshopItem`** —— 说明这条路径现成可用。
+于是新增了 ZombieBuddy 补丁模组 `bin2_workshop_upload_fix/`（仓库约定布局：`Contents/mods/ZBWorkshopUploadFix/42.21/`，
+`mod.info` 与 `src/`、`media/java/client/*.jar` 都在版本子目录里，`require=\ZombieBuddy`
+`require=\ZombieBuddy`）：`@Patch.OnExit` 挂在 `submitUpdate()` 上，返回 false 且非 Windows 时补一次
+`SteamWorkshop.instance.SubmitWorkshopItem(item)`，**不跳过原方法**（确认框照旧弹）。
+已 symlink 到 `~/Zomboid/mods/ZBWorkshopUploadFix`（本地加载）与 `~/Zomboid/Workshop/bin2_workshop_upload_fix`
+（上传向导可见），在游戏里启用 + 允许加载即可；与"改 jar"方案可共存。
+工坊物品也补齐了：`workshop.txt`（tags/visibility，格式用游戏自己的 `readWorkshopTxt()` 验过）、
+`changelog.txt`、以及 `tools/make_images.py` 用 Pillow 生成的 `preview.png`(256)/`poster.png`(512)。
+注意 `preview.png` 的硬性规则：游戏 `validatePreviewImage()` 只接受**正方形且边长 256 或 512**、≤1024000 字节的 PNG。
+
+**离线自测**（`bin2_workshop_upload_fix/test/run_offline_test.sh`）：用 ZB 自带的 `PatchTransformer` 把 `@Patch.*` 别名翻译成
+`Advice.*`，挂到假目标上跑，全部通过（翻译成功 / 原方法未被跳过 / advice 真的执行 / `@Return(readOnly=false)`
+能改写 boolean）。这算是"没有游戏也能验证补丁机制"的一个可复用套路。
+
+### 经验沉淀为 DSH Skill：`.dsh/skills/pz-engine-deepdive/`
+
+把这条链路的经验固化成 skill，放在**项目级** skill 根（`<repo>/.dsh/skills/<name>/SKILL.md`，
+frontmatter `name`/`description`/`whenToUse`，名字必须 kebab-case）。
+DSH 的 `@deepseek-ai/dsh-skill-filesystem` 默认扫描
+`<项目>/.dsh/skills` → `<项目>/.agents/skills` → `~/.dsh/skills` → `~/.agents/skills` → 内置目录
+（预设还可以用 `customSkillDirs` 追加，例如 `~/.dsh/.agent-presets/pz-live-ops/skills/`），
+且带文件监听 —— 本次写完**当前会话的 skill 目录立刻就更新了**，等于顺手验证了格式与可发现性。
+
+skill 覆盖：环境事实表（Java 25 class / JDK 25 / 自带 JRE / 日志与工件路径）、
+"从症状到证据"六步（错误字符串找出处 → javap 读调用链 → 直接调 API 拿返回值 → 抓真实 argv →
+对照实验 → 子代理证伪）、tinyfd 三平台差异表与"别全局改它"的原因、
+ZombieBuddy `@Patch` 注解语义表 + 离线自测套路、改 jar 的整包重写纪律、工坊物品交付与
+`validatePreviewImage` 硬性规则、以及一份交付前自检清单。
+
+### 经验沉淀（ZombieBuddy 部分）
+
+- **先找生态里已有的轮子**：与其从零写 Java agent，不如先看 ZombieBuddy 的 `doc/ModdingGuide.md` 和它的
+  示例仓库 —— 它连"补 `SteamWorkshopItem`"的示范代码都给了，照抄结构即可，省掉整条 Instrumentation 链。
+- **ByteBuddy Advice 是内联的 ⇒ 辅助类/方法必须 `public`**：访问权限按**被补丁的类**判定，
+  包私有会在游戏里 `IllegalAccessError`（离线自测能提前发现这类问题）。
+- **别去补 `tinyfd_messageBox`**：ZombieBuddy 自己审批 Java mod 用的就是它，全局改成返回 1 等于
+  "所有 Java mod 自动过审"。要补也只按标题白名单；ZB 自己的审批框用 `"yesno"` 类型绕开了本地化问题 ——
+  这恰好是给 TIS 的正确修法示范。
+- **没有游戏也能验证补丁机制**：写个 5 行的 `Premain` 小 agent 拿到 `Instrumentation`
+  （清单必须声明 `Can-Redefine-Classes`/`Can-Retransform-Classes`），
+  再用框架自己的翻译器 + ByteBuddy `Advice` 挂到假目标上调用，就能验证"注解写对了、原方法没被跳过、
+  返回值改写生效"这些最关键的性质。

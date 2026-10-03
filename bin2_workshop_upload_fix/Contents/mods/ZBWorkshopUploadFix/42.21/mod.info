@@ -1,0 +1,9 @@
+name=ZB Workshop Upload Fix (macOS / Linux)
+id=ZBWorkshopUploadFix
+modversion=1.0.0
+description=Fixes "error requesting Steam to update the item" when uploading mods to the Steam Workshop on macOS/Linux. The native confirmation box (LWJGL tinyfd) reports the localized button title (e.g. "好" on a Chinese system) or -1 when no dialog helper exists, so SteamWorkshopItem.submitUpdate() returns false and SubmitItemUpdate is never called. This patch submits anyway when the box could not confirm. Requires ZombieBuddy (Java mod loader). Windows behaviour is unchanged.
+poster=poster.png
+require=\ZombieBuddy
+ZBVersionMin=2.0.0
+javaJarFile=media/java/client/ZBWorkshopUploadFix.jar
+javaPkgName=com.lotosbin.zbworkshopfix

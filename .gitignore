@@ -2,8 +2,13 @@
 .DS_Store
 default.txt
 reset-mods-41_51.txt
+# ViewpointMac 构建产物
+bin2_viewpoint/build/
+# NestedContainersMPFix 构建产物
+bin2_nested_containers_mp_fix/build/
+# ZBWorkshopUploadFix 构建产物
+bin2_workshop_upload_fix/build/
 learn
-
 # Python 缓存
 **/__pycache__/
 *.pyc

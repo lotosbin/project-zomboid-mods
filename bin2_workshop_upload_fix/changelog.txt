@@ -1,0 +1,27 @@
+版本 1.0.0 (2026-10-03)
+- 初始发布：用 ZombieBuddy 运行时补丁修复 macOS / Linux 上传创意工坊报 "error requesting Steam to update the item"
+- 根因：SteamWorkshopItem.submitUpdate() 要求 LWJGL tinyfd 原生确认框返回 1 才提交；
+  tinyfd 在 macOS 上用 AppleScript 把 button returned 与写死的英文 "Yes"/"OK"/"No" 比较，
+  非英文系统的默认按钮被本地化（中文是"好"）→ 返回 0 → submitUpdate() 直接 false，
+  ISteamUGC::SubmitItemUpdate 从未被调用（Steam workshop_log.txt 里只剩创建记录，物品永远 0.000 B）；
+  Linux 上 tinyfd 找不到 zenity/kdialog 时返回 -1，同样 != 1；Windows 走 Win32 MessageBoxA（IDOK=1）不受影响
+- 补丁：@Patch.OnExit 挂在 zombie.core.znet.SteamWorkshopItem#submitUpdate()，
+  返回 false 且当前不是 Windows 时补一次 SteamWorkshop.instance.SubmitWorkshopItem(item)
+- 不跳过原方法（确认框照旧弹出，只是不再拦住上传）；英文系统 / Windows 行为与原来完全一致
+- 不修改游戏任何文件，不会被游戏更新 / "验证文件完整性" 覆盖
+- 故意不去补 TinyFileDialogs.tinyfd_messageBox：那是 ZombieBuddy 审批 Java mod 用的同一个方法，
+  全局改成返回 1 会让所有 Java mod 静默过审
+- 附带工具（同一目录）：
+  * tools/pz_fix_workshop_upload.py  等价的"直接改 projectzomboid.jar"方案（整包重写，可 --restore 还原）
+  * tools/pz_workshop_probe/         上传前链路自检：初始化 Steam，先用游戏自己的解析器读 staged 的 workshop.txt
+                                     （id/title/visibility/tags/description），再逐个调用 StartItemUpdate/SetItem*，不提交
+  * test/run_offline_test.sh         补丁机制离线自测（用 ZombieBuddy 自带的 PatchTransformer，不启动游戏、不上传）
+  * tools/make_images.py             生成 preview.png(256) / poster.png(512) 两张预览图（Pillow 绘制，可复现）
+                                     preview 必须是正方形且边长 256 或 512、<=1024000 字节、PNG（游戏 validatePreviewImage 的硬性规则）
+- 工坊物品：workshop.txt（tags=Build 42;QoL;Misc，visibility=public）+ preview.png + changelog.txt
+- 文档：docs/pz-steam-workshop-upload-macos-linux-fix.md（完整证据链与三种修法）
+        docs/pz-workshop-bug-report-en.md（可提交给 TIS 的英文 bug 报告草稿）
+- 已知限制：
+  * 需要 ZombieBuddy 作为 javaagent 生效；本模组是未签名 Java mod，首次加载要在 ZB 弹窗里允许
+  * macOS 侧为本机实测（zh-Hans-CN + TinyFileDialogs 3.19.3）；Linux 侧是按 tinyfd 的设计与内嵌字符串推断，未在 Linux 上实测
+  * 未做"游戏内点一次真实上传"的端到端验证（只验证到 n_SubmitItemUpdate 之前一步，全部 true）
