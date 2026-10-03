@@ -162,7 +162,16 @@ DSH 的 skill 文件系统提供者默认扫描 `<项目>/.dsh/skills`、`<项�
 → tinyfd 三平台差异与"别全局改"的安全理由 → ZombieBuddy `@Patch` 语义表与离线自测 → 整包重写改 jar 的纪律
 → 工坊交付与 `validatePreviewImage` 硬性规则 → 交付前自检清单。
 
-### 七、后续 / 建议
+### 七、第二个 skill：工坊物品打包与发布
+
+按"一件事一个 skill"把工坊交付规格独立成 `.dsh/skills/pz-workshop-item-publishing/`：
+物品目录布局与路径规则（`Contents` 才会被打包）、`workshop.txt` 字段表（多行 `description=`、
+`tags` 白名单、`visibility` 0/2、未发布不写 `id=`）、`changelog.txt` 惯例、`preview.png` 四条硬性规则
+（256/512 正方形、≤1024000 字节、PNG）与 `poster.png` 惯例、`mod.info` 发布相关字段、
+软链 staging 的安全性依据、上传流程与成功判据、上传前探针校验、踩坑清单与发布前 checklist。
+`pz-engine-deepdive` 第 6 节收缩为指针 + 取证入口，避免两份规格漂移。
+
+### 八、后续 / 建议
 
 * 游戏更新或 Steam"验证文件完整性"会覆盖 jar ⇒ **重跑脚本**；
 * 向 TIS 报 bug 时附上本机两条可复现证据（tinyfd 返回 0；AppleScript 里 `button returned:好`）；

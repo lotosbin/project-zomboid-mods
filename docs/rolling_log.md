@@ -1060,8 +1060,25 @@ DSH 的 `@deepseek-ai/dsh-skill-filesystem` 默认扫描
 skill 覆盖：环境事实表（Java 25 class / JDK 25 / 自带 JRE / 日志与工件路径）、
 "从症状到证据"六步（错误字符串找出处 → javap 读调用链 → 直接调 API 拿返回值 → 抓真实 argv →
 对照实验 → 子代理证伪）、tinyfd 三平台差异表与"别全局改它"的原因、
-ZombieBuddy `@Patch` 注解语义表 + 离线自测套路、改 jar 的整包重写纪律、工坊物品交付与
-`validatePreviewImage` 硬性规则、以及一份交付前自检清单。
+ZombieBuddy `@Patch` 注解语义表 + 离线自测套路、改 jar 的整包重写纪律、以及一份交付前自检清单。
+
+随后按"一件事一个 skill"的原则**拆出第二个**：`.dsh/skills/pz-workshop-item-publishing/`
+（工坊物品打包 → 校验 → 发布）。规格类内容只保留在这一份，`pz-engine-deepdive` 的第 6 节改成
+指针 + 只留"取证视角"的两条（`readWorkshopTxt`/`validatePreviewImage` 是验证假设的入口；
+可以逐个调 `n_StartItemUpdate/…/n_SetItemPreview` 而不调 `n_SubmitItemUpdate`），
+两个 skill 的 `description` 也各自收窄以免路由重叠。
+
+第二个 skill 的内容全部是本次真实踩出来的：物品目录布局与三条路径规则
+（`getContentFolder()`=`<item>/Contents`、`getPreviewImage()`=`<item>/preview.png`、
+`getFolderName()`；**只有 `Contents/` 会被打包**）、`workshop.txt` 字段表
+（多行 `description=` 累加、`tags` 必须取自 `media/WorkshopTags.txt`、
+`visibility` 解析成 `0`=public / `2`=private、首次上传前**不写 `id=`**）、
+`changelog.txt` 的仓库惯例（`版本 X.Y.Z (日期)` + 条目 + 如实写"未做"）、
+`preview.png` 的四条硬性规则与错误码（曾用 1024 被判 `PreviewDimensions`）、
+`poster.png` 不受校验但由 `mod.info` 的 `poster=` 指定、用 Pillow 可复现生成两张图的要点、
+软链 staging 为何安全（`validatePrefix` 接受软链 + `getStageFolders()` 跟随软链）、
+上传流程与成功判据（Steam `workshop_log.txt` 出现 update 记录、物品不再是 0.000 B）、
+上传前用探针校验，以及最容易踩的"**不能把仓库路径直接喂给 `SteamWorkshopItem`**"（`Invalid prefix found`）。
 
 ### 经验沉淀（ZombieBuddy 部分）
 

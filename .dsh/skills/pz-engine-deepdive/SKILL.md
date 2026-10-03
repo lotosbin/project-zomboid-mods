@@ -1,7 +1,7 @@
 ---
 name: pz-engine-deepdive
-description: Locate, prove, and fix Project Zomboid engine-level (Java) defects in this repo, and deliver the result as a mod or a Workshop item. Use it when a symptom is platform-specific (macOS/Linux works differently from Windows), when Lua alone cannot explain a failure, when you must read or patch projectzomboid.jar bytecode, when writing a ZombieBuddy @Patch mod, or when packaging/validating a Workshop item (mod.info, workshop.txt, poster.png, preview.png, staged folder, upload wizard).
-whenToUse: The symptom points below the Lua layer (something "just returns false", a native dialog, a Steam/Workshop operation), or the task is "make a ZombieBuddy Java patch", or the task is "publish/validate this Workshop item".
+description: Locate, prove, and fix Project Zomboid engine-level (Java) defects in this repo. Use it when a symptom is platform-specific (macOS/Linux differs from Windows), when Lua alone cannot explain a failure, when you must read or patch projectzomboid.jar bytecode, when writing or debugging a ZombieBuddy @Patch mod, or when a claim must be proven with the game's own code (javap, direct API calls, captured native argv). For packaging and publishing a Workshop item (workshop.txt, changelog.txt, preview.png, poster.png, staging, upload wizard) use the pz-workshop-item-publishing skill instead.
+whenToUse: The symptom points below the Lua layer (something "just returns false", a native dialog, a Steam/Workshop operation), or the task is "make / fix a ZombieBuddy Java patch", or you need the game's own code and return values as evidence.
 ---
 
 # Project Zomboid：引擎层定位 → 修补 → 工坊交付
@@ -137,37 +137,21 @@ public static void exit(@Patch.This Object self, @Patch.Return(readOnly = false)
 - 备份 + `original_member_sha256` 记录 + `--restore` 前核对哈希 + `--dry-run` 对破坏性开关同样生效。
 - 参考实现：`bin2_workshop_upload_fix/tools/pz_fix_workshop_upload.py`（`--verify/--dry-run/--restore`）。
 
-## 6. 工坊物品交付与校验
+## 6. 工坊交付
 
-目录与字段：
+物品目录布局、`workshop.txt` / `changelog.txt` / `mod.info` 的字段规格、`preview.png` 的硬性尺寸规则、
+staging 软链、上传向导与 `id=` 回写、发布前自检清单，全部整理在另一个 skill：
+**`pz-workshop-item-publishing`**（本仓库 `.dsh/skills/pz-workshop-item-publishing/SKILL.md`）。
+需要打包/发布时加载它，不要在两边各写一份规格。
 
-- 物品根：`workshop.txt`、`preview.png`、`changelog.txt`、`Contents/mods/<ModId>/<ver>/…`
-- `workshop.txt`：`version=1` + 若干行 `description=`（**一行一个 description=**）+ `tags=`（分号分隔，
-  取值必须来自游戏 `media/WorkshopTags.txt`）+ `visibility=public|private`；未发布时**不写 `id=`**
-  （首次上传后由向导写回）。
-- `mod.info` 的 `poster=` 指向版本目录里的海报。
+这里只保留"**取证**"视角需要的东西：
 
-**`preview.png` 是硬性规则**（来自 `SteamWorkshopItem.validatePreviewImage(Path)` 字节码）：
-
-| 规则 | 错误码 |
-| --- | --- |
-| 存在 / 可读 / 不是目录 | `PreviewNotFound` |
-| ≤ 1024000 字节 | `PreviewFileSize` |
-| **正方形，边长只能是 256 或 512** | `PreviewDimensions` |
-| 能被 `zombie.core.textures.PNGDecoder` 解析（即 PNG） | `PreviewFormat` |
-
-不要照抄别的模组的预览图尺寸（本仓库里既有 256 也有 1024，1024 会被游戏判 `PreviewDimensions`）。
-
-软链当待上传目录是安全的，已用游戏代码证实两点：
-`SteamWorkshopItem` 构造函数的 `ZomboidFileSystem.validatePrefix()` 接受符号链接路径；
-`SteamWorkshop.getStageFolders()` 的过滤器是 `Files.isDirectory(path, LinkOption[0])`（跟随符号链接）。
-
-**用游戏自己的代码校验，而不是上传失败后回查**：
-
-- `SteamWorkshopItem.readWorkshopTxt()` → id/title/visibility(`0`=public,`2`=private)/tags/description 长度
-- `SteamWorkshopItem.validatePreviewImage(Path)` → `null` 表示通过，否则是上面的错误码
-- 起 Steam 后逐个调用 `n_StartItemUpdate / n_SetItemTitle / … / n_SetItemContent / n_SetItemPreview`，
-  **唯独不调 `n_SubmitItemUpdate`** ⇒ 不会真的上传，却能证明"上传前的 native 链路是好的"。
+- `SteamWorkshopItem.readWorkshopTxt()` 与 `validatePreviewImage(Path)` 是"用游戏自己的代码验证假设"的最佳入口：
+  前者解析物品根目录的 `workshop.txt`（id/title/visibility/tags/description），后者返回 `null` 或错误码。
+  注意 `SteamWorkshopItem` 构造函数会先过 `ZomboidFileSystem.validatePrefix()`：**传仓库路径会抛
+  `Invalid prefix found`**，必须传 `~/Zomboid/Workshop/…` 之类的白名单路径（软链可以）。
+- 起 Steam 后可以逐个调用 `n_StartItemUpdate / n_SetItemTitle / … / n_SetItemContent / n_SetItemPreview`，
+  **唯独不调 `n_SubmitItemUpdate`** —— 既证明"上传前的 native 链路是好的"，又不会真的上传。
   实现：`bin2_workshop_upload_fix/tools/pz_workshop_probe/`
 
 ## 7. 定位"上传/下载类"问题的额外提示
@@ -185,5 +169,6 @@ public static void exit(@Patch.This Object self, @Patch.Return(readOnly = false)
 - [ ] ZB 补丁：辅助类/方法 `public`；离线自测 `ALL CHECKS PASSED`
 - [ ] 改 jar：整包重写；`--verify` 通过；`--restore` 与原文件逐字节一致；`ZipInputStream` 全量读无异常
 - [ ] 工坊：`readWorkshopTxt` 解析正确、`validatePreviewImage = OK`、软链 staging 可见
+      （完整规格与发布流程见 skill `pz-workshop-item-publishing`）
 - [ ] 更新 `docs/rolling_log.md`，并生成当天的 `docs/develop_log_<date>.md`
 - [ ] 明确写出"**未做**什么"（例如没有真实点一次上传），不要含糊
