@@ -1,4 +1,5 @@
 version=1
+id=3813096783
 title=Project A-Life: Start With NPC [Jimmy add-on] - 开局自带友方 NPC (Build 42)
 description=新角色开局身边就有友方 NPC。默认它会跟着你走；也可以切换成 Jeem Extension 的「居民」，让它去守你的营地。
 description=
@@ -42,5 +43,5 @@ description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
 description=[ ------ ]
-tags=Build 42;QoL;Misc;Multiplayer;WIP
-visibility=private
+tags=Build 42;Misc;Multiplayer;QoL;WIP
+visibility=public

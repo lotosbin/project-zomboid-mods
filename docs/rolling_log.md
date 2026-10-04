@@ -2087,6 +2087,20 @@ A-Life 的 `ALifeModCompat` 早已把这类模组判为 `incompatible`，并写�
 ③ 新增 `Grant.onDeath`（`OnPlayerDeath` + `OnCharacterDeath`）清标记**与令牌**与尝试计数；
 ④ 所有 per-角色 状态由"按 IsoPlayer 对象缓存"改为存玩家 modData（联机重生可能复用同一对象）。
 
+### 发布：ALifeStartWithNPC 已上传创意工坊（id=3813096783）
+
+游戏内上传向导成功，并把**回写**写进了 `bin2_ProjectALifeNPCs_extensions/workshop.txt`：
+
+```
++id=3813096783
+-visibility=private
++visibility=public
+ tags 被向导重排为 Build 42;Misc;Multiplayer;QoL;WIP
+```
+
+按 skill `pz-workshop-item-publishing` 的流程，这条回写要提交进仓库 —— 此后再次上传会自动走"更新"分支
+（而不是新建物品）。本次发布的版本是 0.1.5（含联机重生修复）。
+
 **经验**：**"防重复"的幂等键一旦跨生命周期复用，就会变成"防重生"** —— 凡是按角色实例的幂等，
 必须在死亡/重生边界显式失效。
 
