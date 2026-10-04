@@ -2,5 +2,11 @@ version=1
 id=3644159457
 title=bin2's  Neat_Controller_Support - Neat Crafting & Building 手柄支持
 description=- Neat_Controller_Support - Neat Crafting & Building 手柄支持
+description=
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
 tags=Build 42;Misc
 visibility=public

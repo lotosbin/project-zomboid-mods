@@ -34,5 +34,11 @@ description=  [ZBWorkshopUploadFix] confirm box did not report OK (localized but
 description=
 description=源码 / 完整分析 / 离线自测 / 等价的"直接改 projectzomboid.jar"方案：
 description=https://github.com/lotosbin/project-zomboid-mods/tree/main/bin2_workshop_upload_fix
+description=
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
 tags=Build 42;Misc;QoL
 visibility=public

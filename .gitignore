@@ -12,3 +12,10 @@ learn
 # Python 缓存
 **/__pycache__/
 *.pyc
+# CompanionDogsAlpaca 工具产物（可重新生成；证据图在 bin2_companion_alpaca/docs/assets/）
+bin2_companion_alpaca/tools/alpaca/out/
+bin2_companion_alpaca/tools/test/node_modules/
+
+# 方块羊驼：渲染产物与临时依赖（与 bin2_companion_alpaca 一致，不入库）
+bin2_blocky_alpaca/tools/blocky/out/
+bin2_blocky_alpaca/tools/test/node_modules

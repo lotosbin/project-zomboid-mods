@@ -9,5 +9,11 @@ description=* 客户端与服务端都要安装本模组（搬运在服务端执
 description=* 只覆盖"包直接位于可寻址容器里"：板条箱 / 衣柜 / 货架 / 冰箱 / 尸体 / 载具部件 / 地面 / 玩家背包；更深的嵌套（包里再套包）不会生效，需先把外层包取到背包
 description=* 单机不介入（单机本来就能直接开包拿单品）
 description=* 建议与界面模组 "Nested Containers - Complete" 配合使用（嵌套容器按钮由它提供）
+description=
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
 tags=Build 42;Misc
 visibility=public

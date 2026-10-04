@@ -23,5 +23,11 @@ description=- bin2_B42_14_1_Collection - B42.14.1合集 (已过时,1.0.3)
 description=
 description=【版本要求】Build 42.13+ (推荐 42.15.0 或更高)
 description=【中文化覆盖】Lingering Voices / EHR / EPR / ERS / XantjiRecycleEverything 等(由 bin2_extension/ 旁加载)
+description=
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
 tags=Build 42;Balance;Building;Food;Language/Translation;Map;Misc;Multiplayer;Realistic;QoL
 visibility=public
