@@ -1,0 +1,17 @@
+version=1
+title=ViewpointMac - 3D on macOS / Apple Silicon (experimental)
+description=Experimental macOS/Apple Silicon 3D groundwork for Project Zomboid Build 42.
+description=
+description=Adds a Java render hook on zombie.core.SpriteRenderer#postRender through ZombieBuddy, an in-game OpenGL capability probe (writes Zomboid/viewpointmac-report.txt) and a toggleable OpenGL overlay that proves custom drawing can be injected into the game's frame on macOS.
+description=
+description=Controls: F9 writes the capability report, F10 toggles the overlay.
+description=
+description=Requires ZombieBuddy, installed as a Java agent (macOS: -javaagent:ZombieBuddy.jar -- in Steam launch options).
+description=
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
+tags=Build 42
+visibility=private
