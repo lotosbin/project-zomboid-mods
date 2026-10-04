@@ -1093,3 +1093,1017 @@ ZombieBuddy `@Patch` 注解语义表 + 离线自测套路、改 jar 的整包重
   （清单必须声明 `Can-Redefine-Classes`/`Can-Retransform-Classes`），
   再用框架自己的翻译器 + ByteBuddy `Advice` 挂到假目标上调用，就能验证"注解写对了、原方法没被跳过、
   返回值改写生效"这些最关键的性质。
+
+---
+
+## 2026-10-03 · 扩展 Companion Dogs（Workshop 3740052292）：新物种「羊驼」addon
+
+### 任务与定位
+
+用户要求"扩展 3740052292 模组，创建一个羊驼的宠物模组"。仓库里没有这个 ID，先做定位：
+`~/Zomboid/Lua/ModManager/ModListData.ini:364-371` 写着 `["CompanionDogs"] = { workshopID = 3740052292 }`，
+日志里还有 `steamapps/workshop/content/108600/3740052292/mods/CompanionDogs/...`
+⇒ 该 ID 是 **[Companion Dogs [ALPHA]](https://steamcommunity.com/sharedfiles/filedetails/?id=3740052292)**（base 0.7.4 / API 11）。
+
+关键在于它**自带一份官方 addon 契约**：<https://companiondogs.pet/docs/en/modding.html>（本机 curl 可访问，
+`sitemap`/`index.html` 不存在，手册是 `docs/en/modding.html`、`features.html`、`breeds.html`）。
+手册把"什么能改、什么绝不能碰"写得很清楚，并且明确允许第三方为它做 addon 与新物种：
+
+> "ASSET USAGE: feel free to build add-ons and new breeds for Companion Dogs and to use the mod's art in them,
+> just give proper credit" —— `CompanionDogs/42/mod.info` 的 description 末尾原文
+
+生态里已有一个**新物种**范例 `CompanionCat`（3791294616）与若干**新品种**范例（Pug/Labrador/Doberman/
+Rottweiler/Malinois），所以这次不是从零猜 API，而是"照抄 + 只做契约允许的事"。
+
+### 一、契约研究（子代理只读查证，逐条给 文件:行号）
+
+用 `subagent` 做了一份 12 节的《CompanionDogs 扩展点报告》，其中**三处手册与代码不符**，都影响写法：
+
+1. **`engineBreed` 的事实缺省不是 `key`，而是 `CD.BREED = "brown"`**（`CompanionDogs/skills/Skills.lua:240-243`）——
+   漏写会贴上金毛的皮，而且 `CD.BREED_BY_ENGINE` 会被多个品种争夺。它是事实必填。
+2. **base 的 Lua 里一个 `pcall` 都没有**（整个 `media/lua` grep 无命中）：手册宣称
+   `onHuntDelivered` / `onUpkeepStress` / 建筑 class 的 match / 注册的 distraction handler "各自在 pcall 里跑"
+   并不成立，它们分别是 `server/systems/CompanionDogs_Hunting.lua:1033-1038`、`skills/BreedAPI.lua:12-24`、
+   `server/CompanionDogs_Spawn.lua:215`、`server/systems/CompanionDogs_Distract.lua:122,133` 的裸调用
+   ⇒ **addon 的 handler 必须自保**（本模组的气候钩子自己包了 `pcall`）。
+3. `CD.registerSpecies` 的真实签名是 `{ key, nounKey, youngKey, labelKey? }`（`skills/Species.lua:14`），
+   手册第 6 节漏了 `labelKey`。
+
+另外几条手册没写但会踩的：`registerVoices` **不会**帮你登记 `CD.SOUND_LOOPED`（循环音必须自己补，
+否则走出听觉范围后不会停）；自定义 `category` 没有音量滑条（只能用 `bark/fx/ambient`）；
+`registerBreed` 之后再改 `diet`/`engineBreed` 必须自己补 `clearDietCache`/`rebuildEngineIndex`；
+剥皮表的键是 `<typePrefix><male|female|pup><engineBreed>`，**每个毛色都要调一次**。
+
+### 二、模型：仓库和游戏里都没有羊驼，于是"程序化重塑"（用户拍板选这条）
+
+`grep` 过 800 个已装工坊模组的 `mod.info`，没有任何羊驼/llama；B42 原版动物只有牛/猪/羊/鸡/兔/鹿/鼠/火鸡/浣熊。
+而契约要求新物种自带一个绑定到**同一骨架**、且含全套 `Rac_*` 剪辑的 glb（缺一个剪辑，动物第一次被要求播它就冻住）。
+所以决定：**从 base 授权的金毛模型派生**，把"犬 → 羊驼"拆成三个可验证的几何操作：
+
+1. **骨骼段重比例**：`t_new = t_rest + (k-1)*t_rest`（等价于 rest 端直接乘 k，但对逐帧变化的通道更安全 ——
+   `Spine_base` 的平移在剪辑里有 0.24 的浮动）。脖子 ×2.45、四肢 ×1.3 左右、尾巴 ×0.5、耳朵 ×1.45、吻部 ×0.62。
+2. **姿态增量**：给 neck/head/ears/tail 在**父骨骼空间**左乘常量四元数（`q_new = q_delta ⊗ q_anim`），
+   于是"长颈抬起、口鼻水平、耳朵立起、尾巴下垂"在 24 个剪辑里一致生效，不需要新动画。
+3. **网格形变**：按蒙皮权重混合的区域缩放（躯干横向 1.30）+ 沿法线的多频噪声（羊毛绒面）+ 重算法线。
+
+再补两个"物理上必须"的步骤：
+* **重新落地**：腿变长后，静止姿态不再等于绑定姿态（IBM 是原始绑定的），脚会沉到地面以下 0.062。
+  于是真的算一遍蒙皮（LBS）取 min-y，把 `Spine_base` 的平移在 rest 与全部剪辑里抬回去。
+* **姿态求解而不是肉眼调**：头是脖子的子骨骼，"抬脖子"会连带抬头，看渲染图调极易把口鼻越调越朝天
+  （试过 neck=-52/head=-26 时口鼻仰角 +50°）。写了 `tools/alpaca/tune_pose.py`，网格扫描 (neck, head)，
+  用"脖子骨骼自身方向仰角 ≈74°、口鼻方向仰角 ≈-5°"当目标，取误差最小的一对 —— 最终 `neck=-25 / head=+34`。
+
+### 三、最贵的一个坑：glTF 里同一个 clip 的多条 channel 共用同一个 accessor
+
+第一版派生出来的模型，静止与 walk 都对，**idle 被拉成腊肠**（头跑到 z=1.33，前腿到 z=0.79）。
+诊断过程：用渲染器的 `--list --anim Rac_Idle01` 打印关节世界坐标，对比源模型相同帧 ——
+源模型 head z=0.1475，派生模型 z=1.3297。再直接读采样数据：`neck` 的平移被写成 **0.909**，
+而正确值应是 `0.0586 × 2.45 = 0.144`；`acc=336` 这条 accessor 被 **11 条 channel 共用**，
+我的 `set_acc` 就地写共享数据 ⇒ 增量被叠加了 11 次。旋转通道同理（角度被复合多次）。
+
+修法：`glb_util.Glb.detach_channel_output()` —— 给每条受影响的 channel **克隆一份独占的 accessor + sampler**，
+原始共享数据保持不动。这个坑现在有回归检查：`tools/alpaca/validate_glb.py` 会算"真正带蒙皮权重的关节"，
+断言它们的平移通道 |t| ≤ 1.0（模型自身尺度 0.6；实测最大值 0.151）。
+
+### 四、资产管线（全部可复现，无外部素材）
+
+* **贴图**：`make_textures.py` 把金毛毛皮图集(512²)重绘成 7 种羊驼绒。关键两步：
+  ① 口腔/舌头的判别不能用 R-G 差值（金毛的暖色毛发会被误判，第一版整张图变泥色），
+  改用 **HSV 色相环 + 蓝通道高于绿通道**；② 原图集本身散落细小粉/灰噪点，用"模糊+阈值 + 开运算"清掉，
+  否则毛面上会留下零星紫褐斑点。绒面用多频正弦叠加的卷曲场（苏利白用纵向丝光场）。
+* **声音**：`make_sounds.py` 用 numpy 合成 9 条（共振峰权重 + 带通噪声 + 包络）。
+  本机 ffmpeg 9 没编 libvorbis，自带的实验性 vorbis 编码器**只支持 2 声道**，所以回退路径用 `-ac 2`。
+* **图片**：`make_images.py` 渲染头像（裁到"头+长脖子+前胸"，与 base 头像构图一致）、6 尺寸 moodle 图标
+  （底框由游戏按 tint 染色，fg 是叠在上面的图形）、偶蹄背包图标、64² 模组图标、海报、256² 工坊预览。
+
+### 五、验证（发布前 `tools/check.sh` 全绿）
+
+| 项 | 手段 | 结果 |
+| --- | --- | --- |
+| Lua 5.1 语法 | 本机无 lua 二进制 ⇒ npm luaparse（临时目录，不进仓库） | 5/5 OK |
+| 翻译 | 自写 `check_translations.py`：重复键/BOM/裸 %/三语键集合一致/自有键齐全 | EN·CN·CH 各 53+3+1，OK |
+| glb | 自写 `validate_glb.py`：骨骼≤60、顶层 identity、21 剪辑、accessor 越界、POSITION min/max、蒙皮一致性、平移爆值 | 55 骨骼 / 24 剪辑 / OK |
+| 图片 | 尺寸+模式+体积（预览图 256 或 512 正方形） | 30/30 OK |
+| 声音 | ffprobe 声道/采样率/时长 | 9/9 OK |
+| 模型观感 | 自建离线 glb 蒙皮渲染器（子代理写，numpy+Pillow，1 张 0.6~3.6s） | 静止 + 6 个剪辑目视不变形、不冻结 |
+| 工坊物品 | 用**游戏自己的** `SteamWorkshopItem.readWorkshopTxt` / `validatePreviewImage` 探针 | `readWorkshopTxt=true`、tags `[Build 42, Animals, Misc]`、`validatePreviewImage=OK` |
+
+### 六、经验（可直接复用）
+
+* **"扩展一个模组"的第一步是找它有没有官方 addon 契约**：有手册就照手册写，手册与代码冲突时**以代码为准**
+  （本次三处冲突全靠 `文件:行号` 实证才发现）；生态里已有的同类 addon（猫 = 新物种，哈巴狗 = 新品种）
+  是最省事的模板，但不要连它的坑一起抄（Pomeranian 手写 `SOUND_CATEGORY` 就是反例）。
+* **改 glTF 动画数据前，先查 accessor 的共享情况**：`unique(accessor) < channels` 时，就地修改必然叠加。
+  通用做法是"每条要改的通道克隆独占 accessor + sampler"，比"猜它有没有共享"省事得多。
+* **没有游戏也能验证 3D 资产**：写一个几十行的离线蒙皮渲染器（LBS + z-buffer + 贴图采样）就能把
+  "冻住 / 拉爆 / 贴图错位" 这类问题在提交前看出来；先渲染**未修改的源模型**当验收标准（要能认出是那只狗），
+  再渲染产物。
+* **几何参数优先用可测的指标，而不是肉眼**：把"脖子多立、口鼻多平"定义成两个角度，写网格扫描求解；
+  肉眼迭代那次是往下坡走的（越调越朝天）。
+* **派生物要写清授权链条**：base 的 ASSET USAGE 允许 addon 使用其美术但需注明出处 ⇒
+  `CREDITS.txt` 里把"派生自哪个文件、用什么脚本、改了哪些量、没有改哪些量"写死，
+  并在 `mod.info` / workshop 描述里都点明。
+* **同步类 addon 的循环音要自己登记 `CD.SOUND_LOOPED`**；`registerVoices` 只管分类与范围，不管停止。
+
+### 七、补：离线 Lua 集成测试（fengari 上跑真 Lua + mock base API）
+
+静态校验（语法/结构）挡不住"字段名写错、调用顺序写反、注册被 base 拒绝"这类问题，
+所以再加一层**离线集成测试**：用 npm 的 `fengari`（JS 里的 Lua 5.3 VM）建一个"忠实模拟 base API"的环境，
+按引擎真实顺序 `dofile` 我们的 5 个 Lua 文件，然后断言注册契约。
+
+入口：`bin2_companion_alpaca/tools/test/run_lua_test.sh`（缺依赖会自动 `npm i fengari`，`--quick` 跳过安装）。
+mock（`mock_base.lua`）照抄真 base 的校验分支：`registerBreed` 的 6 个必填字段、重名 key、
+`huntMaxPrey`/`maleChance`/`sterileMale`/`voices`/`species`/`skills`/`diet`/`engineBreed` 重名，
+以及 `registerSpecies` 对 `nounKey`/`youngKey` 的要求 —— 于是"被拒绝"会真的返回 nil 并打日志，
+测试再断言日志里不出现 `recusada/recusado/aviso de consistencia`。
+
+11 条断言覆盖：base 缺失时静默早退且不创建全局、物种注册一次且三键正确、
+**registerVoices 早于第一次 registerBreed**、两条循环音登记进 `CD.SOUND_LOOPED`、
+7 个品种的字段契约与引擎品种唯一性、生成后缀不与 base 及其它 addon 冲突、
+`chance()` 落在 (0,100] 且随沙盒倍率缩放、Definitions 与 Breed 两份毛色表一致、
+剥皮表按毛色调 7 次、moodle 的 condition/apply 真调用一遍（不忠/生病/热应激各返回 0）、
+气候钩子在 10℃/34℃/无气候管理器/取温度抛异常四种输入下的返回值。
+
+结果：`11/11 passed, ALL PASS`（运行期 0 行 `CD.log`，即注册零拒绝），已并入 `tools/check.sh`。
+
+**测试自己也做了证伪实验**（改测试文件 → 跑 → 恢复并用 `diff -q` 证明字节一致，模组本体全程未改）：
+让 mock 拒绝一个毛色 → 5 与 11 变红；把一次 registerBreed 记录挪到 registerVoices 之前 → 3 变红；
+去掉 `CD.SOUND_LOOPED` → 4 变红；把期望的 nameKey 写错 → 5 变红；往"禁止全局"集合里塞一个必然存在的
+全局名 → 1 变红。五条都红过，说明断言不是空转。
+
+---
+
+## 2026-10-03（续）· 模型返工：把"拉长脖子的狗"换成真正的羊驼（CC0 网格传递）
+
+### 起因
+
+用户看过第一版渲染后直接否定：**"模型与羊驼差别太大了"**。复盘：第一版是**程序化重塑 base 的金毛模型**
+（骨段拉长、姿态增量、网格缩放 + 绒面噪声）。轮廓能骗过一眼，但**头骨、吻部、躯干断面仍是犬科底子**，
+而且缺少羊驼的三个辨识特征——钝吻、额顶绒毛、桶状躯干。结论：**要像，就必须换几何来源。**
+
+### 找来源：CC0 的 Quaternius Alpaca
+
+`web_search` + `curl` 探到 [poly.pizza](https://poly.pizza/search/alpaca) 上 **Quaternius 的 Alpaca**，
+模型页 <https://poly.pizza/m/bCVFD48i2l> 明确标注 **Public Domain (CC0)**，页内 JSON 亦为
+`"Licence":"CC0 1.0"`；直链 `https://static.poly.pizza/444228bb-745d-49b2-89ef-cc12805deaa8.glb`
+（1.05 MB）。CC0 允许商用/修改/再分发，于是把它作为**几何来源**入库到
+`bin2_companion_alpaca/tools/alpaca/vendor/alpaca_cc0.glb`（含出处、授权、sha256，见 `vendor/README.md`）。
+
+资产实况（脚本读出来的）：**2060 三角形 / 4156 顶点**，按材质拆成 7 个 primitive（
+`Main_Light / Main / Main_Dark / Muzzle / Hooves / Eyes_Black / Eyes_White`），
+**没有 UV、没有贴图**（只有纯色材质），46 骨骼四足骨架（`Body/Back/Torso..Torso3/Neck1..3/Head/Ear1..4/
+Front*Leg/Back*Leg/Tail1..3` + IK/pole），自带 26 个动画。
+它的绑定是**四足 T-pose（腿向两侧张开）+ 头低伸的绑定**，站立姿态在 Idle 动画里。
+
+### 路线：保留 base 的骨架与剪辑，只换网格
+
+引擎按动画集的名字播剪辑、附件挂固定骨骼、ModData 里存动物类型 ⇒ **骨架和 24 个 `Rac_*` 剪辑一个都不能动**。
+所以做法是**逐骨骼仿射传递**：把 CC0 网格搬进 base 的绑定空间，让 base 的骨骼驱动它。
+
+`tools/alpaca/build_alpaca_from_cc0.py` 的流程与两处关键修正：
+
+1. 合并 7 个 primitive（记下每三角形的材质号，后面画图集要按材质上色）。
+2. **46 → 55 骨骼显式对应表**（`CC0_TO_OUR`）。位置最近邻在这里不够用：CC0 的躯干是单链、
+   我们是"腰/胸/颈"三段式，名字与拓扑都不同；另外**带权重的 IK/pole 骨必须也映射掉**，
+   否则那部分顶点会掉到默认骨头上（表现为局部塌陷）。
+3. **全局相似变换**（Umeyama）：FBX 转出来的模型，**动画世界坐标是绑定姿态的 ~100 倍**（cm/m 差），
+   根节点还带 `-90°X`。第一版没做这步，传递结果 bbox 是 6.5 单位（应为 0.45）——尺度差 13 倍。
+   用"来源 Idle 姿态的关节位置 ↔ 目标静止姿态的关节位置"拟合出 scale=0.0854 的 G。
+4. **坑一（真正的病根）：混合仿射算位置 + 引擎再混合权重 ≠ 可逆。**
+   我最初对每个顶点做 `Σ w·(D_b⁻¹·G·S_β)` 求位置，而引擎（和离线渲染器）用 `Σ w·D_b` 变换它；
+   **混合与求逆不可交换**，每个顶点留下一个方向不同的残差，网格被撕成"一地碎瓷片"。
+   正解是**逆蒙皮烘焙**：先定死目标形状 `p_target`，再解 `v_bind = (Σ w·D_b)⁻¹·p_target`
+   （4156 个顶点全部精确解出；病态时兜底用最大权重骨）。同一道理：**落地偏移必须加在目标形状上再重解**，
+   给绑定坐标加平移是错的（`Σw·D_b·(v+c) ≠ Σw·D_b·v + c`）。
+5. **坑二：权重平滑会把相邻肢体的权重互相扩散。** 我为了关节顺滑做了 3 轮网格邻接平滑（alpha 0.55），
+   结果**腿和尾巴在动画里被撕开**——平滑沿网格面把腿的权重糊到躯干、尾巴的权重糊到臀腿。
+   默认改成**不平滑**（`--smooth-iters 1 --smooth-alpha 0.25` 为可选）。
+6. UV/图集：来源没有 UV，所以**每三角形拆一个独立 UV 岛**（6180 顶点 = 2060×3，索引 0..N-1 连续），
+   格内按材质分类上色（皮肤三档 → 毛色亮/主/暗；鼻镜/蹄/眼固定），再叠程序化绒毛场；
+   7 种毛色用同一套 UV 布局换色即可（Suri 用纵向丝光场）。
+
+### 结果
+
+* 静止高度 **0.4523 单位**（肩高约 0.9 m @ size 2.6）、55 骨骼、24 剪辑、2060 三角形；
+* 离线渲染逐剪辑确认：rest / idle / walk / run / eat（低头吃草）/ attack（抬前腿）**全部不冻不裂、脚踩地**；
+* 动物定义按新网格重标定：成年 size 2.60~3.35、幼驼 `puppySize 1.85`（≈0.84 m）、
+  阴影 0.45/0.70/0.70、头像相机体型比 2.18 → **2.24**；
+* `models_alpaca.txt` 的帽子/驮袋挂点按新躯干（背高 ≈0.33、半宽 ≈0.054）重算（**仍需进游戏目视确认**）；
+* 头像/海报/预览/图标全部按新模型重生成；
+* `validate_glb.py` 增加三条新断言：必须有 `TEXCOORD_0`、顶点数是 3 的倍数、索引必须是 `0..N-1` 连续；
+* `tools/check.sh` 全绿（Lua 语法 / 翻译 / 声音范围 / glb / 图片 30 / 声音 9 / **Lua 集成测试 11/11** /
+  游戏自带解析器探针 `readWorkshopTxt=true`、`validatePreviewImage=OK`）。
+
+### 经验
+
+* **"改形状"和"换几何"是两件事**：程序化重塑现成网格能改比例，改不了解剖结构；
+  当用户说"不像"时，正确反应是去找**真正的几何来源**（优先 CC0/Public Domain），而不是继续调参。
+* **换几何前先想清楚哪些东西不能动**：PZ 动物模组的骨架+剪辑+附件骨骼是外部契约，
+  所以只能把外部网格"翻译"进现有绑定空间；这也让 CC0 模型的骨架/动画可以完全不用。
+* **"混合权重"的数学不能想当然**：`Σw·M_b` 与 `Σw·M_b⁻¹` 不可交换 —— 传递网格必须
+  **逆蒙皮烘焙**（先定目标形状，再解绑定坐标），否则表面会碎。
+* **平滑权重有代价**：网格邻接平滑跨肢体扩散，会在动画里撕开腿/尾巴；宁可保留作者的权重。
+* 授权链要一次写全：**原件 + 直链 + 授权 + sha256 + "用了什么/没用它的什么"** 都进仓库与 CREDITS。
+
+可复用的技术总结见 `docs/pz-cc0-mesh-retarget.md`。
+
+---
+
+## 2026-10-03（续二）· 找工具：这条链路上到底该用什么（而不是继续手搓）
+
+用户要求"寻找对应的开发工具"。先把本机摸清（`scripts/pz_dev_tool_probe.sh` 固化下来）：
+
+* **本机除了 ffmpeg / lame / node 之外，3D 相关工具一个都没有**：无 Blender、assimp、FBX2glTF、
+  gltf-transform、gltfpack、gltf-validator、meshlab、xatlas、sox、ImageMagick；
+  仓库用的独立 Python 运行时只有 numpy 2.3.5 + Pillow 12.3.0（无 scipy/trimesh/pygltflib）。
+  这解释了为什么这轮只能手搓 `glb_util.py` / `render_glb.py` / `validate_glb.py`。
+
+**最大的发现是"不用装"：游戏自带一整套开发工具**，而且正好覆盖我们两次说"必须进游戏确认"的地方：
+
+| 游戏自带（Dev 标签页） | 证据（零售版 `media/lua`） | 对我们意味着什么 |
+| --- | --- | --- |
+| **Animation Viewer**（带 **Animal Model** 下拉） | `DebugMenu/ISDebugMenu.lua:38` → `showAnimationViewer`；`AnimationClipViewer.lua:446` 用 `getAllAnimalsDefinitions()`，`:575` 按动物定义的 `bodyModel` 载入模型，`:577` 用 `getAnimationViewerState():fromLua1("getClipNames", …)` 列剪辑；`:452` 默认动画集 `animal-editor` | 可以**在游戏里**选中我们的羊驼、逐条播 24 个 `Rac_*` 剪辑、逐帧/旋转/看关键帧 —— 这是 `render_glb.py` 的权威替代 |
+| **Attachment Editor** | `ISDebugMenu.lua:39` → `showAttachmentEditor`；`DebugUIs/AttachmentEditorUI.lua` | 正是 `models_alpaca.txt` 里帽子/驮袋 `offset/rotate/scale` 该用的编辑器 |
+| Anim Debug Monitor / Extended Anims List / Animation Text | `ISDebugMenu.lua:36`、`DebugContextMenu.lua:94,105` | 查"动画状态机为什么没切"、确认剪辑名是否被引擎识别 |
+| Texture/Object Viewer、Lua Debugger、Watch Window、Lua File Browser、Sprite Model Editor、动画录制器 | `DebugUIs/{TextureViewer,ObjectViewer,LuaDebugger,WatchWindow,LuaFileBrowser,SpriteModelEditor}.lua`、`ISEquippedItem.lua:460` | 贴图加载、Lua 断点、变量监视、动画录制 |
+| 入口 | Steam 启动选项 `-debug`（jar 里 6 个类含该字面量）+ 游戏内**右键装备物品 → Debug Menu**（`ISEquippedItem.lua:452`） | 一条命令 + 两次点击 |
+
+并发现两个入口是 **Java 暴露的全局函数**（`zombie/Lua/LuaManager$GlobalObject`）：
+`showAnimationViewer()` / `showAttachmentEditor()`，可直接在调试控制台调用。
+
+诚实标注：我扫了 jar 里 23829 个 class，**`AnimationClipViewer.lua` / `AttachmentEditorUI.lua` 没有被任何
+Java 类引用** ⇒ 它们的 Java 侧接线很可能只在 TIS 内部构建里；但两个 `show*` 入口确实在零售版、
+调试菜单里也确实挂了它们，所以正常路径可用（万一点了没反应，就是内部构建差异）。
+
+外部工具链则逐条**核实了包是否存在与授权**（GitHub API / PyPI 元数据 / brew info，全部实测，不是凭印象）：
+
+* 有：`brew install --cask blender`（GPL-2.0+，≈1GB）、`brew install assimp`、`brew install imagemagick`、
+  `brew install sox`、`brew install --cask meshlab`、`npm i -g @gltf-transform/cli`（4.5.1, MIT）、
+  `npm i -g gltf-validator`（Apache-2.0）、`npm i -g fbx2gltf`、`pip install pygltflib/trimesh/xatlas/noise/soundfile`
+* 没有 brew 包（只能走上游 releases）：`gltfpack`（meshoptimizer，MIT）
+* FMOD Studio：官方免费档，但**本项目用不上**——Companion Dogs 用"散装 ogg + sounds_*.txt"，不需要音库
+
+结论写进 `docs/pz-dev-tooling.md`（含"哪个手搓脚本可以被替代、哪个必须保留"：
+`build_alpaca_from_cc0.py` 的骨骼对应/Umeyama/逆蒙皮烘焙没有现成工具可替；
+`validate_glb.py` 查的是"这个模组能不能被 Companion Dogs 用"，glTF-Validator 不查这些；
+`render_glb.py` 保留作无游戏时的回归检查）。探针脚本 `scripts/pz_dev_tool_probe.sh` 可随时重跑。
+
+补充（社区工具，GitHub API 实测星数/授权/最后提交，不是凭印象）：
+
+* [LazySpongie/Project-Zomboid-GLTF-Export-Preset](https://github.com/LazySpongie/Project-Zomboid-GLTF-Export-Preset)
+  —— Blender 的 **PZ 专用 glTF 导出预设**，README 明确提醒"导出动画默认关闭"。以后走 Blender 就该先抄它的导出参数。
+* [ssjshields/pz-fbx-to-glb](https://github.com/ssjshields/pz-fbx-to-glb) —— FBX→GLB 便携 CLI，
+  强调 "correct scale, UV safety, ASSIMP compatibility"，依赖 Blender 4.2 LTS，不支持带关键帧的 FBX。
+* [AlexVDefi/rcpz-tools](https://github.com/AlexVDefi/rcpz-tools)（MIT）—— **PZ Icon Maker**（物品模型→
+  游戏等距视角 `Item_*.png`，带无头 CLI）与 **PZ Survivor Studio**（播动画、导静帧/精灵表/GIF）；
+  只有 Windows x64 预编译包（我们是 macOS，只能自行编译）。
+* [PZ-Wiki-Modding/pz-animsets-parser](https://github.com/PZ-Wiki-Modding/pz-animsets-parser) —— 解析 `AnimSets`。
+* [Konijima/project-zomboid-studio](https://github.com/Konijima/project-zomboid-studio)（Apache-2.0，41★，
+  最后提交 2023-05）—— B41 时代的 Lua 工程管理，B42 目录/翻译结构已变，仅作参考。
+* [PeterHammerman/PZ-modding-tools](https://github.com/PeterHammerman/PZ-modding-tools)（服装脚本生成器，已停更）、
+  [pzstorm/zomboid-plugin-loader](https://github.com/pzstorm/zomboid-plugin-loader)（GPL-3.0，Java 插件加载器，
+  与 ZombieBuddy 同类）。
+
+**结论**：搜索 `zomboid blender` / `zomboid animset` / `zomboid model exporter` / `project zomboid glb`
+等查询后可以确认 —— **动物 rig 的"骨骼对应 + 蒙皮传递"这一层社区没有现成工具**
+（命中的都是导出预设、格式转换、图标渲染、解析器），所以 `build_alpaca_from_cc0.py` 那套必须自研；
+但**验证**有游戏自带的 Animation Viewer / Attachment Editor，**格式与导出**有社区预设，**图标渲染**有 rcpz-tools。
+工具的完整清单、授权与安装命令，以及"哪个手搓脚本可以被替代/必须保留"，都写在 `docs/pz-dev-tooling.md`。
+
+子代理补充（三条我单独核实过）：**Blender 的 `.x` 插件确实存在且能用** ——
+[DirectX X Format (.x)](https://extensions.blender.org/add-ons/io-directx-x/)（源码
+[SaintBaron/io_directx_x](https://github.com/SaintBaron/io_directx_x)，GPL-3.0，6★）纯 Python、可 `blender -b --python`；
+再加上 [PZ Community Rig](https://github.com/Paddlefruit/ProjectZomboid_CommunityRig)（GPL-3.0，**32★，pushed 2026-10-02 仍活跃**）、
+[ExpressionRig](https://github.com/nonameservices83/ExpressionRig)（CC0-1.0）、
+[pz-character-blender](https://github.com/DevelopmentStatus/pz-character-blender)（GPL-3.0），
+本机 Blender cask 版本实测 5.2.2 ⇒ **"在 macOS 上改 base 的 `.x` 骨架/动画"这条路是通的**（以前基本要 Windows + 3ds Max）。
+
+两个"找不到工具"的结论也进文档：
+* **四足跨拓扑蒙皮迁移没有现成工具**：Blender Data Transfer 修改器只有空间邻近映射（表达不了我们那张
+  46↔55 语义对应表）、Simple-Retarget/Rokoko/Auto-Rig Pro 都是人形、`@three-ws/retarget` 明确拒绝非人形、
+  Unity Humanoid 只收两足且 Generic 完全不重定向 ⇒ 自研的 Umeyama + 仿射传递 + 逆蒙皮烘焙是**正解而非妥协**；
+* **工坊上传绕不过游戏内向导**：steamcmd 没有提交 UGC 的子命令、ISteamUGC 需要 app 所有者权限、
+  ZBetterWorkshopUpload(MIT) 也只是向导内的增强 ⇒ 本仓库 `bin2_workshop_upload_fix` 的定位（校验到提交前一步）是最优解。
+
+还在文档里补了两条**授权提醒**（实测）：`Project-Zomboid-GLTF-Export-Preset`、`pz-fbx-to-glb`、
+`pz-animsets-parser` 三个仓库**都没有 LICENSE**（默认保留所有权利）⇒ 只当参考、不要并入发布；
+要宽松授权就用 `io_directx_x`(GPL-3.0) / `Community Rig`(GPL-3.0，仅作工具) / `ExpressionRig`(CC0-1.0) / `rcpz-tools`(MIT)。
+并确认 base 手册里的 `_dogrig/forge/_paw_band.py` 社区拿不到（工坊包内无任何 `.py`、GitHub 搜不到）
+⇒ 本模组没做 `bandSkin` 是"社区没有这套工具"，不是漏做。
+
+---
+
+## 2026-10-03（续三）· 帮用户装 ViewpointMac41Patch（工坊 3812168749）：Instalar.command 没生成 Jogar.command
+
+用户报"按 README_EN.txt 执行，没有生成游戏启动文件"。定位是**安装器主动拒绝**，而且一次只报第一个错 ⇒
+必须逐个把前置条件跑穿。所有结论都是本机命令的原始输出，不是推测。
+
+**现象**：`~/Library/Application Support/ViewpointMac41/` 根本不存在（不只是没有 `Jogar.command`），
+说明 `prepare()` 在 `Files.createDirectories` 之前就抛异常了。复现（可只读重跑）：
+
+```bash
+BUNDLE="$HOME/Library/Application Support/Steam/steamapps/workshop/content/108600/3812168749/mods/ViewpointMac41Patch/common/tools"
+JAVA="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/PlugIns/jre-aarch64/Contents/Home/bin/java"
+"$JAVA" -jar "$BUNDLE/installer/Installer.jar" --bundle "$BUNDLE" --check
+```
+
+**三个真实原因**（全部来自 `installer/Installer.jar` 的 `Installer.class`，源码就在 `common/tools/source/Installer.java`）：
+
+1. **源 app 的 `projectzomboid.jar` 被改过**：`validateApp()` 先比对 `pins.properties` 的
+   `game.sha256=e1a69eb7…`，实际是 `aeefef2e…`。原因不是 Steam 更新，而是**本仓库自己的工具**——
+   `Contents/Java/projectzomboid.jar.pzfix.bak` + `projectzomboid.jar.pzfix.json`
+   （`{"member":"zombie/core/znet/SteamWorkshopItem.class"}`，2026-10-03 09:17，来自 `bin2_workshop_upload_fix`）。
+   关键运气：`.pzfix.bak` 的 sha256 **恰好等于 pin 值**（`shasum -a 256` 实测），即备份就是 42.21.0 原版引擎。
+2. **`Contents/Java` 里有 6 个"多余 jar"**：`validateApp()` 的 `Files.walk` 会拒绝引擎以外的任何 `.jar`——
+   实测命中 `ZombieBuddy.jar`（ZB 官网 macOS 手册要求放这里）和
+   `Contents/Java/steamapps/workshop/content/108600/{3800671550 ShadowZ, 3809995878, 3809991837, 3619862853}/…`（2.6 GB 副本）。
+3. **安装器要求游戏未运行**：`noGameRunning()` 抓到 `PID 21193 … JavaAppLauncher -javaagent:ZombieBuddy.jar`。
+
+**做法（不动主安装，符合"能不动游戏文件就不动"）**：造一份干净源，用安装器自带的 `--app` 入口指过去：
+
+```bash
+SRC="$HOME/Library/Application Support/ViewpointMac41-src/Project Zomboid.app"
+cp -cR "<原 app>" "$SRC"                                                   # APFS clone，19.7 s，几乎不占空间
+cp "<原 app>/Contents/Java/projectzomboid.jar.pzfix.bak" "$SRC/Contents/Java/projectzomboid.jar"
+rm -f  "$SRC/Contents/Java/ZombieBuddy.jar"; rm -rf "$SRC/Contents/Java/steamapps"
+VIEWPOINT_MAC41_SOURCE_APP="$SRC" "$BUNDLE/Instalar.command" --without-pack
+```
+
+主安装的 `projectzomboid.jar`（pzfix 版）、`.pzfix.bak`、`ZombieBuddy.jar`、`steamapps` 事后逐一核对**原样保留**。
+
+**第四个坑：可选的模型包已不是合格版**。`--check` 过了 app 和 Viewpoint/ZombieBuddy 清单后，卡在
+`PZVoxelStudioViewpoint`（工坊 3810302175）：对照 `installer/PZVoxelStudioViewpoint.tsv`（37 835 条）
+实测 **10 缺 / 9 大小不符 / 38 多出**（如 `package-15.properties` 期望 127 402 实际 128 194）。
+README 的 "IF SETUP STOPS" 早就写了这种情形（"依赖更新即使版本号不变也需要新的合格包"），
+全盘搜索确认本机**只有这一份**包（没有旧变体可回退）⇒ 走安装器自带的 `--without-pack`（README 里该包标注为 Optional）。
+
+**结果**：`~/Library/Application Support/ViewpointMac41/versions/0.1.0-alpha1-currentpack-private1/Jogar.command`
+（+`Reverter.command`）已生成，`--verify --ready`（= Jogar.command 启动前那一步）输出
+`PASS: hashes instalados, ordem ponte → Buddy e isolamento`。隔离副本 `installation.properties` 记录
+`main.install.modified=false` / `saves.copied=false` / `source.app=…/ViewpointMac41-src/…`。
+
+**经验**：
+
+* **"按说明执行却没产物"先看产物目录是否存在**：不存在 ⇒ 失败发生在写盘之前，别去怀疑"启动脚本没执行权限"。
+* **一次只报首个错误的安装器要"剥洋葱"**：`--check` 对着**副本**跑，改一处、再跑一遍，比读代码猜快得多。
+* **自家工具会污染别人的前置条件**：`pzfix` 的整包重写让 Viewpoint 的 `game.sha256` 校验必然失败；
+  以后凡是"要求原版二进制"的第三方补丁，都用 `--app` 指向干净副本，而不是把主安装还原掉。
+* **APFS clone 让"整包复制"几乎免费**：13 GB app 用 `cp -cR` 19.7 s 完成，`df` 前后 `/` 用量都是 13 Gi。
+* 隔离实例给 ZB 用的是 `frontend=console`（`doc/CommandLine.md:86`：console = stdin/stdout headless），
+  所以 `Jogar.command` **必须在 Terminal 里跑**才能完成 JAR 审批，不能无 TTY 后台拉起。
+
+---
+
+## 2026-10-03（续四）· 首次实跑：OutOfMemoryError 与那条假警报
+
+用户启动隔离实例后贴回一堆 `OutOfMemoryError` + `java.lang.instrument ASSERTION FAILED`。查隔离副本自己的日志
+（`<dest>/userdata/Zomboid/console.txt`，不是主 profile 的）后，结论是**两个独立问题，补丁本身没问题**。
+
+**问题 1：堆只有 3 GB，而这次跑的是 198 个模组的多人服务器**。
+
+* 日志第 15 行就是答案：`JVM (free: 428 Mb, max: 3072 Mb, total available: 512 Mb)`。
+* 198 个模组不是 `default.txt`（那里只有 Buddy/Viewpoint/patch 三个）来的，而是**服务器下发的**
+  —— `ConnectToServerState: WorkshopConfirm GetItemState()=Subscribed|Installed ID=…` 出现 2 628 次，
+  存档目录是 `Saves/Multiplayer/pt-99.mutong1.com_21012_…`。README 明确写 MP 未测试。
+* 崩溃点是 `IngameState.enter` → `LuaEventManager.triggerEvent`（刚进世界时）。那串
+  `can't create name string at JPLISAgent.c line: 838` 是 **libinstrument 在 retransform 时分配不出内存**的连带现象，
+  不是另一个 bug。
+* **关键更正**：主安装的 Steam 启动选项 `-Xmx6g -Xms2g` **在 macOS 上是无效的**——主 profile 日志同样写着
+  `max: 3072 Mb`（那串参数只是传给了 JavaAppLauncher 当 app 参数）。macOS 上堆只能来自 `Contents/Info.plist`
+  的 `JVMOptions`，而隔离实例直接跑 JavaAppLauncher，所以它一直是 3 GB。
+* 修法：把隔离副本 `Info.plist` 的 `-Xmx3072m` 改成 `-Xmx8192m`（本机 M4/32 GB），
+  **同时**把干净源副本的 plist 一起改（下次重装继承），因为 `verifyInstalled()` 会校验 `installation.properties`
+  里的 `plist.sha256` —— 不同步更新，`Jogar.command` 的 `--verify --ready` 会直接拒绝启动。
+  重算后 `--verify`（不带 `--ready`，可绕过"游戏运行中"这道门）输出 PASS。
+  实测生效：新会话第 15 行变成 `max: 8192 Mb`，`OutOfMemory` 计数 0。
+
+**问题 2：`[ViewpointMac41Patch] Setup required: run Instalar.command…` 是作者包的假警报**。
+
+补丁自己的 Lua（`common/media/lua/client/ViewpointMac41.lua:7`）读 `getFileReader("viewpoint-mac41-installed.txt", false)`，
+而安装器把它写在 `Zomboid/viewpoint-mac41-installed.txt`（`Installer.java:219` 的 `z.resolve(...)`），
+**差一层 `Lua/`**。游戏自己的字节码说得很清楚：
+
+```
+javap -p -c zombie/Lua/LuaManager$GlobalObject.class
+  public static java.io.BufferedReader getFileReader(java.lang.String, boolean)
+     9: invokestatic  // Method zombie/Lua/LuaManager.getLuaCacheDir:()Ljava/lang/String;
+    12: getstatic     // Field java/io/File.separator
+    16: invokedynamic // makeConcatWithConstants:(String,String,String)
+```
+
+`LuaManager.getLuaCacheDir()` = `ZomboidFileSystem.getCacheDir() + sep + "Lua"`，实测两个 profile 的
+`Zomboid/Lua/` 里全是模组写出来的配置（`layout.ini`、`alife_menu_prefs.ini`、`MinidoracatMiniMap/` …）。
+把 marker 复制一份到 `Zomboid/Lua/` 即可（纯提示信息，Lua 从不加载 JAR）。
+
+**真正该看的证据**（桥是好的）：`[PZMac41Bridge] macGlCore: OpenGL 4.1 Metal - 91.7, GLSL 4.10;
+core bridge on (63 implemented callbacks, forwardCompatible=true…)` + `[Viewpoint] loaded` /
+`game build: Build 42.21.0, as pinned` / `Scanned 654 classes in package viewpoint`。
+即 macOS 上那个"只有 GL 2.1 兼容上下文"的老结论被这个桥改成了 **GL 4.1 core**。
+
+**经验**：
+
+* 用户贴的报错要**回到那一份**日志里查（隔离副本有独立 profile），别在主 profile 里找。
+* **包装脚本里的 `-Xmx` 未必生效**：macOS 只看 `Info.plist`；改完 plist 必须同步 `installation.properties` 的哈希，
+  否则被安装器自己的完整性校验挡住——这类"改配置 vs 保校验"的取舍要先想清楚再动手。
+* `java.lang.instrument ASSERTION` 是**症状不是病因**：先看 `max:` 那一行。
+* 校验路径要用游戏自己的代码证明（`javap` 看 `getLuaCacheDir`），比"我觉得应该是 Lua 目录"可靠。
+
+---
+
+## 2026-10-03（续五）· 8G 之后仍崩：桥缺 GL 4.3 顶点属性绑定族，Viewpoint 一进世界就 JVM abort
+
+堆修好后用户再跑，进世界首次绘制直接 `FATAL ERROR in native method … The JVM will abort execution.`
+落点 `GL43C.glVertexAttribFormat` ← `viewpoint.render.MeshArena.recordAttributes:252`。
+**这不是内存/MP/缺包问题**，是 `pz-mac41-bridge.jar` 的 GL 4.3 模拟覆盖不全。完整可粘贴的作者报告：
+[`viewpoint-mac41-bridge-gap-report.md`](viewpoint-mac41-bridge-gap-report.md)。
+
+证据链（四条，全部可复现）：
+
+1. **abort 文案来自 LWJGL 自己的 native**：`unzip -p projectzomboid.jar macos/arm64/org/lwjgl/liblwjgl.dylib |
+   grep -ao "No context is current…"` 命中；macOS 驱动自述 `OpenGL 4.1 Metal - 91.7` ⇒ `GL43C` 那个符号
+   根本解析不到，函数地址 0，LWJGL 直接 abort 整个 JVM（不是"没进世界"这种软失败）。
+2. **Viewpoint 是无门控调用**：`javap -c viewpoint/render/MeshArena.class` 的 `recordAttributes()` 是
+   `glEnableVertexAttribArray` → `GL43.glVertexAttribFormat(6/7/8,…)` → `GL43.glVertexAttribBinding` →
+   `GL43.glVertexBindingDivisor` 的直线序列，`MeshArena` 常量池里**没有任何 `GLCapabilities` 字段引用**；
+   调用者 `Meshes.init()` 也没有门控。
+3. **桥没注册这几个 hook**：桥按**函数名**注册回调（`CoreGl.registerHooks()` / `hook(String, CallbackI)`，
+   用 `org.lwjgl.system.libffi` 造 native 可调 stub + 包装 `FunctionProvider`）。
+   `javap -v pzmac41/CoreGl.class` 里 GL 名字共 172 个，**不含** `glVertexAttribFormat/glVertexAttribBinding/
+   glVertexBindingDivisor/glBindVertexBuffer`；这几个名字只在 `capability-slots.properties`（2234 条全量
+   名→槽位表）里出现，没有对应实现。桥引用的 LWJGL 类最高只到 `GL41C`。
+4. **这不是唯一缺口**：Viewpoint 引用 32 个 GL4.2+ 函数，桥只覆盖 3 个（`glTexStorage2D/glTexStorage3D/
+   glClearTexImage`）。其余子系统大多有 `GLCapabilities` 门控（`IrisPacks` 读 OpenGL40…46、`GlDebug` 读 OpenGL43），
+   所以 shader/贴图/模型阶段能过；`MeshArena` 恰好没门控 ⇒ 它是第一个"无保护"的 4.3 调用，直接把 JVM 打死。
+
+顺带确认了作者 README 的自相矛盾：README 说 M1 上"进世界 + 第一人称渲染"测过，但**这份 pin 死的桥**
+（`85c45fd3…`）在 `MeshArena.init` 必崩 ⇒ 要么作者测的是另一份桥 build，要么测试根本没到首次世界绘制。
+
+**经验**：
+
+* **平台 API 缺口的"硬崩"要分清是能力位还是函数指针**：LWJGL 那句 `No context is current or a function that
+  is not available…` 是**空函数指针**的固定文案，不一定是"上下文没绑定"——先看栈顶落在哪个 `GLxxC` 类。
+* **逆向闭源桥要抓"注册名单"而不是"调用点"**：`javap -v` 取常量池里的 `gl*` 名字，就能拿到它的 hook 全集；
+  再和 mod 侧的 `// org/lwjgl/opengl/GL4x.<fn>` 引用做差集，缺口一目了然（比逐个猜快得多）。
+* **解释器差异不要用 `strings`**：macOS 的 `strings` 会把 class 文件当 fat binary 报错，取常量池用 `javap -v`。
+* **有门控/无门控是判断"谁该修"的关键**：同一个 GL 4.3 函数，`IrisPacks` 那种有 `GLCapabilities` 门控的属于
+  "降级路径"，`MeshArena` 这种没有门控的属于"模块 bug 或桥必修"，报告里要分开写。
+
+---
+
+## 2026-10-03（续六）· 推翻并修正"桥缺 GL 4.3"的结论：真正的病是**垫片层门控反相**
+
+用户问"这个模组修复的思路方案是什么"。为了给出**已证**而不是猜的方案，我派了 4 个子代理分别挖：
+桥内部（CoreGl/Bridge/CapabilitySlots）、LWJGL 地址表机制 + ZombieBuddy 补丁作用域、Viewpoint 的 GL4.3 用法、
+作者/上游/生态现状。**第一个重大收获是推翻了本仓库昨天自己的结论。**
+
+**更正**：昨天 `viewpoint-mac41-bridge-gap-report.md` 的字节码证据取自**上游** `Viewpoint.jar`
+（`94fedda302ab6c17…`，2 068 978 B，工坊 3809306528），但游戏实际加载的是**补丁 payload** 的
+`Viewpoint.jar`（`9d8d4890a2657cc1…`，2 149 583 B）：后者多出 30 个 `viewpoint.mac41.*` 类，是作者自写的
+**macOS 兼容层，已覆盖全部 32 个 GL4.2+ 入口**。实测两个 jar 都在本机，哈希/大小如上。
+
+**真正的根因链**（安装实例 jar 反汇编）：
+
+```
+MeshArena.recordAttributes → viewpoint/mac41/Draws41.glVertexAttribFormat
+Draws41.glVertexAttribFormat: nativeVertexPath() ? GL43.glVertexAttribFormat : <垫片>
+Mac41.nativeVertexPath():     if (!active()) return true;   // "没有兼容层 ⇒ 假定原生 4.3 可用"
+Mac41.active():               MAC && nativeCapabilities().OpenGL41 && (PROFILE_MASK & 1)
+Mac41$BridgeAccess:           Class.forName("pzmac41.Bridge").getMethod("nativeCapabilities"/"active"/"onDestroy")
+```
+
+桥合成出来的 caps 只标到 **3.3**（日志 `core bridge on (… OpenGL33 true …)`）⇒ `active()==false`
+⇒ `nativeVertexPath()` 短路成 true ⇒ 垫片被自己绕过 ⇒ 调原生 `GL43.glVertexAttribFormat`。
+而 Apple 驱动从不导出这一族（子代理用 `dlopen`+`dlsym` 实测：5 个顶点格式函数全 NULL，
+`glVertexAttribPointer/Divisor/IPointer` 才是 NON-NULL）⇒ LWJGL 地址表里该槽位是 0 ⇒ 空地址桩 abort。
+**所以"桥缺 4.3"是事实，但不是本次崩溃的必要条件**；作者的垫片本来是能顶上的。
+
+**修法（已做原型，离线 23/23 通过）** —— 自己的 javaagent，类加载期**常量池级 Methodref 重定向**
+（只改 `class_index`，方法体一个字节不动；不需要 ASM/libffi）：
+
+1. 主修：`viewpoint/mac41/Mac41.active()Z` → 我们实现（`MAC && (caps.OpenGL32|33|40..45)`，
+   即"桥已给 core ≥3.2 就算兼容层接管"）；`Mac41.nativeVertexPath()Z` → 恒 `false`（macOS 永不假定原生 4.3）。
+   重定向对**所有类**生效（`Textures41` 里 `Mac41.active()` 出现 25 次、`State41` 3 次、`Buffers41` 4 次）。
+2. 安全网：`org/lwjgl/opengl/GL43` 里指向 `GL43C` 的 5 个 GL4.3 顶点格式入口 → 我们的 GL4.1 降级实现
+   （记录 `attrib→(size,type,norm,relOff,binding,divisor)`、`binding→(buffer,offset,stride)`，
+   在 `glBindVertexBuffer` 时重放成 `glVertexAttribPointer` + `glVertexAttribDivisor`，并恢复 `GL_ARRAY_BUFFER`）。
+3. 诊断：第一次碰到垫片类时打一行 `gate:`（`GL.getCapabilities()` / `Bridge.nativeCapabilities().OpenGL41` /
+   `Bridge.active()` / `Bridge.isLegacyMac()` / 我们算出来的 active），把"为什么 active 为假"一次跑清。
+
+**集成约束（作者安装器源码实证）**：`Installer.verifyInstalled()` 第 279 行要求
+**恰好 2 个 `-javaagent`**（桥在前、Buddy 在后）⇒ 不能往 `Info.plist` 加第三条；
+但它同时校验 `plist.sha256` / 三个 payload 哈希 ⇒ 也别改 jar/plist。改用环境变量注入 + 包一层
+`Jogar.shim.command`（`Jogar.command` 不在校验清单里）：
+
+```sh
+export JAVA_TOOL_OPTIONS="-javaagent:/path/pz-mac41-gl43-shim.jar"; exec ./Jogar.command
+```
+
+（本机实测游戏自带 JRE 25 认 `JAVA_TOOL_OPTIONS`/`_JAVA_OPTIONS` 且 premain 会执行；`JavaAppLauncher` 走
+`JNI_CreateJavaVM` 仍需一次实证 —— shim 写 marker 文件就是为此。）
+
+**顺带查清、以后有用的机制**：LWJGL 3.4.1 这个快照的 GL 地址**不在类静态字段**里，而在
+`GLCapabilities.addresses`（2236 槽 `PointerBuffer`），native stub 每次调用按下标读表；`Checks.checkFunctions`
+对非 0 槽位**不覆盖** ⇒ 运行期 `GL.getCapabilities().getAddressBuffer().put(908, addr)` 立即生效
+（桥正是用 `GL.createCapabilities(true, factory)` + `CapabilitySlots.allocate` 预填表的）。
+ZombieBuddy 2.3.2 的补丁筛选=任意类名（黑名单只有 `me.zed_0xff.`），可补 `viewpoint.*`/`pzmac41.*`；
+但它没有第三方 transformer 扩展点，做不了我们这种全局重定向。
+
+**经验**：
+
+* **"对象 jar 是哪一个"必须先哈希确认**：同一台机器上同时存在上游 jar 与补丁 payload jar，用错了就会得到
+  一个"看似严密但对象错了"的结论 —— 昨天的报告就是这么来的。以后凡是"补丁包改了上游某文件"，先列
+  `find … -name X.jar | xargs shasum` 对照 `installer/*.tsv` 与 `installation.properties`。
+* **门控反相是这类"平台桥 + 兼容层"组合的高发缺陷**：`if (!layerActive()) assumeNativeModernGL()` 在
+  Windows 上完全正确、在 macOS 上 100% 崩溃。看门控要**把两条分支都读出来**，别只看"有没有检查"。
+* **字节码没写在源码里也可能已经存在**：这次的降级实现（32 个函数）早就在 jar 里，真正缺的只是"让它生效"。
+  所以我最初准备的"自己写 GL4.3 模拟层"方案，最后退化成"改两行门控 + 一层安全网"。
+* **判断注入方式要先读对方的校验代码**：安装器的 `require(agents.size()==2 …)` 一条就否掉了"加第三条
+  `-javaagent`"这条最自然的路；换环境变量后零文件改动、可完全还原。
+
+方案文档：[`viewpoint-mac41-gl43-fix-plan.md`](viewpoint-mac41-gl43-fix-plan.md)；
+证据附录：[`research/viewpoint-mac41-pad-layer-usage.md`](research/viewpoint-mac41-pad-layer-usage.md)、
+[`research/lwjgl-gl43-address-table-and-zombiebuddy.md`](research/lwjgl-gl43-address-table-and-zombiebuddy.md)、
+[`research/pz-mac41-bridge-hook-seam.md`](research/pz-mac41-bridge-hook-seam.md)、
+[`research/viewpoint-mac41-author-status.md`](research/viewpoint-mac41-author-status.md)。
+**未做**：没在游戏里跑过（需要用户跑一次隔离实例）；门控真值现场值待那一次日志确认。
+
+---
+
+## 2026-10-03（续三）· 第二个造型：脚本生成的**方块羊驼**（独立 addon，GPL-free）
+
+用户问"能借鉴 MC 的羊驼模型么"。结论分三层，先查证再动手：
+
+1. **MC 官方资产不能搬**（有原文）：[Usage Guidelines](https://www.minecraft.net/en-us/usage-guidelines) 把
+   "code, software, graphics, textures, images, **models**, sounds" 明确定义为 "Our assets"，并写明
+   "**Do not redistribute our games or any alterations of our games or game files**"；[EULA](https://www.minecraft.net/en-us/eula)
+   里 Mod 必须是 "original … doesn't contain a substantial part of our copyrightable code or content"。
+   ⇒ 抄 `ModelLlama` 或 `llama.png` 放进工坊物品 = 明确违规。
+2. **自由许可的替代品存在**：[VoxeLibre/VoxeLibre](https://github.com/VoxeLibre/VoxeLibre)（原 MineClone2，GPL-3.0，166★）
+   里有 `mobs_mc_llama.b3d` + 6 张毛色贴图 + 16 张装饰毯，`mods/ENTITIES/mobs_mc/LICENSE-media.md` 写明
+   "All models were done by **22i** and are licensed under **GPLv3**"，并给出 Blender 源文件仓库
+   `22i/minecraft-voxel-blender-models`。可用，但**有 copyleft 义务**（整个分发物要 GPLv3）。
+3. **最干净的路：自己拼盒子**——用户选的就是这条（B 方案）。
+
+### 做法（与写实羊驼完全独立的一条管线）
+
+`bin2_blocky_alpaca/tools/blocky/make_blocky_alpaca.py`：
+
+* 沿用 base 的 Raccoon 骨架 + 写实羊驼那套已验证的骨长/骨旋转调参（动画因此"演得对"）；
+* **腿链与脖子竖直化**（方块造型要竖直方柱）：**只改位移、不改旋转**，避免动到动画的摆动方向；
+* 每个骨段生成一个长方体（正方形横截面），23 个盒子 = 828 顶点 / 276 三角形；
+* **每顶点 100% 绑一根骨头**（刚体硬绑定 = 那种方块观感，也免掉权重撕裂）；
+* **逆蒙皮烘焙** `v_bind = (Σ w·D_b)⁻¹·p_target`（沿用写实羊驼那套数学，静止精确、动画跟随）；
+* 每盒面一个图集格子 + 4 张毛色图集（`spot` 按格子随机加深 = 每只花斑不同）。
+
+### 两个真实踩过的坑（都写进了 `models_blocky.txt` 与 README）
+
+| 症状 | 根因 | 修法 |
+| --- | --- | --- |
+| 静止渲染完美，**一播 walk/eat 方块当场散架** | 查 jar 里的 glb 发现：**每条剪辑对每根骨头都有位移轨道**（55 骨骼 × 23~24 条），运行时位移会**覆盖**静止位移；我只改了静止位移 | 照 base `derive_alpaca.apply_bone_lengths` 的做法，把增量**同步加到该骨骼在全部剪辑里的位移通道**（本次改写 414 条） |
+| 跑步（gallop）时**蹄子飞出去** | 蹄子做成独立盒子并绑在脚骨上，而脚骨在 gallop 里的位移最大 | 取消独立蹄盒，把**腿的最下一段直接染成蹄色**（结构上不可能脱离），并给骨段之间加重叠吸收拉伸 |
+
+第一条是普适结论：**在这套骨架上改任何静止位移，都必须同时改剪辑通道**；
+只改静止位移的模型在静止视图里看不出任何问题 —— 这类 bug 只有播动画才会暴露。
+
+### 交付与校验
+
+* 物品目录 `bin2_blocky_alpaca/`（27 文件 / 3.1MB）：4 种毛色（blockycream/brown/gray/**spot**，后缀 `|bk*`/`|bv*`）、
+  4 张品种头像、图标、海报、256² 工坊预览、workshop/changelog/CREDITS/README；
+* `require=CompanionDogs,CompanionDogsAlpaca`：**不新开物种**，复用写实羊驼的 "alpaca" 物种与 9 条叫声，
+  并把 4 个品种键并进它的 `BREED_KEYS`/`ENGINE_BREEDS` ⇒ 自动继承"羊毛暖意" moodle 与怕热/耐寒应激；
+* 尺寸按"世界高度一致"反推（方块网格静止高 0.5589 vs 写实 0.4523，尺寸×0.809）；
+* 新增方块自己的 Lua 契约测试（fengari）：**9/9 ALL PASS**，含"依赖缺失时安静早退"、"7+4=11 次 registerBreed"、
+  "12 个剥皮键齐全"、"并进写实羊驼的品种集合"、"CD.log 无禁忌词"；
+* `bin2_blocky_alpaca/tools/check.sh` 全绿：Lua 5.1 语法 3/3、翻译（含 Breed.lua 交叉一致性）、glb 结构、
+  图片 7/7、Lua 测试 9/9、游戏探针 `readWorkshopTxt=true` / `validatePreviewImage=OK` / `visibility=2`。
+
+### 经验
+
+* 遇到"能不能借鉴某商业游戏资产"的问题，**先找官方授权原文再谈技术**；能借鉴的是**风格**（不受版权保护），
+  不能借鉴的是**资产文件**。同时把"没用它的资产"写进 CREDITS，避免以后被误判。
+* 自由许可（GPL/CC-BY-SA）的替代品可用但会传染许可，所以**作为造型参考 + 自己生成几何**是最稳的组合。
+* 硬绑定（每顶点单骨骼）让"方块造型"反而比有机网格更好做：不需要权重平滑，也不怕权重撕裂；
+  代价是没有任何软形变 —— 这是风格选择，不是缺陷。
+
+## 2026-10-04 · 全部 workshop.txt 描述追加 ALERT_CONFIG 链接块
+
+### 需求
+
+仓库里每个工坊物品的 `workshop.txt` 描述末尾，统一追加：
+
+```ini
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
+```
+
+> `link3` 是后续追加的（爱发电）。用户最初给的是 `link3 = Ko-Fi = …afdian.com/a/bin_2,`，标签与
+> `link2` 重名；确认后统一改成 **`爱发电`**。
+> `Changelog.txt` 里那 **20 处** ALERT_CONFIG（游戏内真正生效的位置）经用户确认**本次不动**，
+> 仍只有 link1/link2 —— 即游戏内更新弹窗不会出现爱发电链接，只有工坊页面描述里有。
+
+### 范围（17 个文件，一个不漏）
+
+`bin2/`、`bin2/Contents/mods/Respawn2/`、`bin2_b42/`、`bin2_blocky_alpaca/`、`bin2_companion_alpaca/`、
+`bin2_energy_routing_system/`、`bin2_extensive_health_rework/`、`bin2_extensive_power_rework/`、
+`bin2_lingering_voices_cn/`、`bin2_neat_controller_support/`、`bin2_nested_containers_take/`、`bin2_tikitown/`、
+`bin2_title_cover/ZomboidTitleCover/`、`bin2_title_cover/ZomboidTitleCoverWide/`、`bin2_viewpoint/`、
+`bin2_workshop_upload_fix/`、`bin2_XantjiRecycleEverything/`（`find . -name workshop.txt` 的结果就是全集，
+`.dsh/` 与 `node_modules` 下没有同类文件）。
+
+### 做法
+
+* 块统一插在**最后一行 `description=` 之后、`tags=` 之前**，并前置一行空的 `description=` 作为分隔，
+  与仓库既有 `Changelog.txt` 里 ALERT_CONFIG 的排版一致；
+* 脚本化校验（`python3` 遍历全部 `workshop.txt`）：块恰好出现一次、4 行连续、紧邻 `tags=`、无 CRLF、
+  末尾有换行、`tags/title/version/visibility/id` 键一个都没丢；
+* `bin2/Contents/mods/Respawn2/workshop.txt` 里 `descriptipn=` 是拼写错误（游戏解析器只认
+  `description=`），顺手改正为 `description=`，否则这次追加的块会是该物品唯一的描述文本。
+
+### 从游戏字节码里读出来的真实契约（不是猜的）
+
+`zombie.core.znet.SteamWorkshopItem.readWorkshopTxt()`（`javap -p -c` / `javap -v` 反汇编）：
+
+* 以 `#` 或 `//` 开头的行被跳过；`id=` / `description=` / `tags=` / `title=` / `version=` / `visibility=` 逐条匹配；
+* 重复 `description=` 的行为是 **`description += "\n" + 本行去掉前缀后的内容`**（只在本行为空值时不加分隔符），
+  `tags=` 按 `;` split（**没有 trim**），`visibility=` → `getVisibilityInteger()`（public=0 / private=2）；
+* 提交时 `getSubmitDescription()` 还会追加 `Workshop ID:` / `Mod ID:` 行。
+
+**实测反证了"每行描述之间是空行"的猜想**：先用本地脚本按 `\n\n` 拼接算出 `bin2_blocky_alpaca` = 1939 /
+`bin2_workshop_upload_fix` = 1896，游戏探针打印的是 1911 / 1860 —— 差值恰好等于"分隔符个数 × 1"，
+所以分隔符是**单个 `\n`**。改完（含前置空行）后探针回到 1912 / 1861，与按 `\n` 拼接的模型**逐字符吻合**。
+
+### 校验
+
+```
+tools/pz_workshop_probe/run.sh "" ~/Zomboid/Workshop/bin2_blocky_alpaca     -> readWorkshopTxt=true, description=1912 chars
+tools/pz_workshop_probe/run.sh "" ~/Zomboid/Workshop/bin2_workshop_upload_fix -> readWorkshopTxt=true, description=1861 chars
+tools/pz_workshop_probe/run.sh "" ~/Zomboid/Workshop/bin2_viewpoint          -> readWorkshopTxt=true, description=709 chars
+tools/pz_workshop_probe/run.sh "" ~/Zomboid/Workshop/ZomboidTitleCover       -> readWorkshopTxt=true, description=775 chars
+```
+
+四个已软链到 `~/Zomboid/Workshop/` 的物品全部 `readWorkshopTxt=true`，`tags` / `visibility` 解析结果不变
+（探针只调 `n_StartItemUpdate…n_SetItemPreview`，不调 `n_SubmitItemUpdate`，不会真的上传）。
+
+### 经验
+
+* **ALERT_CONFIG 的功能位置是模组内的 `Changelog.txt`，不是 `workshop.txt`。** 三条证据：
+  1. 把 `projectzomboid.jar` 全量解包后 `grep -r ALERT_CONFIG` **零命中**（`zombie/` 包内连 `changelog`
+     字样都没有）⇒ 游戏本体不解析这个块，它是一套**社区模组**提供的功能
+     （参考 [pzwiki: Mod Update and Alert System](https://pzwiki.net/wiki/Mod_Update_and_Alert_System)）；
+  2. 本机唯一消费它的是 `[B42] Mod Manager` 的
+     `media/lua/client/ModManager/Compatibility/ModdingAlertSystem.lua` —— 它
+     `require "chuckleberryFinnModdingAlertSystem"` / `"chuckleberryFinnModding_modChangelog"`，
+     并改写 `changelog_handler.fetchMod`，走 `ModManager/Utils/WorkshopSubmit.lua:371 fetchChangelog`；
+  3. `fetchChangelog` 只调 `getModFileReader(modID, "ChangeLog.md")` / `"ChangeLog.txt"`，**从不读
+     `workshop.txt`**；同一文件里 `parseTxtVersionHeader` 用 `v ~= "ALERT_CONFIG"` 显式跳过配置块、
+     把 `[ ------ ]` 当作块终止符 —— 这就是 `[ ALERT_CONFIG ] … [ ------ ]` 这套写法被识别的机制。
+
+  所以写进 `workshop.txt` 的 `description=` 只体现在 **Steam 工坊页面的描述文本**上，游戏内不解析它；
+  本仓库各模组的 `Changelog.txt` 里该块早已写好，功能上不依赖这次改动（本次纯属补齐工坊页面的展示信息）。
+* `description=` 多行的分隔符是**单个 `\n`**：想要段落之间空一行，就得自己多写一行空的 `description=`。
+  这条以前只在文档里含糊写着"多行累加"，现在有字节码 + 探针实测两个证据。
+* 校验"格式类"改动的最省力路径：**先反汇编目标方法读懂契约 → 本地脚本复刻 → 再用游戏自己的探针核对数字**。
+  三者对上才算做完；只靠肉眼 diff 很容易把分隔符猜错。
+
+### 沉淀：`workshop_create.sop.md`（新建工坊物品 SOP）
+
+把本文的结论与仓库既有经验写成 `workshop_create.sop.md`（根目录，与 `modify.sop.md` / `tranlate.sop.md` 并列），
+覆盖：目录骨架 → `mod.info` → `workshop.txt`（6 个真实键 + description/tags/visibility 细则）→
+`Changelog.txt` / `changelog.txt` 的分工 → `poster.png` / `preview.png` 硬规则 → staging 软链 →
+上传向导与 `id=` 写回 → 常见错误表 → 自检清单 → "自己反汇编复查"的命令。
+
+**这轮又多验证了几条以前只是"听说"的规则**（全部来自字节码）：
+
+| 结论 | 证据 |
+| --- | --- |
+| `workshop.txt` **只有 6 个键**被解析（`description` / `id` / `tags` / `title` / `version` / `visibility`）；`changelog=`、`preview_image=`、`author=` 不存在 | `readWorkshopTxt` 里的 `startsWith` 常量清单 |
+| `visibility` 合法字面量是 `public`/`friendsOnly`/`private`/`unlisted` → 0/1/2/3；**其它值一律 0（静默公开）** | `getVisibilityInteger()` 的 `equals` 链 + `iconst_0` 兜底 |
+| `tags` 白名单共 **31 个**（`media/WorkshopTags.txt` 实读），且按 `;` split、**不 trim** | 游戏目录 `media/WorkshopTags.txt` |
+| `Changelog.txt` 只从 **版本目录 → `common/`** 找，UTF-8；物品根的那份游戏**读不到** | `LuaManager$GlobalObject.getModFileReader`：`getVersionDir()/file`，不存在再 `getCommonDir()/file` |
+| 上传**只打包 `Contents/`** | `getContentFolder()` = `<item>/Contents`；订阅后落盘结构是 `<id>/mods/<ModName>/…` |
+| 软链 staging 安全 | `getStageFolders()` 用 `Files.isDirectory(path, new LinkOption[0])`（不带 `NOFOLLOW_LINKS`）；`validatePrefix()` 不解析软链 ⇒ 探针在软链路径上仍 `readWorkshopTxt=true` |
+| `preview.png`：≤1024000 B、正方形、边长**只能** 256 或 512、必为 PNG | `validatePreviewImage()` 的 `1024000l` / `sipush 256` / `sipush 512` / `PNGDecoder` |
+
+**顺带发现仓库既有文档的硬伤**：`guides/workshop-txt-guide.md` 里 "tags 逗号分隔"、"visibility 支持
+`friends`"、"preview 512x512 或更大"、"有 `changelog=` / `preview_image=` / `author=` 字段"、
+"workshop.txt 放在 `Contents/mods/<Mod_ID>/`" 全部与实际解析行为不符（本次已在 SOP 开头标注以 SOP 为准，
+该 guide 本身待用户决定是否重写）。
+
+* 经验：**"文档写了"不等于"引擎这么干"。** 只要结论能被 `javap` + 探针双重验证，就该以引擎为准并把
+  证据（常量、字符串、命令）抄进 SOP —— 否则下一次还会照着错文档写错文件。
+
+---
+
+## 2026-10-04 · B42 NPC 模组引擎能力取证（只读）
+
+**任务**：回答"B42 从零做 NPC 模组，引擎给什么、不给什么"，结论必须来自 `projectzomboid.jar` 字节码与真实 Lua 环境。
+
+**产物**：`bin2_ProjectALifeNPCs_extensions/docs/b42-npc-engine-capability-audit.md`（含命令 + 原始输出片段，区分【已证实】/【未验证】）。
+
+**核心已证实结论**：
+
+| 结论 | 证据 |
+| --- | --- |
+| `zombie.characters.IsoSurvivor` 存在（3277 B）但**无 update / 无 AI**；构造器仍真活（进 `IsoCell.getSurvivorList()`、触发 `OnCreateSurvivor`、`initWornItems("Human")`） | `javap -p` 只有 3 个方法 + 3 构造器；`grep -c 'void update'` = 0 |
+| `OnNPCSurvivorUpdate` / `OnAIStateEnter` / `OnAIStateExecute` / `OnAIStateExit` 是**死事件**（只在 `LuaEventManager` 注册，全 jar 无触发点） | `grep -ral <event> /tmp/pzall --include='*.class'` 只命中 `zombie/Lua/LuaEventManager`；Lua 侧引用 0 |
+| B42 僵尸 AI 已迁到 ECS：`IsoZombie.update()` → `updateInternal()`；`updateActiveState()` 退化为 3 条指令（只剩 `isZombieInactivityPhase → makeInactive`）；状态容器是 `StateMachineComponent`，`initializeStates()` 注册 118 个状态名 | `javap -p -c zombie/characters/IsoZombie.class` |
+| `setUseless(true)` **是真开关但覆盖面有限**：`useless` 只被 `ZombieIdleState`/`WalkTowardState`/`ZombieGroupManager`/`NetworkZombieVariables` 读取，不阻止 attack/hitreaction/thump | `grep -ral isUseless /tmp/pzall` |
+| **没有 `bDead`**；死亡走继承的 `isDead()` | `grep -nE 'bDead\|setDead' /tmp/isoZombie.txt` = 0 |
+| Lua 暴露是**白名单**（`shouldExpose` = `HashSet.contains`），`exposeAll()` 共 **1001** 类；`AnimationPlayer`/`AdvancedAnimator`/`ActionState`/`StateMachineComponent`/`GlobalModData` 本体**不在**名单 | `javap -p -c LuaManager$Exposer` + `/tmp/exposed.txt` |
+| Lua 动画入口只有 `IsoGameCharacter` 的转发方法（`PlayAnim`/`PlayAnimUnlooped`/`setVariable`）；游戏自身 Lua 就是这么用的 | `media/lua/shared/Vehicles/TimedActions/ISOpenVehicleDoor.lua:21`、`ISRestAction.lua:81` |
+| `IsoZombie.getModData()` **来自 `zombie.iso.IsoObject`**（IsoObject→IsoMovingObject→IsoGameCharacter），`IsoGameCharacter` 自身没有 | `javap -p IsoObject \| grep -i moddata`；`grep -n ModData /tmp/igc.txt` 只有 `*MusicIntensityEventModData` |
+| `IsoCell.getZombieList()` **直接返回引擎内部 ArrayList 本体**（`getfield zombieList; areturn`），不是副本 | `javap -p -c IsoCell.class` |
+| 事件线程语义：`IsMainThread()` = 与 `KahluaThread.debugOwnerThread` 同线程；**非主线程触发的回调被 `QueueEvent` 排队，主线程延后执行** | `javap -c -p LuaEventManager`（`triggerEvent(String)` 的 27→33 分支） |
+| 从 `LuaEventManager` 常量池提取出 **264** 个事件名 + 每个事件的触发类映射 | `javap -p -c -constants` + `grep -ral` |
+| 本机 ZombieBuddy 是 **2.3.4**（skill 里记的 2.3.2 已过时）；提供 `Exposer.exposeClass/exposeMethod`、`@Exposer.LuaClass`、`@LuaMethod(global=true)`、`@Patch`、`ZombieBuddy.Events/Watches` | `unzip -p ZombieBuddy.jar META-INF/MANIFEST.MF`；`javap -p` ZB 类；`doc/LuaAPI.md` |
+
+**另一条经验**：`zombie/ai/states/*` 有 100+ 状态类，但"类存在"≠"Lua 能用"——**暴露白名单**是硬门槛。
+以后判断"Lua 能不能调 X"，先看 `LuaManager$Exposer.exposeAll()` 的类常量池，再看 `IsoObject`/父类继承链
+（`javap` 默认只列**声明**方法，继承来的方法要往父类查，`getModData` 就是这么被漏判的）。
+
+---
+
+## 2026-10-04 · 学习报告：拆解工坊 3803984183「Project A-Life [ALIFE NPCS]」并给出从零复刻路线
+
+**背景**：用户要"学习开发类似模组并生成报告"。标杆选定工坊 `3803984183`
+（Mod ID `ProjectALifeNPCs`，作者 Vice，B42.21，**订阅 121,195**）。
+本机已订阅，源码就位：`~/Library/Application Support/Steam/steamapps/workshop/content/108600/3803984183/`
+—— 248 个 Lua / **146,518 行** / 9.4 MB 纯 Lua + 225 个动画 XML + 455 个服装 + 101 个模型，
+**无任何 .exe/.jar/.dll**（与作者"只有 Lua、纹理、模型、声音和纯文本数据"的声明一致）。
+
+**产出**
+- `bin2_ProjectALifeNPCs_extensions/docs/pz-alife-mod-dev-report.md` —— 主报告（机制拆解 + 引擎边界 + 复刻路线图 + 最小骨架 + 22 条陷阱）
+- `bin2_ProjectALifeNPCs_extensions/docs/b42-npc-engine-capability-audit.md` —— 引擎能力取证（主报告第 5 章的原始证据）
+- `docs/develop_log_2026-10-04.md` —— 当日开发日志
+
+**方法**：6 个并行子代理分工（核心运行时 / AI 决策战斗 / 世界离线层 / 内容管线 / 引擎字节码 / 外部资料），
+主代理只做交叉复核与撰写；每条结论必须带 `文件:行号` 或 `javap` 原始输出。
+
+**核心发现（按价值排序）**
+
+| # | 发现 | 证据 |
+| --- | --- | --- |
+| 1 | **最独特的技术是动画状态机改写**：自建 225 个 `AnimSets/zombie/<原版状态目录>/*.xml` animNode，把玩家动画（`Bob_Walk`/`Bob_Reload_Rifle_Load`）挂到僵尸身体上，靠 `SetVariable("ALifeActor","true")` 做条件、`setBumpType("ALife*")` 触发动作、XML 的 End 事件回写 `BumpAnimFinished` | `common/media/AnimSets/zombie/pathfind/alife_human_walk.xml`、`bumped/alife_reload_rifle.xml`；Lua 侧 `shared/ProjectALife/Shells/ALifeAnimations.lua:1295-1300` |
+| 2 | **作者公开声明只对了一半**：工坊写"每个 A-Life 尸体都有 `ProjectALifeOwned == true`"，实测**尸体上该字段被显式置 nil**（`markCorpse`）；正确判据是 `Owned or Actor` + `GetVariable("ALifeUID")` 兜底 | 全项目 50 处引用，写入点仅 5 个；`shared/ProjectALife/Shells/ALifeShellSimulation.lua:34` |
+| 3 | **ALifeExecutor 不是协程池**（`coroutine` 0 处）：它是"权限仲裁器 + 分帧配额"——子系统配额 `clamp(ceil(#order/5),2,24)`，决策内 **12 ms 硬预算 `break`** | `shared/ProjectALife/Core/ALifeExecutor.lua:2624-2648`；`Decisions/ALifeDecisionLoop.lua:1301,1452-1455` |
+| 4 | **离屏模拟用游戏小时而非真实秒**：小队是挂在 ModData 的纯表，`travelTilesPerHour=150` 沿**预生成**道路图插值；离屏战斗是属性对拼（power 比值决定 1~2 人伤亡）；复仇契约 `dueHours = hours + 48 + roll*25` | `server/ProjectALife/Offline/ALifeSquadLedger.lua`、`ALifeOfflineDirector.lua:63-68,790-822`、`ALifeRevenge.lua:98-112` |
+| 5 | **多人搭原版"僵尸归属"的车**：owner 客户端模拟，服务端 `settleDeaths/auditOwners` + 1 s 镜像广播；反作弊阈值 `unownedTrustRadius=80`/`playerHitMaxRange=80`/`reportRateLimitMs=200`；身份 = `UID + generation` | `shared/ProjectALife/Core/ALifeExecutor.lua:254-400`、`ALifeMirrorTransport.lua:5-8` |
+| 6 | **"卸载 ≠ 死亡"**：`unloadedLoss`（区块卸载）/ `culledLoss`（70 格外引擎剔除）/ 真死亡三态必须分开判，否则 NPC 随机消失、存档翻倍、幽灵残留 | `Core/ALifeWatchdog.lua:534-585`、`Core/ALifeOrphanGuard.lua`、`Core/ALifeLifecycle.lua` |
+| 7 | **内容管线比算法更决定成败**：自研行式文本 `@alife-records 1` + 单一 `Codec.schema` 同时驱动磁盘目录 / Creator 表单 / 分享码（`ALIFEPACK1-<字节>-<校验和>-<base64 LZ>`）；148 阵营 / 780 NPC 档案 / 16,091 条对话 / 175 个语音档案 | `Records/ALifeRecordCodec.lua:15-68`、`Records/ALifeFactionShare.lua:416-426` |
+| 8 | 代码量分布揭示重心：Audio 27,216 行 + Talk 19,469 行 ≈ **40% 是内容不是 AI**（shared 93/63,721、server 109/63,244、client 46/19,553） | `find`/`wc` 实测 |
+| 9 | **`common/` 是引擎承认的版本无关目录**（不是约定）：`PZModFolder` 只有 `common` 与 `version` 两个字段，扫描时先探测 `<mod>/common/mod.info` | `javap -c zombie/ZomboidFileSystem` |
+
+**经验（值得进 SOP 的三条）**
+1. **"作者文档" ≠ "代码契约"**：一次 `grep` 写入点就推翻了工坊描述里的兼容性承诺（发现 #2）。
+   以后凡是要依赖第三方模组公开约定的地方，都回代码验证一次。
+2. **一份数据格式要服务多个消费者**：同一个 `schema` 驱动磁盘目录 + 编辑器表单 + 分享码编解码，
+   比"每种用途各写一套读写"省一个数量级的维护成本。
+3. **性能不是优化出来的，是架构约束出来的**：10 Hz 主节流 + 子系统计数配额 + 决策 12 ms 硬预算 +
+   每 NPC 冷却闸 + 弱键表防实体泄漏 + 三级可观测性（Telemetry/Watchdog/BlackBox）——六件事缺一件，
+   到 100 NPC 规模就会崩。
+
+---
+
+## 2026-10-04 · A-Life 生态与扩展研究（新增 `bin2_ProjectALifeNPCs_extensions/`）
+
+**任务**：①把 A-Life 研究资料集中归档到 `bin2_ProjectALifeNPCs_extensions/`；
+②研究工坊 `3806944055`（Jeem Extension）与 `3806063445`（Aftermath）；
+③头脑风暴与其他模组的联动扩展。
+
+**结果**：两个目标模组**都是 A-Life 扩展**，且本机都已安装 → 直接读源码分析。
+
+| 对象 | 实测 |
+| --- | --- |
+| `3806944055` Project A-Life - Jeem Extension（`ProjectALifeJimmy`，jeemlettuce，0.4.6，10,743 订阅） | **132 个 Lua / 52,591 行**，`common/` 为空（不发 `.alife`）；**136 处 monkey patch** 覆盖 49 个 A-Life 表 / 约 110 个函数；20 个 ModData TAG；134 个沙盒选项；34 个网络命令 |
+| `3806063445` Project A-Life: Aftermath（Shinyu，1.3.1，5,921 订阅，**一物品含 3 个 mod**） | **79 个 `.alife` + 41 个 Lua**，**零美术资产**；用 `getActivatedMods():contains()` + `kind` 门控 + 猴补 `Catalog.load` 做"依赖感知阵营 provider"；三变体数据逐字节相同，只靠 4 个常量 + 一个 Backend 分叉 |
+
+**核心发现（按价值排序）**
+
+| # | 发现 | 证据 |
+| --- | --- | --- |
+| 1 | **A-Life 没有扩展 SDK**：全项目无 `Extensions`/`addProvider`/`contribute`/`Compat.register`。唯一官方注册器是 `ModuleRegistry.register` + 6 个 `Voice*Register` hook；其余是 54 处 `configure(adapters)` 与 14 个手写自装 Adapter | `ALifeModuleRegistry.lua:101`、`ALifeVoiceCatalog.lua:254/297` |
+| 2 | **`Compat.known` 不是注册 API**（34 条硬编码），第三方改不了；它反而规定两条硬红线：**不得在 A-Life 目录树下放 Lua**、**不得 rebind `CreatorScreen`/`EquipEventShield`/`Animations`** | `ALifeModCompat.lua:203-205, 217-234` |
+| 3 | **纯数据扩展被市场验证**：Aftermath 零美术资产、6.4 MB 全文本，实现 900+ NPC 的装备按玩家实际装模组集合动态合并 | `extension-aftermath-analysis.md` |
+| 4 | **`.alife` 两种字段命名都成立**：A-Life 自带用文件侧名（`who.title`），Aftermath 用内存路径名（`general.name`）；且**值可省略**（自带数据 666 处） | `ALifeRecordCodec.lua:23-25,38-39` + 真实数据统计 |
+| 5 | **Jeem 把 A-Life 当"可 patch 的源码"**：136 个挂接点里过半是内部实现细节（含直接复制 A-Life 声望存档 schema、抢 `Relations.adapters.reputation` 单槽、17 个 `ObstacleTraversal` 内部函数） | `extension-jeem-analysis.md` §7/§9 |
+| 6 | **翻译赛道已饱和**：A-Life 生态 31 条里 20+ 条是翻译（中文 ≥6 份） | `alife-ecosystem-map.md` |
+| 7 | 官方兼容清单把 **Bandits2 标为 `unsupported`、BanditsWeekOne 标为 `incompatible`**，而本机同时装着 Bandits2 + 4 个附属 | `ALifeModCompat.lua:64-67` |
+
+**新建资产**
+- `bin2_ProjectALifeNPCs_extensions/`：README + `docs/`（主报告、引擎审计、生态地图、扩展 API、两个标杆分析、头脑风暴、路线图）
+- `bin2_ProjectALifeNPCs_extensions/tools/alife_lint.py`：`.alife` 校验器，**已用真实数据回归** ——
+  核心目录 `files=2 records=928 factions=148 members=780 errors=0`（与已知真值一致）；
+  Aftermath `files=79 records=2809 errors=0`；负例能抓出 `bad_field` 与 `unclosed_record` 并返回 exit 1。
+
+**经验**
+1. **先查"赛道饱和度"再动手**：初始建议是"做中文翻译补丁"，实测生态后发现有 6+ 份中文汉化，直接推翻。
+   任何"看起来没人做"的方向，都要先去工坊把同类物品列出来数一遍。
+2. **"能挂接" ≠ "该挂接"**：Jeem 依赖的 136 个点里过半是内部实现，功能能跑但升级即碎；
+   正确做法是只用 4 个稳定接口 + 一切软挂接（存在性探测 + pcall + 缺失即禁用）。
+3. **写规格文档的人要顺手写校验器**：把实测规格落成 `alife_lint.py` 后，才发现我第一版正则有三个错
+   （空值字段、必填字段用内存路径、core/provider 未区分）——**工具化会立刻暴露规格理解里的漏洞**。
+
+---
+
+## 2026-10-04 · 实现：`ALifeStartWithNPC`（开局自带友好 NPC）
+
+**需求**：扩展 Jeem Extension，让玩家出生时带一名友好 NPC。
+
+**先证再做（三条实测结论决定了架构）**
+
+| 问题 | 结论 | 证据 |
+| --- | --- | --- |
+| Jeem 有现成的"开局给 NPC"入口吗 | **没有**。`OnCreatePlayer` 在 Jeem 出现 0 次；居民 100% 来自 `R.recruit` | 全量 grep |
+| 能直接 `R.recruit` 发居民吗 | **不能凭空造人**，且要求 base/床位容量/`isAlly` 三重门槛；`force=true` 仅 `who.admin` 生效 | `Residents/Server.lua:566-629` |
+| 跟随要自己写行为模块吗 | **不用**：A-Life 有原生 `DecisionLoop.setOrder{kind="follow"}`；自建模块会被 `orders`(priority=10) 抢跑 | `ALifeDecisionLoop.lua:1242`、`ALifeModuleTravel.lua:12` |
+
+**实现（5 个 Lua + 9 个沙盒选项 + EN/CN 翻译 + 海报）**
+
+- 造人链路：`ActorRegistry.create(memory.spawnStance="friendly", persistent=true, admin={persistent=true})`
+  → `SpawnService.request(uid, op, fp, 2500)`（内部同步建实体）→ 失败按 `dormant` 条件回滚。
+- 行为：等 `lifecycle=="active"` → 默认下原生 follow；居民模式则 `BaseAreas.who/basesFor/createBase` +
+  `base.bedsOverride` 绕过床位 + `Residents.recruit(force=true)`，失败自动降级为跟随。
+- 幂等四层：角色 modData 标记 → 角色令牌进 `operationId`（A-Life 自带幂等）→ 存档级
+  `Registry.setWorldValue` → `SpawnService` 的 `actor_not_dormant` 兜底。
+- 时序：不在 `OnCreatePlayer` 直接造人，而是 `OnTick` 轮询 `Runtime.started` + 玩家方块就绪（90s 上限，
+  超时转 `EveryOneMinute` 兜底最多 5 次）。
+
+**踩到/修正的三处**
+1. `Pick` 模块最初误写成 `local Pick = ALifeStartWithNPC`（应为 `require`）——**语法检查抓不出来，靠人工复查抓到**；
+2. `memory.persistent` 只挡 Population 回收，**挡不住 `SpawnService.dehydrate`**，必须补 `memory.admin.persistent`
+   （`ALifeSpawnService.lua:32-36, 308`）；
+3. 沙盒 `Mode` 的文案与代码语义**写反了**（代码 1=跟随、2=居民）——已改正并同步两份翻译。
+
+**新增工具**：`tools/lua_syntax_check.mjs`（本机无 lua 解释器，用仓库自带的 fengari 做纯语法编译检查），
+5 个文件一次通过。
+
+**产出**：`Contents/mods/ALifeStartWithNPC/42.20/`、`docs/start-with-npc-design.md`（含 14 项待执行测试清单）。
+**状态**：源码级验证 + 语法校验 + 海报硬规则校验通过；**尚未进游戏运行**（诚实标注）。
+
+### staging 与工坊校验（同日）
+
+按 `pz-workshop-item-publishing` skill 补齐了物品根所需的三件套并做了软链：
+
+```
+~/Zomboid/Workshop/ALifeStartWithNPC -> <repo>/bin2_ProjectALifeNPCs_extensions
+~/Zomboid/mods/ALifeStartWithNPC      -> <repo>/.../Contents/mods/ALifeStartWithNPC
+```
+
+用游戏自己的解析器跑探针（`bin2_workshop_upload_fix/tools/pz_workshop_probe/run.sh`）实测：
+`readWorkshopTxt=true`、`title` 解析正确、`visibility=2`(private)、
+`tags=[Build 42, QoL, Misc, Multiplayer, WIP]`（全在 `media/WorkshopTags.txt` 白名单内）、
+`contentFolder ... exists=true`、`previewImage exists=true`、**`validatePreviewImage=OK`**、`id=null`（首次上传前不带 id）。
+
+**经验**：
+1. `preview.png` 与 `poster.png` 是**两张不同的图、两套排版**：preview 是物品预览（工坊硬规则 256/512 正方形），
+   poster 是模组列表海报（游戏不校验）。这次分别用 256 与 512 各画一版，而不是缩放同一张。
+2. **物品根只放 `workshop.txt`/`preview.png`/`changelog.txt`/`Contents/`**，研究用的 `docs/`、`tools/` 留在同目录也不会被打包
+   （上传只打包 `Contents/`），所以"研究项目 + 模组"共用一个仓库目录是安全的。
+3. 上传前**一定先跑探针**：它用的是游戏自己的 `readWorkshopTxt` 与 `validatePreviewImage`，
+   比人眼检查 tag 白名单/图片尺寸可靠得多，而且不会真的上传。
+
+---
+
+## 2026-10-04 · 实测 T1/T2 并修复：Kahlua 没有 next()
+
+用户报"T1、T2 有报错"。读 `~/Zomboid/console.txt` 后定位：
+
+**现象**：499 条 `[ALifeStartWithNPC][ERROR] tick failed: Object tried to call nil in tick`，每帧一条。
+
+**堆栈（console.txt 自带 Lua 栈，直接给出行号）**：
+```
+Lua((MOD:A-Life: Start With NPC [Jimmy add-on])).tick(Grant.lua:215)
+Lua((MOD:A-Life: Start With NPC [Jimmy add-on])).Add(Bootstrap.lua:114)
+```
+
+**根因**：`Grant.lua:215` 是 `if next(Grant.pending) == nil then return end`，
+而**游戏的 Kahlua 运行时没有 `next()`**。决定性证据：Jeem Extension 的 `Core.lua:231` 就写着
+`-- Kahlua has no next(): use this for "is this table empty?"`（并提供了 `J.isEmpty`）。
+我的 5 个文件里只有这一处用了 `next`，代价是每帧一次报错、499 行日志。
+
+**修法**：改用显式计数 `Grant.pendingCount`（`pendingAdd`/`pendingRemove`），
+既不用 `next()` 也不靠遍历判空；顺手给 `os.time` 兜底加了 `pcall`。
+
+**预防性复核（Kahlua 的另两个已知坑）**：
+| 坑 | 证据 | 我们的情况 |
+| --- | --- | --- |
+| `table.sort` 不稳定（快排打乱相等项） | Jeem 多处注释 | 未使用 ✅ |
+| `%` 是截断取模而非向下取整 | Jeem 注释 | 未使用 ✅ |
+| `math.pi/cos/sin/sqrt`、`ZombRand` 是否存在 | vanilla/A-Life/Jeem 均大量使用 | 存在 ✅ |
+
+**顺带用日志反证了一个担心**：`mod "ALifeStartWithNPC" overrides media/sandbox-options.txt` 这句
+并不代表"后者覆盖前者"——用户日志里有 **5 个模组**同时提供 `sandbox-options.txt`、**5 个**同时提供
+`translate/cn/sandbox.json`，而 A-Life 一直正常工作、无 `SandboxVars` 索引报错 ⇒ 引擎是**按模组累加合并**。
+
+**版本**：升到 0.1.1（`mod.info` + `Config.VERSION` + `changelog.txt`）。
+**经验**：**语法检查（fengari）抓不到"运行时库缺函数"这类问题**；`console.txt` 自带 `文件:行号` 栈，
+定位速度远快于猜。已知语言子集差异应当固化成清单，写码时先查。
+
+### 追加需求：开局好感度必须是「同盟」（0.1.2）
+
+用户要求"npc 的初始好感度要是同盟"。查证后发现**两套词汇必须分清**：
+
+| 系统 | 档位 | 能否到同盟 |
+| --- | --- | --- |
+| A-Life 关系/声望 | `hostile/careful/neutral/friendly` | ❌ `allied` 被归一化成 `friendly`（`ALifeRelations.lua:22`、`ALifeReputation.lua:131`）；`memory.spawnStance` 白名单也只收 friendly/neutral/careful/hostile，**写 "allied" 会被拒绝并退回按阵营关系算**（可能敌对） |
+| Jeem 声望 `StandingService` | `hostile/careful/neutral/friendly/**allied**`（`Services/Standing.lua:14`，阈值 25/75/150/250） | ✅ 同盟在这里 |
+
+**实现**（`Grant.makeAllied`）：`S.set(key, factionId, S.clamp=400)` 跨过全部阈值 ⇒ 任何默认档位都到 allied；
+再 `S.addGroup(key, groupId, factionId, 400)` 补足组声望；最后调 `J.Standing.apply(key, factionId)`
+（`Features/Standing/Standing.lua:123`）立刻写回 A-Life 声望 —— 于是 A-Life 侧也顶到它的上限 friendly。
+
+**顺带修掉一个联机隐患**：同盟声望让 `R.isAlly` 通过，于是居民收编改成**优先走正规（非 force）路径**，
+联机非管理员玩家也能收编（`force` 只在 `who.admin` 时生效）。
+
+**副作用已写进 tooltip**：Jeem 声望按阵营记录 ⇒ 变成同盟的是整个阵营；可用 `MakeAllied = false` 关闭。
+（A-Life 侧的 `spawnStance` 保持 `"friendly"` 不动——那是它的上限，写 allied 会适得其反。）
+
+### 复测结果：T1 通过；同盟改用官方 debugSet 路径（0.1.3）
+
+`console.txt` 显示 **T1 通过**（两个会话）：`grant #1 → spawned → grant complete: 1/1`，
+并且 A-Life 自己的 `[ALIFE-LIFECYCLE] hydrate` 给出第三方证据：
+`nearest=2 loaded=true inList=true side=sp`（实体离玩家 2 格、区块已加载、在僵尸列表里）。
+修复后**再无任何 `[ALifeStartWithNPC][ERROR]`**（499 条全部来自修复前的会话）。
+附带验证互操作性：玩家用 Jeem 界面手动收编了它（`[ALIFE-JIMMY] residents: sp:0 invited 1 ...`）。
+
+**仍未验证**：T2（日志里两次发放的令牌不同 ⇒ 是两个不同角色，不算 T2）、T1 的跟随部分（老版本没打印）、
+同盟（v0.1.2 才有）、T3~T14。为此 v0.1.3 专门补了三条可观测日志：
+`already granted ... skipping`（T2）、`follow order accepted for <uid>`（T1 跟随）、
+`standing with <faction> is now ALLIED` / `ally step skipped/failed: <原因>`（同盟）。
+
+**同时修掉一个会静默失效的坑**：同盟原先用 `S.set` + `F.apply`，但若 A-Life 声望里那条记录是
+`cause = "provoked"`，`F.apply` 会拒绝覆盖 ⇒ 同盟永远设不上。官方 `Standing.debugSet` 里那句
+`store.players[key][factionId] = nil` 正是为此。现在改为**优先调官方 debugSet**，
+被拒（联机非管理员）时走复刻版退路（含清条目 + 按档位换算点数 + 组声望）。
+
+**经验**：能调官方实现就别自己拼数据 —— 官方实现里往往藏着"你没读到的必要条件"（这次是 provoked 标记）。
+
+### 多人联机报错排查（0.1.4）：报错源是"汉化整合包"，不是本模组
+
+用户报"多人联机模式有报错"。用日志把两件事分开：
+
+**① 本模组在联机下正常** ✅：`coop-console.txt` 显示 2 名玩家各得 1 名 NPC，
+流程完整（`grant requested by IsoPlayer{ID:2}` → `grant #1` → `spawned` → `standing ... ALLIED` →
+`follow order accepted` → `grant complete`），本模组打印的 `spawn failed` **0 次**。
+`console.txt` 里还出现 `this character was already granted earlier; skipping` ⇒ T2 间接验证通过。
+
+**② 真正的报错源**：`no such location "UI_Alife_Animations_20"`（每次 NPC 水合一条 ERROR 栈）。
+堆栈里 `ALifeAnimations.lua` 标注的模组是 **`MOD:Project A-Life [中文汉化]`** —— 该模组（工坊 `3807277264`）
+**自带 233 个 Lua 文件**，且**命中 A-Life `probePaths` 的 4/4 个旧路径**（`Data/`、`Dialogue/`、`Runtime/`、
+`Presentation/`），即 **A-Life 1.3 重构前的整包旧副本**。归因统计：`hydrateShell` 失败 40 次，
+其中经本模组 28 次、**A-Life 自己的生成 12 次** ⇒ A-Life 自己也中招。
+A-Life 的 `ALifeModCompat` 早已把这类模组判为 `incompatible`，并写明后果
+（"a translation should ship only Translate files"、"old copy ... NPCs throw errors and stutter"）。
+**处理**：禁用/退订 `3807277264`；中文可用 `3805566620`（0 个 Lua 文件）。
+
+**③ 顺带排除**：日志开头 `AdvancedAnimator$1.visitFileFailed > NoSuchFileException .../media/actiongroups`
+是引擎对**所有**缺 `media/AnimSets`、`media/actiongroups` 目录的模组的通用噪声 ——
+本仓库自己的 `NestedContainersTake`、`CompanionDogsAlpaca` 各报 8 条，Jeem 与 Aftermath 同样如此。
+
+**0.1.4 的两项防御**：
+1. **开局兼容自检**：直接复用 A-Life 的 `Compat.foreignCopies(activeSet())`，把自带 A-Life Lua 副本的模组
+   点名打进 console.txt（水合失败时再报一次）——用别人的检测器比自己写启发式可靠；
+2. **生成重试节流**：2 秒一次、每玩家最多 5 次（闸门在 `worldReady` 之后，只统计真实尝试），
+   避免数据没就绪时每帧 create/remove 刷日志。
+
+**经验**：**排错第一步永远是"把栈里每一帧标注的模组名读出来"** —— 这次栈里出现的是别人模组的文件，
+一眼就能把自己摘清；同时用"同一错误在 A-Life 自家生成里也出现多少次"做归因统计（12 vs 28），
+就能证明"不是我引入的，只是被我的调用放大了"。
+
+---
+
+## 2026-10-04 · 研究 3808789424：A-Life × 僵尸行为模组 兼容层
+
+**对象**：`ALifeStackCompat` v1.3，226 订阅，**只有 1 个 Lua / 294 行 / 13 KB**，
+`common/mod.info` + `common/media/lua/shared/ALifeStackCompat.lua`（**连版本目录都没有**）。
+
+**它做了什么**：对每个 A-Life 身体只打两个标 ——
+① `setVariable("Bandit", true)` 让 TrippingZombies / Claimable Outposts / PZTheMutants 免费跳过它；
+② `getInventory():setExplored(true)` 关掉原版口袋战利品与 AmmoLootDrop；
+再 wrap 四个目标：The Mutants `ForeignOwnership.isClaimed`、UV Defense `markFeared/canDriveZombie`、
+KillCount `addToKillCount` + `OnZombieDead`、Zombie Dismemberment `ZD_Network.isGrapple`。
+
+**本轮最有价值的三个发现**
+
+| # | 发现 | 证据 |
+| --- | --- | --- |
+| 1 | **`Bandit` 是生态级既成契约**：本机 1,150 个模组里**至少 10 个在读它**，且语义分两类 —— 跳过型（PZTheMutants / InjuredZombiesStumble / SZedPlus / ZoneLootRefill）与**认领型**（Bandits2 本体、BanditsFixPlus、NPCBases、CompanionDogs） | 全量 grep；`BanditUpdate.lua:199`（写入）、`PZM_ForeignOwnership.lua:79`、`CompanionDogs/core/Identity.lua:20` |
+| 2 | **借用标记会反噬**：`Bandit=true` 是 Bandits2 的**所有权标记**。借它让 A-Life NPC 对跳过型模组隐身的同时，也会被 Bandits2 系**当成强盗接管**（`BanditZombie.lua:74` → `GetBrain`）、被 CompanionDogs 判为「友方强盗 NPC」（无 `md.brain` → `return true`）。而 A-Life 官方对 Bandits2 的判定是 `unsupported` | 同上；`extension-stackcompat-analysis.md` §3.2 |
+| 3 | **服务端打标竞态**（作者 v1.1 踩的坑）：专用服务器上 `OnZombieUpdate` 根本没进到 shim —— **118 次 A-Life 生成、打标 0 个**。改成 `OnZombieCreate` 入队 + 每 10 tick 复查（最多 90 次）+ 每 300 tick 全量 sweep；**因为 A-Life 是 `createZombie` 之后才写标记的** | `ALifeStackCompat.lua:32-49, 119-152`；对应 A-Life 侧 `ShellAdapter.lua:82-140` |
+
+**另一条工程教训（v1.2）**：按引用重注册事件处理器（`Events.OnZombieDead.Remove(original)` + `Add(wrapped)`）
+**必须完整镜像原注册条件** —— KillCount 只在非客户端注册，1.1 在多人客户端也注册了包装版，
+导致原函数在它从未创建的表上索引，每次僵尸死亡都报 `KillCountUpdate.lua:149 attempted index of non-table`。
+
+**结论**：
+- 这个 13 KB 的模组就是「兼容层」产品的**完整可抄模板**（`isOurs` 三路回退 → 幂等打标 → 每目标 `wrapXxx()` 返回 `wrapped/absent` → 启动与每 10 分钟报计数）；
+- 它**未覆盖**的正是我们的机会：`Bandit` 标记的认领型反噬、以及单人下 ZD 不生效；
+- 新增工程原则：**借用第三方标记前，必须列出全部读取者并判定「跳过语义 vs 认领语义」，有认领语义就不能无条件借用。**
+
+**产出**：`bin2_ProjectALifeNPCs_extensions/docs/extension-stackcompat-analysis.md`；
+并回填到生态地图（补录 + 检索盲区）、`README`、头脑风暴（新增 C+ 类）、`roadmap`（阶段 2 改为"模板已存在，可直接接手"）。
+方法论补记：`searchtext=Project+A-Life` 会漏掉标题不含 "Project" 的生态模组（本模组就是），
+应改跑 `Project+A-Life`/`A-Life`/`ALife` 三种检索取并集，或用本机 `mod.info` 的 `require/loadModAfter` 反查。
