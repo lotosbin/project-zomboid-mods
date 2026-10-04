@@ -1,0 +1,11 @@
+版本 1.0.0 (2026-10-03)
+- 初始发布：主菜单标题背景替换为程序化生成的末世尸潮封面（21:9）。
+- 做法：覆盖 media/ui/Title.png / Title2.png / Title3.png / Title4.png 四张引擎合成纹理；
+  并在载入与进入主菜单时关闭 "Video Effects"（doVideoEffects），否则
+  media/videos/title_screen_background.bik 会盖住自定义背景。
+- 关键几何（来自引擎字节码，不是猜的）：左右两半底图按 screenHeight/1080 缩放；顶栏条
+  Title3/Title4 实际也按整幅正方形高绘制（56f*scale 算进局部变量后未被读取），因此这两张
+  输出为"仅顶部 56 行不透明、其余透明"的 RGBA，避免在加法混合下变成横贯屏幕的色带。
+- 未产出 Title_lightning*.png 的满幅版本：那 4 张按加法混合绘制，给满幅亮图会撕开画面；
+  而原版 lightningDelta 恒为 0，它们本来就不会被绘制。
+- 已知限制：未在 Linux 实测；未做真实工坊上传验证；美术为程序化生成（非手绘/非图库素材）。

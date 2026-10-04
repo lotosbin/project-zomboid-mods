@@ -1,0 +1,26 @@
+version=1
+title=Zomboid Apocalypse Cover 末世封面 - 主菜单尸潮背景 (16:9, Build 42)
+description=用一张程序化生成的末世尸潮封面替换主菜单标题背景（Build 42）。
+description=
+description=【视觉】写实电影感 + 经典末世配色（深灰 / 土褐 / 血红点缀）+ "英雄居中、尸群围困" 构图 +
+description=做旧破损标题字。渲染分层：夜空与云 -> 废墟天际线（楼顶火点/天线）-> 地平线雾光 ->
+description=地面碎石 -> 三层尸潮剪影 -> 主角与背光 -> 前景道具 -> 标题 -> 胶片颗粒/暗角/半调网点。
+description=
+description=【技术】引擎只有关掉 "Video Effects" 时才会绘制媒体层可覆盖的 media/ui/Title*.png，
+description=否则播放 media/videos/title_screen_background.bik 把背景盖住。本模组在载入/进入主菜单时
+description=把该选项关掉（只在本局内存生效，不写你的 options.ini）。画布 1920x1024（960+960，正好铺满 1920x1080）。
+description=
+description=【互斥】16:9 与 21:9 两套共用同名纹理，同时启用会互相覆盖，已在 mod.info 里声明 incompatible。
+description=
+description=【已知限制】未在 Linux 上实测；未做真实工坊上传验证；标题视频关闭是本模组生效的前提，
+description=如果你在选项里重新打开 "视频背景特效"，封面会被视频盖住。
+description=
+description=源码与完整分析：https://github.com/lotosbin/project-zomboid-mods
+description=
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
+tags=Build 42;Misc;Interface
+visibility=private
