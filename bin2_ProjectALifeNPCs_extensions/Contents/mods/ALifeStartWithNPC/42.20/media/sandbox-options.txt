@@ -1,0 +1,62 @@
+VERSION = 1,
+
+option ALifeStartWithNPC.Enabled = {
+    type = boolean, default = true,
+    page = ALifeStartWithNPC_1General, translation = ALifeStartWithNPC.Enabled,
+    _tooltip = ALifeStartWithNPC.Enabled_tooltip,
+}
+
+option ALifeStartWithNPC.Count = {
+    type = integer, min = 1, max = 5, default = 1,
+    page = ALifeStartWithNPC_1General, translation = ALifeStartWithNPC.Count,
+    _tooltip = ALifeStartWithNPC.Count_tooltip,
+}
+
+option ALifeStartWithNPC.Mode = {
+    type = enum, numValues = 2, default = 1,
+    page = ALifeStartWithNPC_1General, translation = ALifeStartWithNPC.Mode,
+    _tooltip = ALifeStartWithNPC.Mode_tooltip,
+    valueTranslation = ALifeStartWithNPC.Mode,
+}
+
+option ALifeStartWithNPC.MakeAllied = {
+    type = boolean, default = true,
+    page = ALifeStartWithNPC_1General, translation = ALifeStartWithNPC.MakeAllied,
+    _tooltip = ALifeStartWithNPC.MakeAllied_tooltip,
+}
+
+option ALifeStartWithNPC.Distance = {
+    type = integer, min = 1, max = 6, default = 2,
+    page = ALifeStartWithNPC_1General, translation = ALifeStartWithNPC.Distance,
+    _tooltip = ALifeStartWithNPC.Distance_tooltip,
+}
+
+option ALifeStartWithNPC.FactionId = {
+    type = string, default =,
+    page = ALifeStartWithNPC_2Identity, translation = ALifeStartWithNPC.FactionId,
+    _tooltip = ALifeStartWithNPC.FactionId_tooltip,
+}
+
+option ALifeStartWithNPC.ProfileId = {
+    type = string, default =,
+    page = ALifeStartWithNPC_2Identity, translation = ALifeStartWithNPC.ProfileId,
+    _tooltip = ALifeStartWithNPC.ProfileId_tooltip,
+}
+
+option ALifeStartWithNPC.Resident_CreateCamp = {
+    type = boolean, default = true,
+    page = ALifeStartWithNPC_2Identity, translation = ALifeStartWithNPC.Resident_CreateCamp,
+    _tooltip = ALifeStartWithNPC.Resident_CreateCamp_tooltip,
+}
+
+option ALifeStartWithNPC.GrantOnRespawn = {
+    type = boolean, default = true,
+    page = ALifeStartWithNPC_3Behavior, translation = ALifeStartWithNPC.GrantOnRespawn,
+    _tooltip = ALifeStartWithNPC.GrantOnRespawn_tooltip,
+}
+
+option ALifeStartWithNPC.DebugLog = {
+    type = boolean, default = true,
+    page = ALifeStartWithNPC_3Behavior, translation = ALifeStartWithNPC.DebugLog,
+    _tooltip = ALifeStartWithNPC.DebugLog_tooltip,
+}

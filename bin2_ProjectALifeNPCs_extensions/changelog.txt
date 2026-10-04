@@ -1,0 +1,73 @@
+版本 0.1.4 (2026-10-04)
+- 多人联机排查（结论：本模组工作正常，报错来自另一个"汉化"模组）
+  * 实测：coop 会话里 2 名玩家各获得 1 名 NPC，日志齐全（grant #1 → spawned → standing ALLIED →
+    follow order accepted → grant complete），本模组打印的 "spawn failed" 为 0 次
+  * 真正的报错源：已安装的 Project A-Life [中文汉化] (3807277264) 自带 233 个 Lua 文件 ——
+    它是 A-Life 旧版的整包重传（命中 A-Life probePaths 的 4/4 个旧路径 Data/Dialogue/Runtime/Presentation）。
+    引擎每次水合 NPC 都会抛 "no such location "UI_Alife_Animations_20""
+    （ALifeAnimations.presentWeapon → ProfileHydrator.hydrate → hydrateShell）；
+    该异常被 A-Life 内部 pcall 捕获，不致命，但会刷 ERROR 栈。A-Life 自己的生成也中招 12 次。
+    A-Life 的 ALifeModCompat 对这类模组的判定是 incompatible（"a translation should ship only Translate files"）
+  * 处理建议：禁用/退订 3807277264；需要中文可用 3805566620（0 个 Lua 文件）
+  * 另：日志里 AdvancedAnimator$1.visitFileFailed 的 NoSuchFileException 是引擎对所有缺少
+    media/AnimSets 与 media/actiongroups 目录的模组的通用噪声（本仓库的 NestedContainersTake、
+    CompanionDogsAlpaca 同样在报），与本模组无关
+- 新增：开局复用 A-Life 自己的检测器 ProjectALife.Compat.foreignCopies 做兼容自检，
+  把"自带 A-Life Lua 副本"的模组点名打进 console.txt（并在水合失败时再报一次）
+- 新增：生成重试节流（两次尝试至少间隔 2 秒；每玩家每会话最多 5 次），
+  避免"数据没就绪"时每帧 create/remove 并刷日志
+
+版本 0.1.3 (2026-10-04)
+- 同盟实现改为优先调用 Jeem 官方路径 ProjectALifeJimmy.Standing.debugSet(player, factionId, "allied")
+  （它会按档位换算点数，并先清掉 A-Life 声望里那条记录）
+- 修掉一个会静默失效的坑：如果 A-Life 声望里那条记录的 cause 是 "provoked"，F.apply 会拒绝覆盖它，
+  同盟就设不上；官方 debugSet 先 store.players[key][factionId] = nil 正是为此。
+  退路实现已复刻这一步（并在联机非管理员、被 debugSet 拒绝时使用）
+- 补齐可观测性日志，让测试项一眼可验：
+  * 已发放过而跳过 → "this character was already granted earlier; skipping (no duplicate NPC)"（T2）
+  * 存档级标记跳过 → "save-level flag already set and GrantOnRespawn is off; skipping"（T5）
+  * 跟随命令被接受 → "follow order accepted for <uid>"（T1 的跟随部分）
+  * 同盟结果 → "standing with <faction> is now ALLIED" 或 "ally step skipped/failed: <原因>"
+
+版本 0.1.2 (2026-10-04)
+- 新增：开局生成的 NPC 立即与你的声望为「同盟」（allied），可通过沙盒选项 ALifeStartWithNPC.MakeAllied 关闭
+- 实现：Jeem 的声望阶梯 { hostile, careful, neutral, friendly, allied }（Services/Standing.lua:14，
+  阈值 25/75/150/250）——把该 NPC 阵营的点数置为 S.clamp(400) 即跨过全部阈值，任何默认档位都到 allied；
+  同时给该 NPC 所在小队（groupId）补足组点数，并调用 Standing 特性的 F.apply 立刻写回 A-Life 声望
+- 为什么不能直接写 A-Life 的 stance：A-Life 会把 allied 归一化成 friendly（ALifeRelations.lua:22），
+  且 memory.spawnStance 只接受 friendly/neutral/careful/hostile —— 写 "allied" 会被拒绝并退回按阵营关系计算（可能敌对）。
+  所以 A-Life 侧仍用 spawnStance = "friendly"（它的上限），"同盟"由 Jeem 声望表达
+- 居民收编改为优先走正规路径（非 force）：同盟声望满足 R.isAlly 后，联机里非管理员玩家也能收编；
+  仅在正规路径被拒时才退回 force（force 只在 who.admin 时生效）
+- 注意（已写进沙盒 tooltip）：Jeem 声望按阵营记录，所以变成同盟的是整个阵营，而不只是这一名 NPC
+
+版本 0.1.1 (2026-10-04)
+- 修复：每帧报 "[ALifeStartWithNPC][ERROR] tick failed: Object tried to call nil in tick"（console.txt 里刷了 499 条）
+- 根因：Grant.tick 第一句用了 Lua 标准库的 next() 判断表是否为空，但游戏的 Kahlua 运行时没有 next()
+  （Jeem Extension 的 Core.lua:231 专门注释过 "Kahlua has no next()"）；第 215 行因此每帧抛错
+- 修法：改为显式计数 Grant.pendingCount（入队 +1 / 出队 -1），彻底不再依赖 next()，也不再靠遍历判空
+- 同时给 os.time 兜底加了 pcall（不假设 Kahlua 暴露 os.time）
+- 预防性复核：本模组未使用 table.sort（Kahlua 的排序不稳定）与 % 取模（Kahlua 的 % 是截断而非向下取整）；
+  math.pi/cos/sin/sqrt 与 ZombRand 在 vanilla/A-Life/Jeem 里均被大量使用，确认存在
+
+版本 0.1.0 (2026-10-04)
+- 初始版本：新角色开局自带 1~5 名友方 NPC（默认跟随玩家；可选切换为 Jeem Extension 居民）
+- 造人链路（两条模式共用）：ProjectALife.ActorRegistry.create(spec) → SpawnService.request(uid, op, fp, timeoutMs)
+  - 友好性用一行 memory.spawnStance = "friendly"（它是 Relations.baselineStance 的第一优先级来源）
+  - 防回收要同时给 memory.persistent（挡 Population）与 memory.admin.persistent（挡 SpawnService.dehydrate）
+- 行为：
+  - 同伴模式 = A-Life 原生 follow：DecisionLoop.setOrder(uid, generation, {kind="follow", player=...})
+    （为什么不自己写跟随模块：orders 模块 priority=10 会抢跑）
+  - 居民模式 = Jeem 的 BaseAreas.createBase + base.bedsOverride 绕过床位统计 + Residents.recruit(force=true)
+    失败（例如多人非管理员被 not_allied 拦）时自动降级为跟随同伴，不报错
+- 幂等四层：角色 modData 标记 / 角色令牌进 operationId（A-Life 自带幂等）/ 存档级 Registry.setWorldValue /
+  SpawnService 的 actor_not_dormant 兜底
+- 时序：不在 OnCreatePlayer 直接造人（那时 A-Life Runtime 往往还没 started），改为 OnTick 轮询就绪，
+  90 秒上限后转 EveryOneMinute 兜底重试（最多 5 次）
+- 沙盒选项 9 项（表名 ALifeStartWithNPC.*，不占用 A-Life 的 ALife.*），界面中英文双语
+- 已知限制（如实记录）：
+  * 本版本尚未在游戏中运行验证，仅完成源码级核对 + Lua 语法校验（用仓库自带的 fengari 做编译检查）
+  * NPC 朝向固定为南（A-Life 的 createZombieShell 硬编码 IsoDirections.S，本模组 spawn 后自行 setDir 但不改变底层默认）
+  * 居民模式会占用一个 Jeem 基地名额（Base_MaxBases 默认 2），可用 Resident_CreateCamp 关闭
+  * 与 Bandits2 等其它 NPC 模组共存未测试
+  * 没有任何游戏内 UI 提示，只有 console.txt 日志
