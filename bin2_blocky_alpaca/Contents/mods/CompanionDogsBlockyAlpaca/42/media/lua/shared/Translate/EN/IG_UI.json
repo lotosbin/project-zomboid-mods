@@ -1,0 +1,14 @@
+{
+    "IGUI_Breed_blocky_brown": "Blocky Brown Alpaca",
+    "IGUI_Breed_blocky_cream": "Blocky Cream Alpaca",
+    "IGUI_Breed_blocky_gray": "Blocky Grey Alpaca",
+    "IGUI_Breed_blocky_spot": "Blocky Spotted Alpaca",
+    "IGUI_PD_BreedDesc_blockybrown": "A cuboid alpaca: same animal, same pack load, same herding, same voice - but assembled from boxes. Geometry is entirely script-generated (23 boxes bound rigidly to the base skeleton), so nothing here is copied from another game.\\nSame species as the regular alpaca: they breed together and share the fleece moodle.\\nHerbivore, suffers above 24 C, at home below 4 C. Carries more than twice a dog's load.",
+    "IGUI_PD_BreedDesc_blockycream": "A cuboid alpaca: same animal, same pack load, same herding, same voice - but assembled from boxes. Geometry is entirely script-generated (23 boxes bound rigidly to the base skeleton), so nothing here is copied from another game.\\nSame species as the regular alpaca: they breed together and share the fleece moodle.\\nHerbivore, suffers above 24 C, at home below 4 C. Carries more than twice a dog's load.",
+    "IGUI_PD_BreedDesc_blockygray": "A cuboid alpaca: same animal, same pack load, same herding, same voice - but assembled from boxes. Geometry is entirely script-generated (23 boxes bound rigidly to the base skeleton), so nothing here is copied from another game.\\nSame species as the regular alpaca: they breed together and share the fleece moodle.\\nHerbivore, suffers above 24 C, at home below 4 C. Carries more than twice a dog's load.",
+    "IGUI_PD_BreedDesc_blockyspot": "A cuboid alpaca: same animal, same pack load, same herding, same voice - but assembled from boxes. Geometry is entirely script-generated (23 boxes bound rigidly to the base skeleton), so nothing here is copied from another game.\\nSame species as the regular alpaca: they breed together and share the fleece moodle.\\nHerbivore, suffers above 24 C, at home below 4 C. Carries more than twice a dog's load.",
+    "IGUI_PD_Breed_blockybrown": "Blocky Brown Alpaca",
+    "IGUI_PD_Breed_blockycream": "Blocky Cream Alpaca",
+    "IGUI_PD_Breed_blockygray": "Blocky Grey Alpaca",
+    "IGUI_PD_Breed_blockyspot": "Blocky Spotted Alpaca"
+}

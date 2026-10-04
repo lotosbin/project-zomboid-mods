@@ -1,0 +1,8 @@
+name=CD: Blocky Alpacas
+id=CompanionDogsBlockyAlpaca
+modversion=0.1.0
+pzversion=42.19.0
+versionMin=42.18.0
+require=CompanionDogs,CompanionDogsAlpaca
+poster=poster.png
+description=Voxel-styled alpaca breeds for Companion Dogs (Build 42). Geometry is generated entirely by script (23 boxes bound rigidly to the base Raccoon skeleton) - no third-party assets. Requires Companion Dogs 0.7.4+ and CD: Alpacas (species provider). Also in Simplified/Traditional Chinese.

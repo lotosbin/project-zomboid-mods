@@ -1,0 +1,35 @@
+version=1
+title=CD: Blocky Alpacas - 方块羊驼 (Companion Dogs add-on, Build 42)
+description=Voxel-styled alpaca breeds for Companion Dogs: same animal, same stats, same voice - assembled from boxes.
+description=
+description=WHAT YOU GET
+description=- 4 blocky fleeces: cream, brown, grey, spotted (spotted has random dark patches per individual)
+description=- A full species member: same pack capacity (2.2x a dog), same herding, same early alarm call, same herbivore diet, same heat sensitivity.
+description=- Works with the regular alpacas: they are the same species, so they breed together and share the fleece moodle.
+description=
+description=WHY IT IS SAFE TO USE
+description=- The geometry is generated entirely by script: 23 cuboids placed on the base mod's own skeleton, each vertex rigidly bound to one bone. No model, texture or animation from any other game is included - the only third-party reference was the design idea "an animal made of boxes".
+description=- The skeleton, the 24 animation clips and the animation set are the base mod's own (and are covered by its asset-usage note). Nothing was retimed: a blocky alpaca walks exactly like the alpacas you already have.
+description=
+description=REQUIREMENTS
+description=- Companion Dogs 0.7.4 or newer (base mod)
+description=- CD: Alpacas (this add-on needs it for the alpaca species and its sounds)
+description=- Build 42.18 or newer
+description=
+description=SANDBOX
+description=- Spawning follows the alpaca spawn multiplier from CD: Alpacas, so one slider controls both look-alikes.
+description=
+description=NOTES / KNOWN LIMITS
+description=- Not yet play-tested in game (offline renders + Lua contract tests only) - see the repository notes for the acceptance checklist.
+description=- English, Simplified Chinese and Traditional Chinese are included; other languages fall back to English.
+description=- Bones are rigidly bound on purpose: that is what makes the blocky look. It also means no soft skinning deformations at all.
+description=
+description=Source, build scripts and the full reasoning: see the repository this item is built from.
+description=
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
+tags=Build 42;Animals;Misc
+visibility=private

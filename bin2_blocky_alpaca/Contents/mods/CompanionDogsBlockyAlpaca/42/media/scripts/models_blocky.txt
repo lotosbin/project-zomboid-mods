@@ -1,0 +1,58 @@
+module Base
+{
+    /* BlockyAlpaca_Body 的几何**完全由脚本生成**（bin2_blocky_alpaca/tools/blocky/make_blocky_alpaca.py）：
+       23 个长方体按骨段摆位，每个顶点 100% 绑定一根骨头，再用逆蒙皮烘焙反解回绑定空间。
+       不含任何第三方资产，因此没有授权牵连。
+
+       骨架仍是 base 的 Raccoon 骨架（55 骨骼）+ 全套 24 个 Rac_* 剪辑，animset 仍是 "raccoon"
+       —— fork 出来的 animset 不会加载状态机，动物会原地冻结。
+
+       两处与写实羊驼不同的骨架处理（都写在生成脚本里）：
+         * 腿链与脖子被"竖直化"：只改位移，并且**同步改写全部剪辑的位移通道**
+           （每条剪辑对每根骨头都有位移轨道，运行时会覆盖静止位移；只改静止位移会让方块一播动画就散架）；
+         * 脚骨落地高度按方块重新求解，蹄盒做成腿的最下一段（独立蹄盒会在 gallop 拉伸时飞出去）。
+
+       贴图绑定不走这里：引擎按 AnimalDefinitions.breeds["alpaca"].breeds[<engineBreed>].texture
+       去 media/textures/Body/<texture>.png 取图；glb 内嵌的图是 1x1 占位图。
+
+       attachment 坐标系（照抄 CD: Cats 的注释）：localX = 横向 | localY = 前后 | localZ = 上下，
+       +Z = 向下；scale 是单浮点整体缩放。数值只能进游戏目视微调。 */
+    model BlockyAlpaca_Body
+    {
+        mesh = Skinned/BlockyAlpaca_Body,
+        shader = animalEffect,
+        static = false,
+        animationsMesh = AlpacaAnim,
+        attachment head
+        {
+            /* 方块头在 y≈0.44 / z≈0.22（比写实羊驼的头更靠上，因为脖子是竖直柱）；帽子类挂点 */
+            offset = -0.0100 0.4400 0.1600,
+            rotate = -179.0 -5.0 95.0,
+            bone = Dummy01,
+        }
+        attachment saddlebags_l
+        {
+            /* 驮袋挂点：Spine_03 的局部轴 = X 横向 / Y 前后 / Z 上下(+Z 向下)。
+               方块背在 y≈0.30、半宽 x≈0.057，所以横向 0.062、上下 -0.070（=向上 0.070）。
+               只在游戏里目视确认过再改。 */
+            offset = 0.062 0.0 -0.070,
+            rotate = 8.0 -90.0 90.0,
+            scale = 0.52,
+            bone = Spine_03,
+        }
+        attachment saddlebags_r
+        {
+            offset = -0.062 0.0 -0.070,
+            rotate = 8.0 90.0 -90.0,
+            scale = 0.52,
+            bone = Spine_03,
+        }
+        attachment saddlebags_b
+        {
+            offset = 0.0 0.0 -0.105,
+            rotate = 12.0 0.0 0.0,
+            scale = 0.44,
+            bone = Spine_03,
+        }
+    }
+}
