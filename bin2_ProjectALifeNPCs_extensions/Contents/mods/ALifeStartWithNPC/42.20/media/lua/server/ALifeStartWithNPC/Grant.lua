@@ -32,10 +32,10 @@ local Pick = require "ALifeStartWithNPC/Pick"
 local Grant = {
     pending = {},        -- uid -> { uid, generation, mode, tries, player }
     pendingCount = 0,    -- 显式计数：Kahlua 没有表遍历用的 next()，用它代替"表是否为空"判断
-    attempts = setmetatable({}, { __mode = "k" }),   -- 每玩家生成尝试记录 { count, lastMs }（防每帧重试）
     running = false,
-    -- 每个玩家各记一份"本会话已完成"，弱键表避免持有玩家对象（多玩家服务器上不能用单一全局标志！）
-    doneByPlayer = setmetatable({}, { __mode = "k" }),
+    -- 注意：这里**故意不放**任何"按玩家对象缓存"的已完成/尝试计数。
+    -- 联机里玩家重生可能复用同一个 IsoPlayer 对象，按对象缓存会挡住重新发放；
+    -- 所有 per-角色的状态一律存进玩家 modData（见 Config.KEY_*）。
 }
 
 -- Kahlua 的限制：没有 next()（Jeem 的 Core.lua:231 专门记录过这个坑："Kahlua has no next()"）。
@@ -299,6 +299,35 @@ function Grant.reportForeignCopies()
     Config.warn("Fix: disable or unsubscribe those mods. A translation must ship only Translate files.")
 end
 
+--[[
+    死亡时清掉"本角色已发放"的 per-角色 标记（仅在开启 GrantOnRespawn 时）。
+
+    为什么必须清 KEY_TOKEN：ActorRegistry.create 的幂等键是 operationId，
+    而 operationId 里含本角色的令牌。若令牌不变，重生后调用会**返回那条旧（已死）记录**，
+    接着 SpawnService.request 会以 actor_not_dormant 失败 —— 表现就是"重生不再发放"。
+    清掉令牌 ⇒ 新 operationId ⇒ 真的生成一名新 NPC。
+
+    另外：联机里玩家重生可能复用同一个 IsoPlayer 对象，所以这些状态一律存 modData 而不是按对象缓存。
+]]
+function Grant.onDeath(player)
+    if player == nil then return end
+    if not Config.grantOnRespawn() then return end
+    local ok, err = pcall(function()
+        local md = player:getModData()
+        if type(md) ~= "table" then return end
+        md[Config.KEY_GRANTED] = nil
+        md[Config.KEY_TOKEN] = nil
+        md[Config.KEY_ATTEMPTS] = nil
+        md[Config.KEY_LAST_ATTEMPT_MS] = nil
+    end)
+    if ok then
+        Config.log("death: cleared this character's grant markers (GrantOnRespawn is on) "
+            .. "-> the next character will be granted again")
+    else
+        Config.warn("death hook failed: " .. tostring(err))
+    end
+end
+
 -- 该 NPC 所在小队的组声望也给足（R.isAlly 的另一条判据）
 function Grant.stampGroupStanding(J, S, key, actor, factionId, points)
     local groupId = nil
@@ -416,7 +445,6 @@ end
 function Grant.run(player)
     if player == nil then return false end
     if not Config.enabled() then return false end
-    if Grant.doneByPlayer[player] then return true end
 
     local md = nil
     local ok = pcall(function() md = player:getModData() end)
@@ -425,7 +453,6 @@ function Grant.run(player)
     if md[Config.KEY_GRANTED] == true then
         -- 让 T2（读档不重复发放）在看日志时一眼可验
         Config.log("this character was already granted earlier; skipping (no duplicate NPC)")
-        Grant.doneByPlayer[player] = true
         return true
     end
 
@@ -444,7 +471,6 @@ function Grant.run(player)
         if savedOk and saved == true then
             Config.log("save-level flag already set and GrantOnRespawn is off; skipping")
             md[Config.KEY_GRANTED] = true
-            Grant.doneByPlayer[player] = true
             return true
         end
     end
@@ -467,17 +493,17 @@ function Grant.run(player)
 
     -- 生成节流：A-Life 的 hydrate 失败通常是"数据没就绪"或"存在旧版 A-Life 副本"，
     -- 每帧重试既没用又会把日志刷爆（上一版 MP 日志里出现过连续的 create/remove 噪声）。
-    local attempt = Grant.attempts[player]
-    if attempt == nil then attempt = { count = 0, lastMs = 0 } Grant.attempts[player] = attempt end
+    local attempts = tonumber(md[Config.KEY_ATTEMPTS]) or 0
+    local lastAttemptMs = tonumber(md[Config.KEY_LAST_ATTEMPT_MS]) or 0
     local nowAttempt = nowMs()
-    if attempt.count >= Config.MAX_SPAWN_ATTEMPTS then
+    if attempts >= Config.MAX_SPAWN_ATTEMPTS then
         return false, "spawn_attempts_exhausted"
     end
-    if nowAttempt - attempt.lastMs < Config.SPAWN_RETRY_MS then
+    if nowAttempt - lastAttemptMs < Config.SPAWN_RETRY_MS then
         return false, "spawn_throttled"
     end
-    attempt.count = attempt.count + 1
-    attempt.lastMs = nowAttempt
+    md[Config.KEY_ATTEMPTS] = attempts + 1
+    md[Config.KEY_LAST_ATTEMPT_MS] = nowAttempt
 
     local count = Config.count()
     local mode = Config.mode()
@@ -495,7 +521,8 @@ function Grant.run(player)
         local actor, spawnError = Grant.spawnOne(player, index, factionId, profileId, opId)
         if actor == nil then
             Config.error("spawn failed: " .. tostring(spawnError)
-                .. " (attempt " .. tostring(attempt.count) .. "/" .. tostring(Config.MAX_SPAWN_ATTEMPTS) .. ")")
+                .. " (attempt " .. tostring(md[Config.KEY_ATTEMPTS] or 0) .. "/"
+                .. tostring(Config.MAX_SPAWN_ATTEMPTS) .. ")")
             if tostring(spawnError):find("hydration", 1, true) ~= nil then
                 Grant.reportForeignCopies()
             end
@@ -526,7 +553,6 @@ function Grant.run(player)
             if type(store) == "table" then store.everGranted = true end
         end)
     end
-    Grant.doneByPlayer[player] = true
     Config.log(string.format("grant complete: %d/%d npcs (mode=%s)", spawned, count, tostring(mode)), true)
     return true
 end

@@ -13,7 +13,7 @@ ALifeStartWithNPC = ALifeStartWithNPC or {}
 local Config = ALifeStartWithNPC
 
 Config.MODULE = "ALifeStartWithNPC"      -- 网络 module 名必须等于自己的 mod id（A-Life 的红线）
-Config.VERSION = "0.1.4"
+Config.VERSION = "0.1.5"
 
 -- 沙盒表名（mod.info 的 id 一致）
 Config.TABLE = "ALifeStartWithNPC"
@@ -21,6 +21,8 @@ Config.TABLE = "ALifeStartWithNPC"
 -- 角色 modData 键
 Config.KEY_GRANTED = "ALifeStartWithNPCGranted"   -- 本角色已发放
 Config.KEY_TOKEN = "ALifeStartWithNPCToken"       -- 本角色的一次性令牌（用于 operationId 唯一化）
+Config.KEY_ATTEMPTS = "ALifeStartWithNPCAttempts"          -- 生成尝试次数（按角色记，随死亡重置）
+Config.KEY_LAST_ATTEMPT_MS = "ALifeStartWithNPCLastMs"     -- 上次尝试时间戳
 
 -- 存档级 ModData 键（GrantOnRespawn = false 时用）
 Config.SAVE_TAG = "ALifeStartWithNPC.Save.v1"

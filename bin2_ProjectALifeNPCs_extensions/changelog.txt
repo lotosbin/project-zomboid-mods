@@ -1,3 +1,24 @@
+版本 0.1.5 (2026-10-04)
+- 修复：多人联机下开启"死亡重新发放"（GrantOnRespawn）后，玩家死亡重生**不会**再发放 NPC
+- 三个叠加原因（都在本模组内）：
+  1. 客户端 Request.lua 用 requested[playerIndex] 做"每会话只请求一次"的永久守卫，
+     重生后不再发 requestGrant ⇒ 服务端根本收不到触发；
+  2. 服务端 Bootstrap 的 OnCreatePlayer 只在纯单机处理（isClient()/isServer() 时直接 return），
+     联机时唯一触发器就是 (1) 的客户端请求，于是两者一起把重生路径堵死；
+  3. 没有任何死亡钩子。而且"已发放"标记与一次性令牌都留在玩家身上，
+     令牌不变 ⇒ operationId 不变 ⇒ A-Life 的 create 会**返回那条旧（已死）记录**，
+     随后 SpawnService.request 以 actor_not_dormant 失败（即使标记被清也发不出新的）
+- 修法：
+  * 服务端 OnCreatePlayer **三种模式（单机/主机/专用服）都处理**，客户端请求仅作冗余兜底；
+  * 客户端去掉永久守卫，每次角色创建都请求一次（服务端本就幂等）；
+  * 新增死亡钩子 Grant.onDeath（OnPlayerDeath + OnCharacterDeath）：开启 GrantOnRespawn 时
+    清掉本角色的 KEY_GRANTED / KEY_TOKEN / 尝试计数 —— **清令牌是关键**，它会带来新的 operationId，
+    从而真的生成一名新 NPC；关闭时不动作（保持"每存档只给第一个角色"）
+  * 所有 per-角色 状态从"按 IsoPlayer 对象缓存"改为存进玩家 modData
+    （联机重生可能复用同一个 player 对象，按对象缓存会挡住重新发放）
+- 可验证日志：死亡时 "death: cleared this character's grant markers"，
+  重生后 "OnCreatePlayer (host|dedicated) -> scheduling grant" → "grant #1 ..." → "grant complete"
+
 版本 0.1.4 (2026-10-04)
 - 多人联机排查（结论：本模组工作正常，报错来自另一个"汉化"模组）
   * 实测：coop 会话里 2 名玩家各获得 1 名 NPC，日志齐全（grant #1 → spawned → standing ALLIED →

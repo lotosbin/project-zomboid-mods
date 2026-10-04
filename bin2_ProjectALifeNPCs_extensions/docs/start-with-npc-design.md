@@ -363,6 +363,59 @@ java.lang.RuntimeException: no such location "UI_Alife_Animations_20" at Attache
    `Config.MAX_SPAWN_ATTEMPTS = 5` 次 —— 避免"数据没就绪"时每帧 `create/remove` 并刷日志
    （节流闸位于 `worldReady` 之后，所以只有"真的尝试生成"才计数）。
 
+## 8.8 第四次实测：联机"死亡重新发放"失效（v0.1.5 修复）
+
+**现象**：多人模式下开启 `GrantOnRespawn`，玩家死亡重生后不再发放 NPC。
+
+**三个叠加原因**（都在本模组内，缺一不可）：
+
+| # | 问题 | 位置 | 后果 |
+| --- | --- | --- | --- |
+| ① | 客户端 `requested[playerIndex]` 是**永久守卫**（每会话只发一次请求） | `client/.../Request.lua:18-20` | 重生后不再发 `requestGrant` |
+| ② | 服务端 `OnCreatePlayer` **只在纯单机处理**（`if isClient() or isServer() then return end`） | `server/.../Bootstrap.lua:83` | 联机时唯一触发器只剩 ①，被 ① 堵死后重生路径完全断掉 |
+| ③ | **没有任何死亡钩子**，且"已发放"标记与一次性令牌留在玩家身上 | `Grant.lua` | 令牌不变 ⇒ `operationId` 不变 ⇒ A-Life 的 `create` 幂等**返回那条旧（已死）记录** ⇒ `SpawnService.request` 以 `actor_not_dormant` 失败。**即使清了标记也发不出新的** |
+
+**修法**：
+
+```lua
+-- ① 客户端：去掉永久守卫，每次角色创建都请求（服务端幂等）
+local function onCreatePlayer(playerIndex, player)
+    if not isClient() then return end
+    ... sendClientCommand(player, Config.MODULE, "requestGrant", {})
+end
+
+-- ② 服务端：三种模式都处理 OnCreatePlayer（服务端才是权威）
+local function onCreatePlayer(playerIndex, player)
+    local mode = isServer() and (isClient() and "host" or "dedicated") or "singleplayer"
+    Config.log("OnCreatePlayer (" .. mode .. ") -> scheduling grant")
+    Bootstrap.start(player)
+end
+
+-- ③ 死亡钩子：清标记**并且必须清令牌**（清令牌 ⇒ 新 operationId ⇒ 真的生成新 NPC）
+function Grant.onDeath(player)
+    if not Config.grantOnRespawn() then return end
+    md[Config.KEY_GRANTED] = nil
+    md[Config.KEY_TOKEN] = nil          -- ← 关键
+    md[Config.KEY_ATTEMPTS] = nil
+    md[Config.KEY_LAST_ATTEMPT_MS] = nil
+end
+-- 注册：Events.OnPlayerDeath + OnCharacterDeath（A-Life 自己也用这两个事件做死亡处理）
+```
+
+**附带修掉的同类隐患**：所有 per-角色 状态从"按 `IsoPlayer` 对象缓存"（`Grant.doneByPlayer` /
+`Grant.attempts`，弱键表）改为**存进玩家 modData** —— 联机里重生可能复用同一个 player 对象，
+按对象缓存会挡住重新发放。
+
+**验证方式**（联机自杀一次即可）：
+
+```
+[ALifeStartWithNPC] death: cleared this character's grant markers (GrantOnRespawn is on) -> ...
+[ALifeStartWithNPC] OnCreatePlayer (host) -> scheduling grant          ← 或 (dedicated)
+[ALifeStartWithNPC] grant #1: faction=... profile=...
+[ALifeStartWithNPC] spawned palife:... at x,y
+[ALifeStartWithNPC] grant complete: 1/1 npcs (mode=1)
+```
+
 ## 9. 未验证项（诚实声明）
 
 1. **T1 已通过**（见 8.6）；T2 与 T1 的跟随部分需要按 0.1.3 的新日志复测一次；T3~T14 仍全部待执行。

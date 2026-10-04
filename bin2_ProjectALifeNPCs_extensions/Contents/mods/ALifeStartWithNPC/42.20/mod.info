@@ -1,7 +1,7 @@
 name=Project A-Life: Start With NPC [Jimmy add-on]
 id=ALifeStartWithNPC
 author=bin2
-modversion=0.1.4
+modversion=0.1.5
 versionMin=42.20.0
 description=Start a new character with one or more friendly NPCs at your side, allied with you from the first second. Built on Project A-Life and its Jeem Extension: the NPC is granted through the Jeem resident system, so it behaves like any other resident (tasks, schedule, standing). Every part degrades gracefully: no Jeem, no A-Life, no crash.
 require=\ProjectALifeNPCs,\ProjectALifeJimmy

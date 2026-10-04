@@ -2,9 +2,11 @@
     ALifeStartWithNPC :: Bootstrap（仅服务端加载）
 
     触发路径（与社区成熟模组 CD_StartWithDog 同构，因为它已被验证可行）：
-      * 纯单机（isClient()=false 且 isServer()=false）：OnCreatePlayer 直接开跑。
-      * 联机（含主机与专用服）：客户端发 requestGrant → 这里的 OnClientCommand 开跑。
-        （专用服上 OnCreatePlayer 也会触发，但同一分支会 return，避免重复。）
+      * **服务端在三种模式下都处理 OnCreatePlayer**（纯单机 / 主机 / 专用服）——
+        服务端才是权威，且"角色被创建"这件事在服务端一定会发生；
+      * 客户端另发一次 requestGrant 作为兜底（服务端幂等，重复请求只会多一行日志）。
+        这条兜底在"重生后不再触发 OnCreatePlayer"的平台上仍然有效。
+      * 死亡时（GrantOnRespawn 开启）清掉本角色的发放标记与令牌，保证重生后会重新发放。
       * EveryOneMinute 兜底重试，最多 Config.RETRY_MAX 次。
 
     为什么不能在这里直接造人：
@@ -78,11 +80,22 @@ local function onClientCommand(module, command, player, args)
     Bootstrap.start(player)
 end
 
--- 纯单机：直接处理
+-- 角色创建：服务端三种模式都处理（纯单机 / 主机 / 专用服）
+--   —— 早期版本只在纯单机处理，结果联机里唯一触发器只剩客户端请求；
+--      一旦客户端守卫（每个 playerIndex 只发一次）把重生后的请求挡掉，就表现为"重生不发放"。
 local function onCreatePlayer(playerIndex, player)
-    if isClient() or isServer() then return end
-    Config.log("OnCreatePlayer (singleplayer) -> scheduling grant")
+    local mode = "singleplayer"
+    if isServer() then
+        mode = isClient() and "host" or "dedicated"
+    end
+    Config.log("OnCreatePlayer (" .. mode .. ") -> scheduling grant")
     Bootstrap.start(player)
+end
+
+-- 死亡：按 GrantOnRespawn 决定是否清掉本角色的发放标记（清令牌是关键，见 Grant.onDeath）
+local function onDeath(player)
+    local ok, err = pcall(Grant.onDeath, player)
+    if not ok then Config.warn("death handling failed: " .. tostring(err)) end
 end
 
 -- 兜底：每分钟再看一次（服务器慢、模组加载顺序异常等情况）
@@ -109,6 +122,9 @@ end
 if Events ~= nil then
     if Events.OnClientCommand ~= nil then Events.OnClientCommand.Add(onClientCommand) end
     if Events.OnCreatePlayer ~= nil then Events.OnCreatePlayer.Add(onCreatePlayer) end
+    -- A-Life 自己也用这两个事件做死亡处理，说明它们在服务端可靠
+    if Events.OnPlayerDeath ~= nil then Events.OnPlayerDeath.Add(onDeath) end
+    if Events.OnCharacterDeath ~= nil then Events.OnCharacterDeath.Add(onDeath) end
     if Events.EveryOneMinute ~= nil then Events.EveryOneMinute.Add(onEveryMinute) end
     -- 开局做一次兼容性自检（复用 A-Life 自己的检测器），把"自带 A-Life Lua 副本"的模组点名报出来
     local function compatCheck()
