@@ -1,0 +1,9 @@
+id=CompanionDogsAlpaca
+name=CD: Alpacas
+description=Alpacas for Companion Dogs: a woolly pack animal that is not a dog. Seven fleeces (cream, light fawn, brown, black, grey, rose grey and the silky Suri). An alpaca will not hunt and will not finish a zombie, but it carries more than twice what a dog can, warns you earlier than any of them, and herds your livestock better than anything else in the mod. It kicks a zombie down and holds it there; its alarm call is loud enough to be a liability. It drinks and eats like a herbivore (hay, grass, vegetables, fruit), it will not touch meat, and it does not tolerate heat: above 24 C it starts to suffer, below 4 C it is at home. It breeds with its own kind only and a cria is a single birth. Strays are found on farms and, rarely, in pet stores and vet clinics, with their own spawn multiplier in the sandbox options. REQUIRES the Companion Dogs mod, version 0.7.4 or newer. The body model is derived from the mod's own Retriever model with permission (see CREDITS.txt); removing the add-on from a save with living alpacas loses them.
+poster=poster.png
+icon=icon.png
+require=CompanionDogs
+modversion=0.1.0
+pzversion=42.19.0
+versionMin=42.18.0

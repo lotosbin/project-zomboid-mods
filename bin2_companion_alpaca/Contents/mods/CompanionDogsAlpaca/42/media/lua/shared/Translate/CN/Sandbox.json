@@ -1,0 +1,5 @@
+{
+    "Sandbox_CompanionAlpaca": "CD: 羊驼",
+    "Sandbox_CompanionAlpaca_AlpacaSpawnMultiplier": "羊驼生成倍率",
+    "Sandbox_CompanionAlpaca_AlpacaSpawnMultiplier_tooltip": "农场（以及少量宠物店/宠物医院）出现流浪羊驼的频率倍率。1.0 是默认，2.0 翻倍，0 表示不再生成羊驼。这项独立于流浪狗设置：把狗调低或关掉不会连带影响羊驼。"
+}

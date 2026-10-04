@@ -1,0 +1,5 @@
+{
+    "Sandbox_CompanionAlpaca": "CD: 羊駝",
+    "Sandbox_CompanionAlpaca_AlpacaSpawnMultiplier": "羊駝生成倍率",
+    "Sandbox_CompanionAlpaca_AlpacaSpawnMultiplier_tooltip": "農場（以及少量寵物店/寵物醫院）出現流浪羊駝的頻率倍率。1.0 是預設，2.0 翻倍，0 表示不再生成羊駝。這項獨立於流浪狗設定：把狗調低或關掉不會連帶影響羊駝。"
+}

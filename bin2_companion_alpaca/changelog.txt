@@ -1,0 +1,12 @@
+版本 0.1.0 (2026-10-03)
+- 初始发布：为 Companion Dogs (Workshop 3740052292) 增加新物种"羊驼"，7 种毛色（奶油白 / 浅驼 / 棕 / 黑 / 灰 / 玫瑰灰 / 苏利白）
+- 走官方 addon 契约：CD.registerSpecies + CD.registerBreed + AnimalDefinitions 三件套 + defineCompanionParts + 自绘 moodle + CD.onUpkeepStress 钩子，不碰 base 内部
+- 差异化：驮兽（bagMult 2.2 / baseEncumbrance 45~55）、哨兵倍率 1.5、放牧 2.0、不狩猎（skills.hunt=false）、能踹倒但打不死（canKnockdown=true / canKill=false）、草食（replace 饮食表）
+- 气候：>24℃ 热应激、<4℃ 才舒服，服务端钩子自己包 pcall（base 的钩子调用不带 pcall）
+- 模型：从 base 授权的金毛模型程序化派生（骨骼比例 + 姿态增量 + 躯干/绒面网格形变），保留 55 骨骼 / 24 剪辑 / animset "raccoon"
+- 贴图：犬体毛皮图集重绘成 7 种羊驼绒；头像 / moodle 图标（6 尺寸）/ 偶蹄背包图标 / 模组图标 / 海报 / 工坊预览全部脚本生成
+- 声音：9 条羊驼叫声用 numpy 合成后转 ogg（报警 / 环境 / 哼鸣 / 吐口水 / 疼痛 / 死亡 / 抱起 / 咀嚼 loop / 饮水 loop）
+- 翻译：EN / CN / CH 三语全键覆盖（含手册第 6 节全部 `_alpaca` 后缀键）
+- 工具链：离线 glb 渲染器、重比例派生器、姿态求解器、贴图 / 图像 / 声音生成器、glb 与翻译校验器、一键 check.sh
+- 根因记录：本模型第一次派生时 idle 剪辑被拉成腊肠——同一个剪辑内多条 channel 共用同一个 accessor，就地修改会让增量叠加 11 次；改为给每条受影响通道克隆独占 accessor
+- 已知限制：未在游戏内实测（无模型越界、无脚本报错的静态验证已全绿）；bandSkin（绷带/断裂贴图变体）未提供；鞍袋/帽子挂点数值按躯干比例推算，需在游戏里目视微调；声音为合成音，未做听感验证

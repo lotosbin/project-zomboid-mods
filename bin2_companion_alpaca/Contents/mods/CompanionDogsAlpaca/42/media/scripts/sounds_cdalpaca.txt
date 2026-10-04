@@ -1,0 +1,75 @@
+module Base
+{
+    /* 羊驼叫声（CompanionDogsAlpaca）。全部由 tools/alpaca/make_sounds.py 用 numpy 合成后
+       用 ffmpeg 转成 .ogg（无 FMOD 音库，散装 ogg），没有采样任何外部素材。
+
+       引擎按 GameSounds.getSound 解析名字，再用 FMODManager.loadSound 播 clip.file；
+       同一个 sound 下多个 clip = 随机变体（getRandomClip）。所以 clip 直接写完整相对路径。
+
+       maxInstancesPerEmitter = 1：emitter 是按动物分的，这条是"同一个动物叠同一条语音"的
+       声明式闸门，对两条 loop 音（咀嚼/饮水）尤其重要 —— 第二条实例不会被 stop-by-name 停掉。
+
+       distanceMin 是**每个 clip 必填**的：引擎默认 10，而且 10 是"满音量半径"。
+       只写 distanceMax 会得到 min=10 >= max，FMOD 的反向 rolloff 永远不衰减：
+       整格、穿墙、隔一个街区都是满音量。min < max 才有距离衰减。
+       过了 distanceMax 之后反向 rolloff 会停在 distanceMin/distanceMax 的下限而不是静音，
+       所以响的语音把 min 压低。这里的 distanceMax 与 CompanionDogsAlpaca_Breed.lua 里
+       CD.registerVoices 的第三参数（服务端投递范围）必须一致，改一个就要改另一个。 */
+
+    sound CDAlpacaAlarm        /* 报警哞叫：哨兵警报、战斗、应激自叫 */
+    {
+        category = Animal,
+        maxInstancesPerEmitter = 1,
+        clip { file = media/sound/CDAlpacaAlarm.ogg, distanceMin = 4, distanceMax = 28, }
+    }
+    sound CDAlpacaAlarmAmbient /* 远处流浪羊驼的报警声（纯环境音，从不吸引僵尸） */
+    {
+        category = Animal,
+        maxInstancesPerEmitter = 1,
+        clip { file = media/sound/CDAlpacaAlarmAmbient.ogg, distanceMin = 4, distanceMax = 28, volume = 0.35, }
+    }
+    sound CDAlpacaHum          /* 满足/联络的哼鸣：待机与抚摸 */
+    {
+        category = Animal,
+        maxInstancesPerEmitter = 1,
+        clip { file = media/sound/CDAlpacaHum.ogg, distanceMin = 2, distanceMax = 12, volume = 0.6, }
+    }
+    sound CDAlpacaSpit         /* 警告吐口水：哨兵的安静提示音（对应 growl） */
+    {
+        category = Animal,
+        maxInstancesPerEmitter = 1,
+        clip { file = media/sound/CDAlpacaSpit.ogg, distanceMin = 2, distanceMax = 10, }
+    }
+    sound CDAlpacaWhine        /* 疼痛/生病 */
+    {
+        category = Animal,
+        maxInstancesPerEmitter = 1,
+        clip { file = media/sound/CDAlpacaWhine.ogg, distanceMin = 2, distanceMax = 15, }
+    }
+    sound CDAlpacaDeath        /* 死亡长鸣 */
+    {
+        category = Animal,
+        maxInstancesPerEmitter = 1,
+        clip { file = media/sound/CDAlpacaDeath.ogg, distanceMin = 4, distanceMax = 25, }
+    }
+    sound CDAlpacaPickup       /* 被抱起/放下 */
+    {
+        category = Animal,
+        maxInstancesPerEmitter = 1,
+        clip { file = media/sound/CDAlpacaPickup.ogg, distanceMin = 2, distanceMax = 8, volume = 0.7, }
+    }
+    sound CDAlpacaChew         /* 咀嚼循环：食盆/槽位进食 + 手喂脉冲；loop 停在 sound 块上 */
+    {
+        category = Animal,
+        maxInstancesPerEmitter = 1,
+        loop = true,
+        clip { file = media/sound/CDAlpacaChew.ogg, distanceMin = 2, distanceMax = 10, }
+    }
+    sound CDAlpacaDrink        /* 饮水循环 */
+    {
+        category = Animal,
+        maxInstancesPerEmitter = 1,
+        loop = true,
+        clip { file = media/sound/CDAlpacaDrink.ogg, distanceMin = 2, distanceMax = 10, }
+    }
+}

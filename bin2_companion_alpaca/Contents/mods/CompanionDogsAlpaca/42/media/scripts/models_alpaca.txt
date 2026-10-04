@@ -1,0 +1,58 @@
+module Base
+{
+    /* Alpaca_Body 的几何来自 CC0 的 Quaternius Alpaca（见 tools/alpaca/vendor/README.md），
+       用 tools/alpaca/build_alpaca_from_cc0.py 逐骨骼仿射传递到 base 的 Raccoon 骨架上：
+       骨架仍是 base 的 55 骨骼、24 个 Rac_* 剪辑一个不少，动画集仍是 "raccoon"
+       —— fork 出来的 animset 不会加载状态机，动物会原地冻结。
+
+       贴图绑定不走这里：引擎按 AnimalDefinitions.breeds["alpaca"].breeds[<engineBreed>].texture
+       去 media/textures/Body/<texture>.png 取图；glb 内嵌的图是 1x1 占位图（base 与猫也一样）。
+
+       attachment 的坐标系（照抄 CD: Cats 的注释，实战结论）：
+       localX = 横向 | localY = 前后 | localZ = 上下，+Z = 向下；scale 是单浮点整体缩放。
+       这些数字只能进游戏目视微调，不要按 GLB 测量值或侧腹比例推算；本文件只在 BOOT 时重解析。 */
+    model Alpaca_Body
+    {
+        mesh = Skinned/Alpaca_Body,
+        shader = animalEffect,
+        static = false,
+        animationsMesh = AlpacaAnim,
+        attachment head
+        {
+            /* 头在 CC0 网格传递后位于 y≈0.40 / z≈0.24（羊驼的头在长颈顶端偏前）；帽子类挂点 */
+            offset = -0.0100 0.4000 0.2100,
+            rotate = -179.0 -5.0 95.0,
+            bone = Dummy01,
+        }
+        attachment saddlebags_l
+        {
+            /* 驮袋挂点：Spine_03 的局部轴 = X 横向 / Y 前后 / Z 上下(+Z 向下)。
+               新网格背部在 y≈0.33、半宽 x≈0.054，所以横向 0.058、上下 -0.075（=向上 0.075）。
+               只在游戏里目视确认过再改。 */
+            offset = 0.058 0.0 -0.075,
+            rotate = 8.0 -90.0 90.0,
+            scale = 0.52,
+            bone = Spine_03,
+        }
+        attachment saddlebags_r
+        {
+            offset = -0.058 0.0 -0.075,
+            rotate = 8.0 90.0 -90.0,
+            scale = 0.52,
+            bone = Spine_03,
+        }
+        attachment saddlebags_c
+        {
+            offset = 0.0 0.0 -0.105,
+            rotate = 90.0 90.0 0.0,
+            scale = 0.38,
+            bone = Spine_03,
+        }
+    }
+
+    animationsMesh AlpacaAnim
+    {
+        meshFile = Skinned/Alpaca_Body,
+        keepMeshAnimations = true,
+    }
+}

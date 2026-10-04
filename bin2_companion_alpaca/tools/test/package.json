@@ -1,0 +1,8 @@
+{
+  "name": "companion-alpaca-offline-test",
+  "private": true,
+  "description": "Offline Lua integration test for CompanionDogsAlpaca (fengari). Run ./run_lua_test.sh",
+  "dependencies": {
+    "fengari": "^0.1.5"
+  }
+}

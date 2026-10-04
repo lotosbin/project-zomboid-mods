@@ -1,0 +1,13 @@
+VERSION = 1,
+
+/* 羊驼生成倍率。独立于 base 的 DogSpawnMultiplier：把流浪狗调低/关掉不会连带把羊驼带走
+   （CD: Cats 的 CatSpawnMultiplier 用的是同一套做法）。 */
+option CompanionAlpaca.AlpacaSpawnMultiplier
+{
+	type = double,
+	min = 0.0,
+	max = 5.0,
+	default = 1.0,
+	page = CompanionAlpaca,
+	translation = CompanionAlpaca_AlpacaSpawnMultiplier,
+}

@@ -1,0 +1,38 @@
+version=1
+title=CD: Alpacas - 羊驼 (Companion Dogs add-on, Build 42)
+description=Cats were the lookout, dogs were the fighters. This one is the pack animal: alpacas for Companion Dogs, in seven fleeces.
+description=
+description=WHAT IT IS
+description=* A new species for Companion Dogs - not a dog with different numbers. It refuses to breed with dogs, its own interface nouns and every per-species line are shipped for it, and it has its own body model, coats, voice set and spawn table.
+description=* Seven fleeces: cream, light fawn, brown, black, grey, rose grey and the silky Suri.
+description=* REQUIRES Companion Dogs 0.7.4 or newer (API 11). It does nothing at all without it, on purpose and without errors in the log.
+description=
+description=WHAT IT DOES
+description=* Pack animal: 2.2x a dog's saddlebag capacity, 45-55 base encumbrance. Its whole reason to exist.
+description=* Early warning: the best sentinel multiplier in the family, but the alarm call is loud. It will draw zombies to you, and the sandbox noise option still applies.
+description=* Herds your livestock better than anything else in the mod (herding 2.0), and senses better than a dog (scent 1.2).
+description=* Does not hunt. It will not chase or point at prey, and hunt XP is off for it.
+description=* Fights badly on purpose: it kicks a zombie down and holds it there, but it never lands the killing blow, and it panics earlier than a dog.
+description=* Herbivore: hay, grass, vegetables, fruit. It will not touch meat, and the food that poisons a dog poisons it too.
+description=* Climate: it suffers above 24 C (thick fleece) and is at home below 4 C. Heat costs it stress, so shave season matters.
+description=* One cria per birth, breeds only with an alpaca.
+description=* Found on farms, and rarely in pet stores and vet clinics, with its own spawn multiplier in the sandbox options (settled separately from the stray dog setting).
+description=
+description=SANDBOX
+description=* CompanionAlpaca > Alpaca spawn multiplier (0 turns alpaca spawns off, independent of the dog multiplier).
+description=
+description=NOTES AND LIMITS
+description=* The alpaca's geometry is Quaternius' CC0 'Alpaca' model (Public Domain, CC0 1.0), re-skinned onto Companion Dogs' skeleton by a scripted per-bone affine transfer plus an inverse-skin bake, so it keeps the base 55-bone rig and all 24 clips and no animation is retimed. The CC0 model's own rig and animations are not used. The base mod's skeleton and clips are used under the permission granted in its asset-usage note. See CREDITS.txt.
+description=* Voices are synthesized from scratch (no sampled audio), so they are intentionally plain.
+description=* Damage/bandage overlay (bandSkin) is not shipped: a wounded alpaca still bleeds and can be bandaged, it just shows no bandage texture.
+description=* Removing this add-on from a save that has living alpacas loses them: the engine discards an animal whose type it no longer knows. The base mod degrades cleanly.
+description=
+description=Dedicated servers: every player needs the add-on, same as Companion Dogs itself.
+description=
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
+tags=Build 42;Animals;Misc
+visibility=private

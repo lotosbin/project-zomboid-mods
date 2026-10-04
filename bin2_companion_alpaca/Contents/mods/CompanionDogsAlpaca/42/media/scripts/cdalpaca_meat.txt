@@ -1,0 +1,34 @@
+module Base
+{
+    /* 羊驼肉。引擎会把 count 与每块肉的 hunger/calories 都乘一遍 carcass:getAnimalSize()
+       （ButcheringUtil.lua:261 与 :330），而羊驼的 size 是 2.30~3.05，所以这里的基础饥饿值
+       必须比"想喂饱多少"低一档：一只成年羊驼出 3~6 块，每块实际约 10~14 饥饿。
+       FoodType 用 Beef（家畜红肉，和原版牛一样），这样汤/炖/派等 EvolvedRecipe 都能吃进去。 */
+    item CompanionDogsAlpacaMeat
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.3,
+        Icon = Smallanimalmeat,
+        BadCold = true,
+        BadInMicrowave = true,
+        DangerousUncooked = true,
+        EvolvedRecipe = Soup:15;Stew:15;Pie:15;Stir fry:15;Sandwich:5|Cooked;Burger:10|Cooked;Salad:10|Cooked;Rice:15;Pasta:15;AddBaitToChum:15,
+        FoodType = Beef,
+        GoodHot = true,
+        IsCookable = true,
+        MinutesToCook = 30,
+        MinutesToBurn = 90,
+        DaysFresh = 2,
+        DaysTotallyRotten = 4,
+        HungerChange = -4.5,
+        Calories = 145.0,
+        Carbohydrates = 0.8,
+        Lipids = 3.2,
+        Proteins = 21.0,
+        FishingLure = true,
+        StaticModel = SmallAnimalMeat_Ground,
+        WorldStaticModel = SmallAnimalMeat_Ground,
+        CookingSound = FryingFood,
+    }
+}

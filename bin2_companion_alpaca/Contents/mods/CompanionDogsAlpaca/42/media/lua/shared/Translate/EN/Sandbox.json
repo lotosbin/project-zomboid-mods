@@ -1,0 +1,5 @@
+{
+    "Sandbox_CompanionAlpaca": "CD: Alpacas",
+    "Sandbox_CompanionAlpaca_AlpacaSpawnMultiplier": "Alpaca spawn rate multiplier",
+    "Sandbox_CompanionAlpaca_AlpacaSpawnMultiplier_tooltip": "Scales how often stray alpacas appear on farms and, rarely, in pet stores and vet clinics. 1.0 is the normal rate, 2.0 doubles them, 0 turns alpaca spawns off. This is separate from the dog spawn setting: turning stray dogs down or off does not take the alpacas with them."
+}
