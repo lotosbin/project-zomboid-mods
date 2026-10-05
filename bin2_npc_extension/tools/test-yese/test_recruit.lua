@@ -1022,9 +1022,8 @@ runTest(19, "ui: page registered, YeseMarket navigation row injected, button ope
     function primitives.FitText(value, font, width)
         return tostring(value or "")
     end
-    function primitives.GetDensityMetrics(font)
-        return { lineHeight = 21, buttonHeight = 34, fontHeight = 16 }
-    end
+    -- YeseMarket 的 UIPrimitives **没有** GetDensityMetrics（那是橙子经济的原语），
+    -- 所以 mock 也不提供：页面要是再依赖它，测试会当场炸而不是等到游戏里。
     local lastButton = nil
     function primitives.CreateButton(x, y, width, height, title, target, callback, variant)
         lastButton = ISButton:new(x, y, width, height)
@@ -1044,18 +1043,21 @@ runTest(19, "ui: page registered, YeseMarket navigation row injected, button ope
     list.offset = 0
     function list:clear() self.items = {} self.selected = 0 self.offset = 0 end
     function list:addItem(label, item)
-        local entry = { text = tostring(label or ""), item = item, index = #self.items + 1 }
+        local entry = { text = tostring(label or ""), item = item, index = #self.items + 1,
+            height = self.itemheight or 92 }
         self.items[#self.items + 1] = entry
         return entry
     end
     function list:setOffset(value) self.offset = math.max(0, tonumber(value) or 0) end
-    function list:getYScroll() return -self.offset end
+    function list:getYScroll() return self.yScroll or 0 end
+    function list:setYScroll(value) self.yScroll = tonumber(value) or 0 end
     function list:contentHeight() return #self.items * 96 end
     function list:setX(value) self.x = value return self end
     function list:setY(value) self.y = value return self end
     function list:setWidth(value) self.width = value return self end
     function list:setHeight(value) self.height = value return self end
-    function primitives.CreateCardGrid(x, y, width, height, options) return list end
+    -- YeseMarket 只有 CreateList（IScrollingListBox 的派生类），没有 CreateCardGrid
+    function primitives.CreateList(x, y, width, height) return list end
 
     local context = {
         primitives = primitives,
@@ -1066,10 +1068,13 @@ runTest(19, "ui: page registered, YeseMarket navigation row injected, button ope
                 Warning = { r = 1, g = .6, b = 0 }, Success = { r = 0, g = 1, b = 0 },
                 Currency = { r = 1, g = .8, b = 0 }, Panel = { r = .1, g = .1, b = .1 },
                 PanelRaised = { r = .2, g = .2, b = .2 }, Action = { r = 0, g = .5, b = 1 },
+                Selection = { r = .3, g = .2, b = .1 },
                 BorderSoft = { r = .3, g = .3, b = .3 },
             },
             Metrics = { Padding = 12, Gap = 12 },
             DrawRoundedSurface = function(...) end,
+            FontHeight = function(font, fallback) return tonumber(fallback) or 16 end,
+            CenterTextY = function(y, height) return math.floor((tonumber(y) or 0) + 4) end,
         },
         player = M.player,
         shell = { setPage = function(self, pageId) M.state.opened[#M.state.opened + 1] = { number = -1, pageId = pageId } end },

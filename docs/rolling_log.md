@@ -2525,3 +2525,80 @@ description=[/list]
 `guides/workshop-txt-guide.md` 骨架与
 排版陷阱；`docs/pz_mod_update_alert_system.md` 的"两处都写了"订正为"只在 Changelog.txt 写"；`modify.sop.md`
 第 3 步加一句页脚不要回退；skill `pz-workshop-item-publishing` §2.1 骨架换成新页脚并加禁止项。
+
+---
+
+## 2026-10-05 · `bin2_npc_extension` 新增第二个模组：同一套招募内核，配 YeseMarket
+
+用户在同一个工坊物品里再要一个模组：**同样实现招募功能，兼容 [YeseMarket](https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567)（工坊 3735641567，mod id `YeseMarket`）与 Jeem Extension**。
+
+**先摸清对方**：子代理逆向后确认 YeseMarket 与橙子社区经济**几乎同源**（文件名、`UIPageRegistry`、
+`Pay/AddCoins/PlayerData().coins/RecordPlayerFlow/IsSinglePlayer/setPage` 签名**完全一致**），
+只有两处实质断点 —— 这决定了整个方案能"照搬 + 两处改写"而不是重写：
+
+| 断点 | 橙子经济 | YeseMarket |
+| --- | --- | --- |
+| 开面板 | `Open(number, targetPage)` | `Open(playerNum)` **只吃一个参数**（`client/event_handlers.lua:299`）→ 必须 `Open(n)` 后 `Window:setPage(id)` |
+| 入口 | 首页工厂有官方先例可包，锚点 `communityCenterButton` | 首页没有那两个锚点；导航是 `shell.lua:32` 的 **local NAVIGATION** → 改为包 `UIShell:buildNavigation` + `:layoutNavigationItems` **插一行** |
+
+**方案：变体目录是生成物，不是手抄。** `tools/fork_variant.py` 从基模组派生出
+`Contents/mods/Bin2NPCExtensionYese/**` 与 `tools/test-yese/**`（替换表 + per-file 补丁 + 区域替换 + 单文件 override），
+`--check` 重新生成并逐字节比对 —— **有人手改变体就报差异**。理由很实在：A-Life 适配层最容易随上游变动，
+两份手抄必分叉；而这次的"复制"是**受检的复制**。
+
+生成器里三处非机械的地方都写明了理由：`ui/Entry.lua`（入口策略不同，独立实现）、
+`Config.SIBLING_MODULE`（PRE_SUBS 补丁，把兄弟模组 id 翻过来）、测试 19 的入口断言（策略不同，断言自然不同）。
+
+**顺带补掉一个真实风险**：两个口味各有一份 ModData、名册独立，同一个人可以在两个界面各雇一次同一个 actor ——
+而 `DecisionLoop.orders` 是**一人一槽**，指令会互相顶掉。现在 `Service.takenBySibling` 会**只读**看一眼兄弟模组的
+`Store.data()` + `Contracts.owner()`，有主直接 `taken_by_other`；对方不在就当没有（不会把自己锁死）。
+用例 34 覆盖"有主被拒 / 拿掉替身后又能雇"。
+
+**结果**：`--check` 一致；Lua 语法 **28 个文件 0 失败**（两个口味）；离线测试**两套都 34/34**；
+`check_all.sh` 仍是 `ALL CHECKS PASSED (18 item(s))`（本物品简介 5471 字节，含两个模组的说明与依赖链接）。
+变体已软链到 `~/Zomboid/mods/Bin2NPCExtensionYese` 待进游戏验证（`docs/test-plan.md` 新增 Y1~Y7）。
+
+**踩到并修掉的两个实现坑**（都记在生成器注释里）：① mock 出来的假导航视口漏了 `height`，
+`math.max(viewport.height, …)` 直接抛 "compare nil with number" —— 真实 ISUIElement 必有 `height`，
+变体代码也顺手对上游字段做了 `tonumber(...) or 0` 防御；② 区域替换时锚点选在了会被另一条补丁改写的注释上，
+改成用**不受补丁影响的代码行**做锚点。
+
+---
+
+## 2026-10-05 · YeseMarket 版进游戏第一轮：两个 bug，真正的教训在**测试的 mock**
+
+用户进游戏点导航栏那一行，得到「该页面暂时不可用」，且按钮名显示成 `IGUI_YeseMarket_EntryButton`。
+两个问题都读日志定位，没有猜：
+
+**① 页面打不开**（`~/Zomboid/console.txt:28278`）
+
+```
+[YeseMarket][UI] page create failed id=bin2NpcRecruit error=Object tried to call nil in Create
+  Lua((MOD:YeseMarket NPC 招募 (…))).Create(Page.lua:80)
+  Lua((MOD:YeseMarket[SP/MP])).Create(page_registry.lua:42)
+  Lua((MOD:YeseMarket[SP/MP])).setPage(shell.lua:762)
+```
+
+根因：变体的 `Page.lua` 是从橙子版**派生**的，用的是橙子独有的 UI 原语 `CreateCardGrid` 与
+`GetDensityMetrics`；`grep '^function Primitives\.'` 对比两边，YeseMarket **只有**
+`CreateList / CreateCard / CreateButton / CreateModal / CreateTextEntry / …`，没有这两个。
+→ `ui.CreateCardGrid(...)` 直接调 nil。
+修法：变体的 `ui/Page.lua` 改为**独立实现** —— `CreateList` + 自定义 `doDrawItem`
+（YeseMarket 自己的页面就是这么做的，`pages/goods.lua:432-435`；选中走 `list.target` + `list.onmousedown`，
+`ISScrollingListBox:onMouseUp` 传的是 `(target, item)`），行高/按钮高改用 `UITheme.FontHeight()` 自算。
+
+**② 按钮名显示原始键**：借了对方的 `YeseMarket.Text()`，而它会给键强制加 `IGUI_YeseMarket_` 前缀
+（`client/client_api.lua:26`），拿我们的 `EntryButton` 去查必然落空 → 原样返回键名。
+修法：改用本模组自己的翻译表 `Config.Text.get("EntryButton")`。
+
+**真正值钱的教训不在代码，而在 mock**：变体的测试 mock 也是从橙子版**替换**出来的，
+所以它"顺手"提供了 `CreateCardGrid` —— 于是离线测试**全绿**，游戏里却必炸。
+现在把这条落成约束：**变体 mock 只提供上游真实存在的原语**（橙子独有的两个已删除），
+页面要是再依赖它们，离线测试会当场报 `attempt to call a nil value (field 'CreateCardGrid')`。
+**失败实验已做**：把变体页面改回 `CreateCardGrid`，用例 19 立刻变红（`33/34`）。
+
+> 通用原则：**跨模组 fork 时，mock 必须按目标模组的真实 API 面重建，而不是按来源模组替换** ——
+> 否则"绿着的测试"反而是最危险的信号。
+
+**数字**：Lua 语法 28 文件 0 失败；两套离线测试各 34/34；`--check` 一致；
+工坊探针 `ALL CHECKS PASSED (18 item(s))`（本物品简介 5441 字节）。版本 0.2.0 → 0.2.1。

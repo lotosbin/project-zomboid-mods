@@ -2,7 +2,7 @@
 
 > 目标模组：`Bin2NPCExtension`（物品目录 `bin2_npc_extension`）
 > 依赖：`OrangeCommunityEconomy`（必需）、`ProjectALifeNPCs`（需要）、`ProjectALifeJimmy`（可选）
-> 版本：0.2.0（2026-10-05）｜ 工坊 id：3813914438（已发布，物品内含两个模组）
+> 版本：0.2.1（2026-10-05）｜ 工坊 id：3813914438（已发布，物品内含两个模组）
 > 状态：**已进游戏跑通基础流程，完整清单（T1~T18）未跑完**
 
 ---
@@ -355,3 +355,18 @@ follow   → Alife.orderFollow(player, uid, quiet)
 除橙子版的 T1~T18 外，YeseMarket 版要额外测：导航栏那一行是否出现且位置正确、
 点它是否切到招募页、Ctrl+Alt+N 是否也能开、`Open` 后是否停在招募页而不是首页、
 以及两个模组同时启用时同一名 NPC 只能被一边雇走。
+
+### 11.6 进游戏第一轮暴露的两个问题（v0.2.1 修复）
+
+| # | 现象 | 根因 | 修法 |
+| --- | --- | --- | --- |
+| 1 | 招募页打不开，界面弹「该页面暂时不可用」 | 变体的 `Page.lua` 是从橙子版派生的，用的是橙子独有原语 `CreateCardGrid` / `GetDensityMetrics`；**YeseMarket 没有这两个**（`grep '^function Primitives\.'` 对比：它只有 `CreateList` / `CreateCard` / `CreateButton` …），于是 `Page.lua:80` 直接 "Object tried to call nil" | 变体的 `ui/Page.lua` 改为**独立实现**：`CreateList` + 自定义 `doDrawItem`（YeseMarket 自己的页面就这么做，`pages/goods.lua:432-435`），行高/按钮高改用 `UITheme.FontHeight()` 自算；选中走 `list.target` + `list.onmousedown` |
+| 2 | 导航按钮显示成 `IGUI_YeseMarket_EntryButton` | 借了对方的 `YeseMarket.Text()`，它会给键强制加 `IGUI_YeseMarket_` 前缀（我们的键在自己的命名空间里） | 改用本模组自己的翻译表 `Config.Text.get("EntryButton")` |
+
+**真正的教训不在代码，而在测试的 mock**：变体的 mock 也是从橙子版**替换**出来的，
+所以它同时提供了 `CreateCardGrid`（真实 YeseMarket 没有）——测试于是"绿着"而游戏里必炸。
+现在把这条变成约束：**变体 mock 只提供上游真实存在的原语**，橙子独有的两个已删除，
+页面再依赖它们就会在离线测试里报 `attempt to call a nil value`（已做失败实验验证）。
+
+> 通用原则：**跨模组 fork 时，mock 必须按目标模组的真实 API 面重建，而不是按来源模组替换** ——
+> 否则"绿着的测试"反而是最危险的信号。

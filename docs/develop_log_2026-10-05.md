@@ -331,3 +331,45 @@ description=[hr][/hr]  →  description=[h2]链接  →  [ ALERT_CONFIG ]（老�
 * `docs/pz_mod_update_alert_system.md`：订正为"只在 `Changelog.txt` 写 ALERT_CONFIG"
 * `modify.sop.md`：第 3 步（更新 workshop.txt）加"页脚不要回退"
 * skill `pz-workshop-item-publishing` §2.1：骨架换成新页脚 + 禁止写 ALERT_CONFIG 的说明
+
+## 课题五：同一物品里的第二个模组（YeseMarket 版，承接课题三）
+
+用户追加需求：在 `bin2_npc_extension` 里**再放一个模组**，同样实现招募、兼容 YeseMarket（3735641567）与 Jeem。
+子代理逆向确认两者**几乎同源**（`Pay/AddCoins/PlayerData/RecordPlayerFlow/UIPageRegistry/setPage` 签名一致），
+只有两处实质断点：`Open(playerNum)` 不接受 pageId（要 `Open` 后 `Window:setPage`）、
+导航是文件内 local 表（改包 `UIShell:buildNavigation`/`:layoutNavigationItems` 插一行）。
+
+于是定的做法是**生成物而不是手抄**：`tools/fork_variant.py` 从基模组派生变体（模组 + 测试），
+`--check` 重新生成并逐字节比对，手改即报错。A-Life 适配层是最容易随上游变动的部分，
+"受检的复制"比"两份手抄"或"现在就去重构已发布物品的依赖图"都更稳。
+
+另外补了一道**跨模组互查**（`Service.takenBySibling`）：两个口味名册独立，但同一个人不能被两边同时雇走，
+否则 `DecisionLoop.orders` 一人一槽会互相顶掉。用例 34 覆盖。
+
+**数字**：Lua 语法 28 文件 0 失败；两套离线测试各 34/34；`--check` 一致；工坊探针 18/18 通过。
+过程中踩了两个坑并修掉：假导航视口漏 `height` 导致 `math.max(nil, …)`（真实 ISUIElement 必有），
+以及区域替换锚点选在了会被别的补丁改写的注释上（改用代码行做锚点）。
+
+**未做**：YeseMarket 版尚未进游戏验证（`docs/test-plan.md` 的 Y1~Y7）；变体的 poster 仍与橙子版同图。
+
+### 十一、YeseMarket 版进游戏第一轮：两个 bug 与"mock 忠实度"这条教训
+
+用户点了一下导航栏那一行，拿到「该页面暂时不可用」，并且按钮名是 `IGUI_YeseMarket_EntryButton`。
+两个都靠读 `~/Zomboid/console.txt` 定位：
+
+1. **页面创建失败**：`Object tried to call nil in Create`，栈指向我们的 `Page.lua:80` ——
+   变体页面是从橙子版派生的，用了橙子独有的 `CreateCardGrid` / `GetDensityMetrics`，
+   而 YeseMarket 的 `UIPrimitives` 里没有这两个（它只有 `CreateList` 等）。
+   修法是让变体的 `Page.lua` 独立实现：`CreateList` + `doDrawItem`（对方自己的页面就这么写），
+   密度用 `UITheme.FontHeight()` 自算。
+2. **按钮名是原始翻译键**：借了对方 `YeseMarket.Text()`，它会强制加 `IGUI_YeseMarket_` 前缀。
+   改成用本模组自己的 `Config.Text.get`。
+
+**真正的教训在测试**：变体的 mock 也是"替换"出来的，于是它提供了真实上游并不存在的原语 ——
+**离线测试 34/34 全绿，游戏里必炸**。这类"绿着的测试"比红着的更危险。
+现在把 mock 改成**只提供 YeseMarket 真实存在的原语**（删掉 `CreateCardGrid`/`GetDensityMetrics`），
+并做了失败实验验证：把变体页面改回 `CreateCardGrid`，用例 19 立刻报
+`attempt to call a nil value (field 'CreateCardGrid')`。
+
+**可复用的原则**：跨模组 fork 时，**mock 要按目标模组的真实 API 面重建，不能按来源模组替换** ——
+替换出来的 mock 会把"来源模组的方言"当成"目标模组的契约"，从而系统性地漏掉整类不兼容。

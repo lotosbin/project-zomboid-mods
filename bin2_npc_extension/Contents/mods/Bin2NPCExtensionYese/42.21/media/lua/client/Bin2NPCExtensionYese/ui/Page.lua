@@ -1,19 +1,21 @@
 --[[
     Bin2NPCExtensionYese :: ui/Page（client）
 
-    注册进YeseMarket的页面系统（公开 API）：
-        YeseMarket.UIPageRegistry.Register("bin2NpcRecruit", Page.Create)
+    招募面板。与橙子经济版的**行为相同、容器不同**，所以这个文件在变体里是**独立实现**：
 
-    页面契约照抄对方自己的 ui/pages/tasks.lua：
-        Create(context) -> ISPanel，可选 activate/deactivate/relayout/refresh/render。
+      * 橙子经济有 `UIPrimitives.CreateCardGrid`（带 `drawCard`/`onCardSelected`/`setOffset`），
+        YeseMarket **没有**；它只有 `CreateList`（`ISScrollingListBox` 的派生类，见
+        `client/ui/primitives.lua:443/620`）。所以这里改用 `CreateList` + 自定义 `doDrawItem`，
+        选中回调走 `list.onmousedown` + `list.target`（`client/ui/pages/goods.lua:432-435` 的写法）。
+      * YeseMarket 也**没有** `GetDensityMetrics`（那是橙子经济的），改为用
+        `UITheme.FontHeight(UIFont.Small, 16)` 自己算行高/按钮高（`client/ui/theme.lua:81`）。
+      * `UITheme.DrawRoundedSurface(ui, x, y, w, h, {fill=…, border=…, alpha=…, borderAlpha=…, radius=…})`
+        的选项名与橙子版略有差别（它用 `alpha`，橙子用 `fillAlpha`）—— 见 `client/ui/theme.lua:278-291`。
 
-    三个页签：
-        名册（我的雇员）／收编（身边现成的 NPC）／中介（花钱让 A-Life 现造一个）
+    其余的页面契约（`relayout` / `activate` / `deactivate` / `render` / `refresh`、文本区与按钮块
+    互不重叠的几何关系）与橙子版保持一致，所以两边可以共用同一套离线几何断言。
 ]]
 
--- 这两个 require 指向引擎与橙子经济的文件。橙子经济是本模组的硬依赖，正常一定在；
--- 但如果有人在缺依赖的情况下强行启用本模组，也不该让本文件在加载期就报错 ——
--- 用 pcall 包住，缺东西时 Entry.install 会先返回 false，Page.Create 根本不会被调用。
 if type(require) == "function" then
     pcall(require, "ISUI/ISPanel")
     pcall(require, "ui/page_registry")
@@ -31,6 +33,7 @@ Config.RecruitPage = Page
 Page.ID = "bin2NpcRecruit"
 
 local T = Config.Text.get
+local ROW_HEIGHT = 92
 
 local function add(parent, child)
     child:initialise()
@@ -46,7 +49,6 @@ local function coins(value)
     return string.format("%.2f", math.floor((tonumber(value) or 0) * 100 + 0.5) / 100)
 end
 
--- 契约状态 → 卡片强调色
 local function statusColor(colors, status)
     if status == "dead" then return colors.Danger end
     if status == "dismissed" then return colors.TextWeak end
@@ -54,9 +56,25 @@ local function statusColor(colors, status)
     return colors.Success
 end
 
+-- YeseMarket 没有 GetDensityMetrics：按字体高度自己算一套（缺 theme 时给保守值）
+local function density(context)
+    local fontHeight = 16
+    local theme = context and context.theme or nil
+    if theme ~= nil and type(theme.FontHeight) == "function" then
+        local ok, value = pcall(theme.FontHeight, UIFont.Small, 16)
+        if ok and tonumber(value) ~= nil then fontHeight = math.max(12, math.floor(tonumber(value))) end
+    end
+    return {
+        lineHeight = math.max(18, fontHeight + 5),
+        buttonHeight = math.max(30, fontHeight + 14),
+    }
+end
+
 function Page.Create(context)
     local ui = context.primitives
-    local colors = context.theme.Colors
+    local theme = context.theme
+    local colors = theme.Colors
+    local metrics = density(context)
 
     local page = ISPanel:new(0, 0, 1, 1)
     page.background, page.border = false, false
@@ -66,7 +84,7 @@ function Page.Create(context)
     page.selectedCandidate = nil
     page.pendingMode = nil
     page.lastRect = nil
-    page.lineHeight = 21
+    page.lineHeight = metrics.lineHeight
 
     page.tabRoster = add(page, ui.CreateButton(0, 0, 1, 30, T("TabRoster"), page,
         function(target) target:setMode("roster") end, "action"))
@@ -77,20 +95,11 @@ function Page.Create(context)
     page.refreshButton = add(page, ui.CreateButton(0, 0, 1, 30, T("Refresh"), page,
         function(target) target:requestState(true) end, "muted"))
 
-    page.list = add(page, ui.CreateCardGrid(0, 0, 1, 1, {
-        cardHeight = 96, minCardWidth = 250, maxColumns = 3, gap = 8,
-    }))
-    page.list.onCardSelected = function(list, item, _, index)
-        page.selectedUid = nil
-        page.selectedCandidate = nil
-        if page.mode == "hire" then
-            page.selectedCandidate = item and item.data or nil
-        else
-            page.selectedUid = item and item.data and item.data.uid or nil
-        end
-        list.selected = index or 0
-        page:updateActions()
-    end
+    page.list = add(page, ui.CreateList(0, 0, 1, 1))
+    page.list.itemheight = ROW_HEIGHT
+    page.list.target = page
+    page.list.onmousedown = function(target) target:onListSelected() end
+    page.list.doDrawItem = function(list, y, entry) return page:drawRow(list, y, entry) end
 
     page.modeFollow = add(page, ui.CreateButton(0, 0, 1, 28, T("ModeFollow"), page,
         function(target) target:chooseMode(Config.MODE_FOLLOW) end, "muted"))
@@ -125,7 +134,6 @@ function Page.Create(context)
         if self.lastRect ~= nil then self:relayout(self.lastRect) end
     end
 
-    -- 岗位按钮：名册页改"选中的雇员"，招募/中介页改"这次雇佣用什么岗位"
     function page:chooseMode(mode)
         local wanted = Config.normalizeMode(mode)
         if self.mode == "roster" then
@@ -153,6 +161,21 @@ function Page.Create(context)
             return contract and contract.mode or nil
         end
         return self.pendingMode or Config.defaultMode()
+    end
+
+    -- 列表选中（IScrollingListBox 的 onmousedown 把 list.target 也就是本页传进来）
+    function page:onListSelected()
+        local entry = self.list.items[self.list.selected]
+        local row = entry and entry.item or nil
+        self.selectedUid, self.selectedCandidate = nil, nil
+        if row ~= nil then
+            if self.mode == "hire" then
+                self.selectedCandidate = row
+            else
+                self.selectedUid = row.uid
+            end
+        end
+        self:updateActions()
     end
 
     function page:primaryAction()
@@ -184,51 +207,53 @@ function Page.Create(context)
         self.list.selected = 0
     end
 
-    --[[
-        卡片绘制：三种模式共用一个画法，靠 data.kind 区分。
-    ]]
-    function page.list:drawCard(x, y, width, height, entry, _, selected, hovered)
-        local data = entry and entry.item and entry.item.data or nil
-        if data == nil then return end
-        local theme = page.context.theme
+    -- 一行卡片：四行文本 + 左侧强调条（颜色对应岗位/状态）
+    function page:drawRow(list, y, entry)
+        local data = entry and entry.item or nil
+        local height = tonumber(entry and entry.height) or list.itemheight
+        if type(data) ~= "table" then return y + height end
+
         local accent = data.kind == "candidate"
             and (data.hostile and colors.Danger or colors.Success)
             or statusColor(colors, data.status)
-        theme.DrawRoundedSurface(self, x, y, width, height, {
-            fill = hovered and colors.PanelRaised or colors.Panel,
-            fillAlpha = hovered and 0.82 or 0.66,
-            border = selected and colors.Action or colors.BorderSoft,
-            borderAlpha = selected and 1 or 0.68, radius = 4,
-        })
-        self:drawRect(x + 6, y + 8, 3, height - 16, 0.95, accent.r, accent.g, accent.b)
+        if list.selected == entry.index then
+            theme.DrawRoundedSurface(list, 2, y + 1, math.max(0, list.width - 6), math.max(0, height - 3), {
+                fill = colors.Selection, border = colors.Action, radius = 5,
+            })
+        end
+        list:drawRect(8, y + 8, 3, math.max(0, height - 16), 0.95, accent.r, accent.g, accent.b)
 
-        local lineHeight = page.lineHeight
-        local textX, textWidth = x + 16, math.max(1, width - 30)
-        local textY = y + 10
-        self:drawText(ui.FitText(tostring(data.title or ""), UIFont.Small, textWidth), textX, textY,
+        local textX = 18
+        local textWidth = math.max(1, list.width - 34)
+        local lineHeight = self.lineHeight
+        local textY = y + 8
+        list:drawText(ui.FitText(tostring(data.title or ""), UIFont.Small, textWidth), textX, textY,
             colors.Text.r, colors.Text.g, colors.Text.b, 1, UIFont.Small)
         textY = textY + lineHeight
-        self:drawText(ui.FitText(tostring(data.line1 or ""), UIFont.Small, textWidth), textX, textY,
+        list:drawText(ui.FitText(tostring(data.line1 or ""), UIFont.Small, textWidth), textX, textY,
             colors.TextWeak.r, colors.TextWeak.g, colors.TextWeak.b, 1, UIFont.Small)
         textY = textY + lineHeight
-        self:drawText(ui.FitText(tostring(data.line2 or ""), UIFont.Small, textWidth), textX, textY,
+        list:drawText(ui.FitText(tostring(data.line2 or ""), UIFont.Small, textWidth), textX, textY,
             colors.TextMuted.r, colors.TextMuted.g, colors.TextMuted.b, 1, UIFont.Small)
         textY = textY + lineHeight
-        self:drawText(ui.FitText(tostring(data.line3 or ""), UIFont.Small, textWidth), textX, textY,
+        list:drawText(ui.FitText(tostring(data.line3 or ""), UIFont.Small, textWidth), textX, textY,
             accent.r, accent.g, accent.b, 1, UIFont.Small)
         entry.tooltip = data.tooltip
+        return y + height
     end
 
     function page:rebuild()
         local state = self:state()
-        -- 服务端每 8 秒左右会推一次状态（指令重下），重建时保留滚动位置，
-        -- 否则玩家正在翻名册时列表会自己跳回顶部。
-        local keepOffset = tonumber(self.list.offset) or 0
+        -- 服务端每 8 秒左右会推一次状态，重建时保留滚动位置
+        local keepScroll = 0
+        if type(self.list.getYScroll) == "function" then
+            local ok, value = pcall(self.list.getYScroll, self.list)
+            if ok and tonumber(value) ~= nil then keepScroll = tonumber(value) end
+        end
         self.list:clear()
+
         local rows
         if self.mode == "hire" then
-            -- 服务端的候选快照是"请求时刻"的，可能还包含刚被雇走的人；
-            -- 已经在名册里的直接从列表里滤掉，免得玩家对着一个雇不了的人点按钮。
             local hired = {}
             for _, contract in ipairs(state.contracts or {}) do
                 if contract.status == "active" then hired[contract.uid] = true end
@@ -257,20 +282,14 @@ function Page.Create(context)
                 line3 = extra ~= "" and extra or T("CardHiredFor", coins(row.price or 0))
                 tooltip = title .. "\n" .. line1 .. "\n" .. line2 .. "\n" .. line3
             end
-
-            local card = self.list:addItem(title, {
-                data = { kind = self.mode == "hire" and "candidate" or "contract",
-                    uid = row.uid, status = row.status, hostile = row.hostile,
-                    title = title, line1 = line1, line2 = line2, line3 = line3, tooltip = tooltip },
+            self.list:addItem(title, {
+                kind = self.mode == "hire" and "candidate" or "contract",
+                uid = row.uid, status = row.status, hostile = row.hostile,
+                title = title, line1 = line1, line2 = line2, line3 = line3, tooltip = tooltip,
             })
-            card.title = title
-            if (self.mode == "hire" and self.selectedCandidate ~= nil
-                    and self.selectedCandidate.uid == row.uid)
-                    or (self.mode ~= "hire" and self.selectedUid == row.uid) then
-                self.list.selected = card.index
-            end
         end
-        self.list:setOffset(keepOffset)
+
+        if type(self.list.setYScroll) == "function" then pcall(self.list.setYScroll, self.list, keepScroll) end
         self:updateActions()
     end
 
@@ -315,11 +334,6 @@ function Page.Create(context)
         self:rebuild()
     end
 
-    --[[
-        状态自动刷新：Net.cache 带一个自增 revision，变了就重建列表。
-        联机下服务端是异步推状态回来的，没有这一步玩家点了按钮会"没反应"（直到手动刷新）。
-        只在 render 里做比对，重建本身有变化才发生，所以不会每帧都重排卡片。
-    ]]
     function page:syncState()
         local revision = tonumber(self:state().revision) or 0
         if self.seenRevision ~= revision then
@@ -340,16 +354,8 @@ function Page.Create(context)
     end
 
     --[[
-        右侧面板的排版（**自下而上**）。
-
-        游戏里实测过一次文字压按钮：原来把模式按钮固定在 `listTop + 118`、文本从上往下随便画，
-        行数一多就撞在一起。现在改成先从底部预留固定块，再把文本区夹在中间：
-
-            ┌ 顶部页签行 ┐
-            ├ 列表 / 文本区（文本只画到 textBottom）┤
-            ├ 模式按钮行 ┤
-            ├ 主按钮     ┤  ← 两块**永远预留**（即使当前页签用不到 dismiss），
-            └ 解雇/次按钮┘     这样切页签时按钮不会跳、文本也不会被压
+        右侧面板自下而上排版（与橙子版同一套几何契约：文本区止于模式行上方，
+        按钮块永远预留两块高度，切页签不跳）。
     ]]
     function page:relayout(rect)
         rect = rect or self.lastRect or { x = 0, y = 0, w = self.width, h = self.height }
@@ -361,11 +367,8 @@ function Page.Create(context)
         self:setWidth(rectW)
         self:setHeight(rectH)
 
-        local density = ui.GetDensityMetrics and ui.GetDensityMetrics(UIFont.Small) or nil
-        self.lineHeight = math.max(21, tonumber(density and density.lineHeight) or 21)
-
         local pad, gap = 12, 8
-        local tabHeight = math.max(30, tonumber(density and density.buttonHeight) or 34)
+        local tabHeight = metrics.buttonHeight
         local refreshWidth = 110
         local tabsWidth = math.max(1, math.floor((self.width - pad * 2 - refreshWidth - gap * 4) / 3))
         self.tabRoster:setX(pad); self.tabRoster:setY(10)
@@ -387,7 +390,6 @@ function Page.Create(context)
         local rightWidth = math.max(180, self.width - rightX - pad)
         self.detailX, self.detailY, self.detailW = rightX, listTop, rightWidth
 
-        -- 底部固定块：两个按钮位 + 模式行（**始终预留**，页签切换时不跳）
         local actionHeight = 34
         local modeHeight = math.max(26, tabHeight - 6)
         local actionBlock = actionHeight * 2 + gap
@@ -408,12 +410,10 @@ function Page.Create(context)
         self.dismiss:setX(rightX); self.dismiss:setY(dismissY)
         self.dismiss:setWidth(rightWidth); self.dismiss:setHeight(actionHeight)
 
-        -- 文本区：上自 listTop，下到模式行上方留 6px；渲染时只画得下的行
         self.textTop = listTop
         self.textBottom = math.max(listTop + self.lineHeight, modeY - 6)
     end
 
-    -- 在 [textTop, textBottom] 内逐行画文本；画不下的行直接丢掉（宁可少画，也不要压住按钮）
     function page:drawLines(x, width, startY, lines)
         local y = startY
         local limit = self.textBottom or (self.height or 600)
@@ -445,7 +445,6 @@ function Page.Create(context)
             { text = T("WageLine", coins(prices.wage or 0)), color = colors.TextMuted, gap = 4 },
         }
 
-        -- 依赖状态：缺什么就明说，别让玩家对着没反应的按钮猜
         if capabilities.enabled ~= true then
             lines[#lines + 1] = { text = T("WarnDisabled"), color = colors.Danger }
         end

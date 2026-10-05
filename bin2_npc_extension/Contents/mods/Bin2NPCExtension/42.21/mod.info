@@ -1,7 +1,7 @@
 name=Project A-Life NPC招募 (bin2_npc_extension)(橙子社区经济)
 id=Bin2NPCExtension
 author=bin2
-modversion=0.2.0
+modversion=0.2.1
 versionMin=42.20.0
 description=在「橙子社区经济」里开一家佣兵中介：用社区货币收编身边的 A-Life NPC，或直接下单由 A-Life 派一名新人过来。
 description=<LINE>雇员可以跟随你、守点，或者交给 Jeem Extension 的居民系统去守营地；日薪、名额、价格都可以在沙盒里调。

@@ -88,7 +88,6 @@ local function installNavRow(ui)
     if type(build) ~= "function" or type(layout) ~= "function" then return false end
 
     local primitives = ui.UIPrimitives
-    local text = ui.Text
     if type(primitives) ~= "table" or type(primitives.CreateButton) ~= "function" then return false end
 
     Entry.navInstalled = true
@@ -100,11 +99,9 @@ local function installNavRow(ui)
         local viewport, buttons = self.navigationViewport, self.navButtons
         if viewport == nil or type(buttons) ~= "table" then return end
         if buttons[Entry.NAV_ID] ~= nil then return end
-        local title = "NPC Recruit"
-        if type(text) == "function" then
-            local ok, value = pcall(text, "EntryButton")
-            if ok and type(value) == "string" and value ~= "" then title = value end
-        end
+        -- 用自己的翻译表：YeseMarket.Text 会强制加 `IGUI_YeseMarket_` 前缀，
+        -- 拿我们的键去查会原样返回键名（游戏里按钮名就会显示成 IGUI_YeseMarket_EntryButton）。
+        local title = Config.Text.get("EntryButton")
         local button = primitives.CreateButton(0, 0, 1, 1, title, self, function(target, clicked)
             if clicked ~= nil and clicked.pageId ~= nil then
                 target:setPage(clicked.pageId)

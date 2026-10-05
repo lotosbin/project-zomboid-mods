@@ -1,3 +1,18 @@
+版本 0.2.1 (2026-10-05)
+- 修复（YeseMarket 版进游戏实测暴露的两个问题）：
+  1. **招募页打不开**，界面弹出「该页面暂时不可用」。根因：橙子经济的 UI 原语 `CreateCardGrid`
+     与 `GetDensityMetrics` 在 YeseMarket 里**不存在**（它只有 `CreateList` 等），
+     `Page.lua` 直接调到了 nil。修法：变体的 `ui/Page.lua` 改为独立实现 ——
+     用 `CreateList` + 自定义 `doDrawItem`（YeseMarket 自己的页面就是这么做的），
+     行高/按钮高改用 `UITheme.FontHeight()` 自己算。
+  2. **导航按钮显示成原始翻译键**（`IGUI_YeseMarket_EntryButton`）。根因：借了对方的
+     `YeseMarket.Text()`，它会给键强制加 `IGUI_YeseMarket_` 前缀，而我们的键在自己的命名空间里。
+     修法：改用本模组自己的翻译表 `Config.Text.get("EntryButton")`。
+- 工程：把"mock 忠实于上游真实 API"落成约束 —— 变体测试的 mock 里**删掉**了
+  `CreateCardGrid` / `GetDensityMetrics`，页面要是再依赖它们，离线测试会当场报
+  `attempt to call a nil value`，而不是绿着进游戏才炸（已做失败实验验证）。
+- 版本号 0.2.0 → 0.2.1（mod.info / Config.VERSION / 工坊简介）
+
 版本 0.2.0 (2026-10-05)
 - 新增：同一物品里的第二个模组 `Bin2NPCExtensionYese` —— 同一套招募功能，配 YeseMarket（工坊 3735641567）
   * 与 Project A-Life Jeem Extension 的兼容方式、岗位、名册、日薪等与橙子版完全一致
