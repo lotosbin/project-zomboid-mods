@@ -1,5 +1,6 @@
 version=1
-title=橙子社区经济: NPC 招募扩展 (bin2_npc_extension) - A-Life / Jeem (Build 42)
+id=3813914438
+title=Project A-Life NPC 招募扩展 (bin2_npc_extension ) - A-Life / Jeem (Build 42)
 description=[h1]用社区货币雇佣 A-Life NPC[/h1]
 description=给「橙子社区经济」（Orange Community Economy）加开一家佣兵中介：
 description=花社区货币把身边的 A-Life NPC 收编成雇员，或者直接下单让 A-Life 现造一名新人交给你。
@@ -69,4 +70,4 @@ description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-
 description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
 description=[ ------ ]
 tags=Build 42;Misc;Multiplayer;QoL;WIP
-visibility=private
+visibility=public
