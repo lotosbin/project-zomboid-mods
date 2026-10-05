@@ -2671,3 +2671,52 @@ description=[/list]
 **数字**：Lua 语法 28 文件 0 失败；两套离线测试各 **35/35**；`--check` 一致；
 `check_all.sh` → `ALL CHECKS PASSED (18 item(s))`（本物品简介 7247 字节）。
 版本 0.2.1 → 0.2.2。
+
+---
+
+## 2026-10-05 · 「居民化被拒」其实是他已经是居民：把幂等当红线（0.2.3）
+
+用户截图：招募面板里两名雇员的第三行写着「居民化被拒（resident（上游返回）），已降级为跟随」，
+岗位「跟随」、状态「在岗」—— 可他们的 `console.txt` 里明明是队友：
+`[ALIFE-JIMMY] npc safety: hit on …: blocked (your resident)`、`1 back from scavenge`、
+`residents: bin2 invited 1 (…:81289) to base base:1 '河畔警察局'`。**人是对的，界面在撒谎。**
+
+**顺着那句 `resident` 找源头**：它不是我们的失败，是 Jeem 的拒绝码，定义在
+`3806944055/mods/ProjectALifeJimmy/42/media/lua/server/ProjectALifeJimmy/Features/Residents/Server.lua:577`
+`if R.residentOf(record) then return nil, "resident" end` —— 含义是「**他已经是居民了**」，
+是**幂等的成功**；`R.residentOf`（`…/shared/ProjectALifeJimmy/Features/Residents/Residents.lua:120`）
+读的是 `memory.jimmyResident`。
+
+**触发路径是必然会走到的**：roster 页那颗「应用岗位」发出的 mode 就是"当前岗位"
+（`ui/Page.lua`：`mode = self.pendingMode or contract.mode`），而岗位按钮当时是"点一下立刻发" SetMode ——
+于是"对已经是居民的人再应用一次居民"＝请 Jeem 再收编一次 → 被拒 → 我们当失败 → 契约降级 follow +
+note `resident:resident`。界面上那句话之所以是上游术语，是因为 `Text.lua` 的 REASONS 表**没穷举**
+Jeem 的拒绝码，落到了 `ReasonUpstream` 兜底。最糟的是降级**写坏了缓存**：契约 mode 变 follow 后，
+`Service.setMode` 只在"缓存说自己是居民"时才调 `leaveOne`，玩家再点「居民」也永远回不去。
+
+**修法（v0.2.3，两个口味；变体由 `tools/fork_variant.py` 生成）**：
+
+| 层 | 改动 |
+| --- | --- |
+| 服务端幂等 | `Service.applyMode` 先读 Jeem 权威状态（`Jimmy.residentEntry` + `Jimmy.canManage`），已是居民即算成功；`Jimmy.recruit` 同样快速返回；`resident` 码再兜一层 |
+| 自愈 | `Maintain.reconcile`（30 秒一次，进世界第一次立刻跑）双向对账：事实居民/契约跟随 → 改回居民；事实非居民/契约居民 → 落回跟随并写 `left_residence` |
+| 扣款前把关 | `hireExisting` 拦住已是居民的人（`already_resident`）；`dismiss`/`setMode` 按权威状态决定是否 `leaveOne`，`busy` 如实拒绝（`leave_busy`） |
+| 整队收编 | `R.recruit` 收的是整支小队 → 新增 `Service.adoptJoined`，被一起带进来的契约同步改居民 |
+| 文案 | `Text.lua` 穷举 Jeem 拒绝码（resident / not_allied / no_beds / …），新增 19 个 CN/EN 键（73 → 92），未知码才落兜底 |
+| 客户端 | 岗位按钮改为"选岗位 → 点应用岗位"两步，`primaryAction` 不再重发当前岗位；结果码带 `*_degraded:<原因>`，提示改成「已处理（有降级）：<原因>」；`Net.apply` 用服务端单调 `seq` 去重 |
+
+最后那条去重是有实据的：同一份 payload 会走 dispatch 返回值与 `sendServerCommand` 两条路，
+这就是截图里聊天栏**连刷 5 条**「招募操作已完成。」的原因。
+
+**测试**：基模组 **39/39**、变体 **39/39**。新增用例 36（重复应用居民必须幂等）、37（已是居民者在付费前被拒）、
+38（Maintain 双向对账）、39（真失败仍降级且原因是人话）。测试基建也补了一层：`run.js` 把**真实 CN 文案**
+注入 `Config.__cnText`，`MOCK.useCnTranslations()` 打开后可以直接断言"玩家实际读到的那句中文"。
+**失败实验**：同时撤掉 Service 的幂等预读与 `Jimmy.recruit` 的快速返回 → 用例 36 立刻红
+（`mode_degraded:resident:…`、mode 变 follow、写出降级 note），与截图现象一致。
+
+> 沉淀：**契约里的状态是缓存，对方模组的 memory 才是事实。** 缓存可以领先也可以落后，
+> 所以每次改状态前都要重读事实，并配一个周期对账自愈；判定"失败"之前先问一句"这是不是幂等的成功"
+> —— Jeem 的 `resident` 码就是这种"已经是了"的成功。
+> 另外两条：**幂等不是可选项**（UI 上任何"应用当前设置"的按钮都会重发同一个请求，客户端还要去重）；
+> **不可观测 = 不可诊断**（降级原来只在沙盒 DebugLog 打开时才打日志，线上只能猜 ——
+> 现在降级一律 `Config.always`，拒绝码全部有中文文案）。

@@ -27,6 +27,9 @@ const TEST_DIR = __dirname;
 const MOD_VERSION_DIR = path.resolve(TEST_DIR, '..', '..', 'Contents', 'mods', 'Bin2NPCExtension', '42.21');
 const MEDIA_LUA_DIR = path.join(MOD_VERSION_DIR, 'media', 'lua');
 const TRANSLATE_DIR = path.join(MEDIA_LUA_DIR, 'shared', 'Translate');
+
+/** 语言 -> { 完整键: 文案 }。测试用 MOCK.useCnTranslations() 打开，就能断言真实文案。 */
+const textsByLanguage = {};
 const MOCK_FILE = path.join(TEST_DIR, 'mock_env.lua');
 const TEST_FILE = path.join(TEST_DIR, 'test_recruit.lua');
 
@@ -351,6 +354,7 @@ function loadTranslations() {
             die(`invalid JSON in ${file}: ${error.message}`);
         }
         const keys = new Set();
+        const texts = {};
         const prefix = 'IGUI_Bin2NPCExtension_';
         for (const full of Object.keys(parsed)) {
             if (typeof parsed[full] !== 'string' || parsed[full] === '') {
@@ -358,8 +362,10 @@ function loadTranslations() {
             }
             if (!full.startsWith(prefix)) die(`${language}: key without our prefix: ${full}`);
             keys.add(full.slice(prefix.length));
+            texts[full] = parsed[full];
         }
         result[language] = keys;
+        textsByLanguage[language] = texts;
     }
     return result;
 }
@@ -372,12 +378,16 @@ function installStaticKeys(L) {
 
     const luaArray = (values) => `{ ${[...values].sort().map((v) => `"${v}"`).join(', ')} }`;
     const luaSet = (values) => `{ ${[...values].map((v) => `["${v}"] = true`).join(', ')} }`;
+    const luaMap = (map) => `{ ${Object.keys(map).sort()
+        .map((k) => `[${JSON.stringify(k)}] = ${JSON.stringify(map[k])}`).join(', ')} }`;
 
     const code = `
 Bin2NPCExtension = Bin2NPCExtension or {}
 Bin2NPCExtension.__sourceKeys = ${luaArray(all)}
 Bin2NPCExtension.__cnKeys = ${luaSet(translations.CN)}
 Bin2NPCExtension.__enKeys = ${luaSet(translations.EN)}
+Bin2NPCExtension.__cnText = ${luaMap(textsByLanguage.CN)}
+Bin2NPCExtension.__enText = ${luaMap(textsByLanguage.EN)}
 Bin2NPCExtension.__loadedCount = ${MOD_FILES.length}
 Bin2NPCExtension.__requireNames = ${luaArray(REQUIRE_NAMES)}
 Bin2NPCExtension.__moduleFileCount = ${MOD_FILES.length}

@@ -18,7 +18,7 @@ local Config = Bin2NPCExtension
 require "Bin2NPCExtension/Text"
 
 Config.MODULE = "Bin2NPCExtension"       -- 必须等于 mod.info 的 id
-Config.VERSION = "0.2.2"
+Config.VERSION = "0.2.3"
 Config.TAG = "Bin2NPCExtension.Contracts.v1"   -- 我们自己的 ModData 存档表
 
 --[[

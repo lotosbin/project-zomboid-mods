@@ -416,3 +416,53 @@ follow   → Alife.orderFollow(player, uid, quiet)
 > 这两轮（11.6 容器原语、11.7 同盟门槛）暴露的是同一个方法论问题：
 > **mock 必须按目标模组的真实实现重建**。凡是 mock 比真实实现"更宽松"的地方，
 > 就是下一个会在游戏里爆炸的地方。
+
+### 11.8 第三轮进游戏：队友被误报成「居民化被拒」（v0.2.3 修复）
+
+**现象**（用户截图，YeseMarket 版）：名册里两名雇员的第三行写着
+「居民化被拒（resident（上游返回）），已降级为跟随」，岗位「跟随」、状态「在岗」；
+而这两名 NPC 在 Jeem 那边**其实是居民**（`console.txt` 里有
+`npc safety: hit on … blocked (your resident)`、`1 back from scavenge`、
+`residents: bin2 invited 1 (…:81289) to base base:1 '河畔警察局'`）。
+
+**证据链**：
+
+| 证据 | 位置 | 内容 |
+| --- | --- | --- |
+| 拒绝码 | `…/server/ProjectALifeJimmy/Features/Residents/Server.lua:577` | `if R.residentOf(record) then return nil, "resident" end` —— `resident` 的真实含义是"**他已经是居民了**"，不是失败 |
+| 事实来源 | `…/shared/ProjectALifeJimmy/Features/Residents/Residents.lua:120` | `R.residentOf(record)` = `record.memory.jimmyResident`（带 `baseId`/`index`） |
+| 必然路径 | `client/…/ui/Page.lua`（roster 页） | 「应用岗位」发的是 `mode = self.pendingMode or contract.mode`，而岗位按钮当时是点一下立刻发 —— 于是"对已经是居民的人再应用一次居民"**必然**被走到 |
+| 文案兜底 | `shared/…/Text.lua` 的 `REASONS` | 没有穷举 Jeem 的拒绝码，于是面板显示 `resident（上游返回）` 而不是人话 |
+| 缓存写坏 | `server/…/Service.lua:setMode` | 只有"缓存说自己是居民"时才调 `leaveOne`；降级把缓存改成 follow 之后，玩家再点多少次「居民」都回不去 |
+
+**根因**：我们把契约里的 `mode` 当成事实，而它只是 Jeem `memory.jimmyResident` 的**缓存**；
+把一次**幂等的成功**（"他已经是居民"）当成了失败。
+
+**修法（服务端幂等 + 双向对账 + 客户端不再重发）**：
+
+* `Service.applyMode` 先读权威状态（`Jimmy.residentEntry` + `Jimmy.canManage`）：
+  已经是居民就直接成功（写回 `baseId`、清 note），`Jimmy.recruit` 同样先返回；
+  `resident` 拒绝码再兜一层（检查与调用之间成了居民的情况）；
+* `Maintain.reconcile`（30 秒一次，进世界第一次立刻跑）双向对账：事实是居民 → 改回 `resident`；
+  事实不是居民 → 落回 `follow` 并写 `left_residence`；
+* `hireExisting` 在**扣款前**拦住已经是居民的 NPC（`already_resident`）；
+  `dismiss`/`setMode` 按权威状态决定要不要 `leaveOne`，Jeem 说 `busy` 时如实拒绝（`leave_busy`）；
+* `R.recruit` 收编的是整支小队 → `Service.adoptJoined` 把被一起带进来的契约同步改成居民；
+* `Text.lua` 穷举 Jeem 的拒绝码（新增 19 个 CN/EN 键，73 → 92）；
+* 客户端：「选岗位 → 点应用岗位」两步，`primaryAction` 只在岗位**确实变了**时才发；
+  结果码带 `*_degraded:<原因>`，提示改为「已处理（有降级）：<原因>」；
+  `Net.apply` 用服务端单调 `seq` 去重（同一份 payload 会走 `dispatch` 返回值与
+  `sendServerCommand` 两条路 —— 那是聊天栏连刷 5 条「招募操作已完成。」的原因）；
+* 降级路径改用 `Config.always` 打日志（以前只在沙盒 `DebugLog` 打开时才打，线上只能靠猜）。
+
+**离线覆盖**：用例 36（重复应用同一岗位必须幂等）、37（已是居民的人在付费前被拒）、
+38（对账双向自愈）、39（真失败仍降级，且原因是**人话**）；用例 19 增加了
+"选岗位不发命令、岗位没变不重发"的流程断言。
+**失败实验**：把幂等预读与 `Jimmy.recruit` 的快速返回同时撤掉，用例 36 立刻变红
+（`mode_degraded:resident:…`、岗位变 follow、写出降级 note），与截图现象一致。
+
+> 沉淀的判断（已同步进 `docs/rolling_log.md`）：
+> 1. 契约里的状态是**缓存**，对方模组的 memory 才是事实 —— 改状态前重读事实，并配周期对账自愈；
+>    判定"失败"之前先问一句"这是不是幂等的成功"。
+> 2. 幂等不是可选项：UI 上任何一个"应用当前设置"的按钮，都会把同一个请求重复发出去。
+> 3. 不可观测 = 不可诊断：降级必须留下始终可见的日志，拒绝码必须有本地化文案。

@@ -89,6 +89,8 @@ function Page.Create(context)
             page.selectedUid = item and item.data and item.data.uid or nil
         end
         list.selected = index or 0
+        -- 换人就把"待应用岗位"清掉：别把上一个人选的岗位带到他头上
+        page.pendingMode = nil
         page:updateActions()
     end
 
@@ -119,23 +121,30 @@ function Page.Create(context)
     function page:setMode(mode)
         self.mode = tostring(mode or "roster")
         self.selectedUid, self.selectedCandidate = nil, nil
+        self.pendingMode = nil
         self.list.selected = 0
         self:requestState(true)
         self:rebuild()
         if self.lastRect ~= nil then self:relayout(self.lastRect) end
     end
 
-    -- 岗位按钮：名册页改"选中的雇员"，招募/中介页改"这次雇佣用什么岗位"
+    --[[
+        岗位按钮：名册页改"选中的雇员"，招募/中介页改"这次雇佣用什么岗位"。
+
+        名册页只**选中**岗位、不立刻发命令 —— 由右下角「应用岗位」发。
+        为什么改成两步：以前这里立刻发 SetMode，而「应用岗位」又会把"当前岗位"
+        再发一遍（`mode = pendingMode or contract.mode`）。对已经是居民的人来说，
+        那第二次等于请求 Jeem"再收编一次"，Jeem 会回 `resident`（他已经是居民了），
+        旧服务端把它当失败降级成了跟随 —— 玩家看到「居民化被拒…已降级为跟随」。
+        服务端现在幂等了（见 Service.applyMode），这里再把这条路径从根上取消。
+    ]]
     function page:chooseMode(mode)
         local wanted = Config.normalizeMode(mode)
         if self.mode == "roster" then
-            local contract = self:selectedContract()
-            if contract == nil then return end
-            Net.send("SetMode", { uid = contract.uid, mode = wanted }, true)
-        else
-            self.pendingMode = wanted
-            self:updateActions()
+            if self:selectedContract() == nil then return end
         end
+        self.pendingMode = wanted
+        self:updateActions()
     end
 
     function page:selectedContract()
@@ -150,7 +159,8 @@ function Page.Create(context)
     function page:activeMode()
         if self.mode == "roster" then
             local contract = self:selectedContract()
-            return contract and contract.mode or nil
+            -- 选过但还没应用的岗位也要能看出来（高亮跟着它走）
+            return self.pendingMode or (contract and contract.mode) or nil
         end
         return self.pendingMode or Config.defaultMode()
     end
@@ -169,10 +179,11 @@ function Page.Create(context)
         else
             local contract = self:selectedContract()
             if contract == nil then return end
-            Net.send("SetMode", {
-                uid = contract.uid,
-                mode = self.pendingMode or contract.mode,
-            }, true)
+            local wanted = self.pendingMode
+            -- 没选岗位、或者选的跟现在一样：什么都不发（别再请求一次"再收编一次"）
+            if wanted == nil or wanted == Config.normalizeMode(contract.mode) then return end
+            Net.send("SetMode", { uid = contract.uid, mode = wanted }, true)
+            self.pendingMode = nil
         end
     end
 
@@ -305,7 +316,14 @@ function Page.Create(context)
             self.dismiss:setVisible(false)
         else
             self.primary:setTitle(T("ApplyMode"))
-            self.primary:setEnable(ready and contract ~= nil)
+            --[[
+                只有"选了新岗位"才让点：旧代码这里是 `contract ~= nil`，
+                于是玩家随手点一下「应用岗位」就会把当前岗位再发一遍 ——
+                对居民来说那等于请求 Jeem 再收编一次（他已经是居民了 → 被拒 → 降级）。
+            ]]
+            self.primary:setEnable(ready and contract ~= nil
+                and self.pendingMode ~= nil
+                and self.pendingMode ~= Config.normalizeMode(contract.mode))
             self.dismiss:setVisible(contract ~= nil)
             self.dismiss:setEnable(contract ~= nil)
         end

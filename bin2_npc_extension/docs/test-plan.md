@@ -1,4 +1,4 @@
-# Bin2NPCExtension 进游戏测试清单（T1~T18）
+# Bin2NPCExtension 进游戏测试清单（T1~T20 / M1~M4 / Y1~Y12）
 
 > 前提：装了 `OrangeCommunityEconomy` + `ProjectALifeNPCs` (+ 可选 `ProjectALifeJimmy`)，
 > 本仓库 `bin2_npc_extension` 已软链到 `~/Zomboid/mods/Bin2NPCExtension` 并在游戏 Mods 里启用。
@@ -31,6 +31,8 @@ ln -sfn "$PWD/bin2_npc_extension/Contents/mods/Bin2NPCExtension" ~/Zomboid/mods/
 | E 岗位 | T16 没装 Jeem 时点居民 | 退化为跟随，面板显示原因；日志 `resident conversion unavailable` | — |
 | F 运维 | T17 读档 | 指令恢复（≤8 秒），名册仍在，无重复 NPC | `restored orders for active contracts` |
 | F 运维 | T18 工资 / 阵亡 / 欠薪 | 跨 24 小时扣一次日薪（`wage … paid`）；余额清零后 `unpaid=true`，超宽限期自动解约；杀死雇员后名册显示「阵亡」且名额释放 | `Maintain.settleWages` / `Maintain.tick` |
+| E 岗位 | T19 对一名**已经是居民**的雇员反复点「居民 → 应用岗位」 | 岗位稳定显示「居民」，`最近事件` 为空；不再出现「居民化被拒（resident（上游返回））」；控制台无 `resident conversion refused` | 服务端幂等预读（`Service.applyMode` / `Jimmy.residentEntry`）；若仍报，说明直接调了 `R.recruit` |
+| E 岗位 | T20 让 NPC 在**面板之外**变成居民（Jeem 右键「邀请入住」，或让同小队的另一名契约带他一起入住） | 30 秒内名册那一行自动变成「岗位：居民」；控制台出现 `reconcile: <uid> is a Jeem resident (base …) but this contract said follow; corrected to resident` | `Maintain.reconcile`；`Maintain.restore` 进世界会把对账时间戳清零 |
 
 ## 多人补充（专用服，用非管理员账号）
 
@@ -49,7 +51,9 @@ T7：结果=通过/失败；console 关键行=<粘贴 5~10 行>；截图=<文件
 
 ## 明确未验证的部分（写工坊声明时不要美化）
 
-* `StandingService.addGroup(key, groupId, factionId, 400)` 是否真能把 `R.isAlly` 变成真
+* ~~`StandingService.addGroup(key, groupId, factionId, 400)` 是否真能把 `R.isAlly` 变成真~~
+  —— **已进游戏验证**（v0.2.2 那轮：签约后 Jeem 自己记账 `residents: bin2 invited 1 (…) to base base:1`，
+  即 `R.recruit` 的 `not_allied` 门槛已通过）
 * 转居民时「整支小队一起进营地」的实际观感
 * 首页按钮与「社区中心」按钮的排布是否永远不重叠（对方改布局就会变）
 * 与其它 NPC 模组（Bandits2、The Mutants 等）的共存
@@ -69,6 +73,8 @@ T7：结果=通过/失败；console 关键行=<粘贴 5~10 行>；截图=<文件
 | Y 功能 | Y6 收编 / 派遣 / 岗位 / 工资 / 解雇 | 与 T6~T18 相同；货币显示为「金币」 | 记账看 `RecordPlayerFlow` 的 out/in 两行 |
 | Y 队友 | Y10 用面板雇一名 NPC（跟随）→ 让他当居民/队友 | 能成功：`labelFor == allied`（或小队点数 ≥50），Jeem 右键「邀请入住」也能过 | 控制台应有 `standing <faction> -> allied (was hostile), group … = 400 (needs >= 50)`；若报 `not_allied`，说明签约时没垫声望 |
 | Y 队友 | Y11 把沙盒 `MakeAllied` 关掉再雇 | 雇得成，但转居民会被拒（`not_allied`）—— 这是选项的预期行为 | 这时需要玩家自己刷 Jeem 声望 |
+| Y 岗位 | Y12 「应用岗位」的两步流程 | 点「跟随/守卫/居民」只高亮选中、**不发命令**；再点「应用岗位」才生效；岗位没变时按钮是灰的（不重发 = 不再触发 `resident` 拒绝） | 这轮线上 bug 的根因就在"按钮点一下立刻发 + 应用又发当前岗位" |
+| Y 岗位 | Y13 拒绝原因的文案 | 所有岗位失败都显示中文原因（如「床位不够」「他们对你信任不足（需要同盟关系）」），**不出现**「（上游返回）」 | `Text.lua` 的 REASONS 是否穷举了 Jeem 的拒绝码；未知码才走兜底 |
 | Y 共存 | Y7 两个口味同时启用 | 两个界面各自可开；**同一个 NPC 只能被一边雇走**（另一边报「已被其他玩家雇佣」） | `Service.takenBySibling` 互查 |
 | Y 界面 | Y8 看导航那一行的按钮文字 | 显示「NPC 招募」，**不是** `IGUI_YeseMarket_EntryButton` 这种原始键 | 标题必须取自本模组自己的翻译表（对方 `Text()` 会强制加它自己的前缀） |
 | Y 界面 | Y9 招募页里的雇员/候选列表 | 每行是四行信息的卡片样式，点击能选中（高亮），滚动正常 | 列表用 `CreateList` + `doDrawItem`；若报 `call nil`，说明又用了橙子独有的 `CreateCardGrid` |

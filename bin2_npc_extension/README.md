@@ -3,7 +3,7 @@
 > **经济模组 × A-Life 的 NPC 招募扩展**（一个工坊物品，两个口味）
 > Mod ID：`Bin2NPCExtension`（橙子社区经济版）/ `Bin2NPCExtensionYese`（YeseMarket 版）
 > 工坊 id：**3813914438**（已发布，public）｜ 归属：`bin2` 系列
-> 状态：已进游戏跑通基础流程，完整清单（`docs/test-plan.md` T1~T18）未跑完
+> 状态：已进游戏跑通基础流程，完整清单（`docs/test-plan.md` T1~T20 / M1~M4 / Y1~Y12）未跑完
 > 建档：2026-10-05
 
 ---
@@ -14,7 +14,9 @@
 
 * **收编**（便宜）：把你身边已有的 A-Life NPC 用社区货币签下来，成为你的雇员；
 * **中介派遣**（贵）：直接在招募面板下单，由 A-Life 在你身边**生成**一名新的友好 NPC 交给你；
-* **雇员岗位**：跟随（A-Life 原生 follow）／守卫／居民（交给 Jeem Extension 的居民系统）；
+* **雇员岗位**：跟随（A-Life 原生 follow）／守卫／居民（交给 Jeem Extension 的居民系统）。
+  名册页的岗位按钮是"选中 → 点「应用岗位」"两步；契约上的岗位只是**缓存**，
+  每次改状态前都会先读一遍 Jeem 的 `memory.jimmyResident`，并每 30 秒对账一次（见 `docs/design.md` §11.8）；
 * **运维**：雇员名册、解雇、岗位切换、日薪（欠薪会走人）、名额上限、死亡自动清理。
 
 三个依赖各自**软挂接**，缺任何一个都只降级、不报错：
@@ -60,7 +62,7 @@ bin2_npc_extension/
 ├── workshop.txt / preview.png / changelog.txt      ← 工坊物品根（只有 Contents/ 会被打包）
 ├── docs/
 │   ├── design.md                                   设计文档（架构/数据模型/降级矩阵/稳定性评级/风险）
-│   ├── test-plan.md                                进游戏测试清单 T1~T18 + 多人 M1~M4
+│   ├── test-plan.md                                进游戏测试清单 T1~T20 + 多人 M1~M4 + YeseMarket Y1~Y12
 │   └── research/                                   两端扩展点逆向报告
 │       ├── economy-integration-hooks.md            橙子经济的 UI / 协议 / 货币 / 翻译扩展点
 │       └── jeem-recruit-api.md                     Jeem 招募链路 + A-Life 生成/跟随 API
@@ -142,4 +144,4 @@ ln -sfn "$PWD" ~/Zomboid/Workshop/bin2_npc_extension
 bash bin2_workshop_upload_fix/tools/pz_workshop_probe/run.sh "" ~/Zomboid/Workshop/bin2_npc_extension
 ```
 
-过程记录见仓库 `docs/rolling_log.md`；进游戏验证按 `docs/test-plan.md` 的 T1~T18 逐条跑。
+过程记录见仓库 `docs/rolling_log.md`；进游戏验证按 `docs/test-plan.md` 的 T1~T20 逐条跑。

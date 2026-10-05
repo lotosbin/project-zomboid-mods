@@ -43,6 +43,9 @@ Net.cache = Net.cache or {
     candidates = nil,
 }
 
+-- 最近一次**已经提示过**的结果序号（服务端 Service 单调递增，见 Net.apply 的去重）
+Net.resultSeq = nil
+
 -- 自增序号：给改状态命令做幂等键（服务端用它去重，防连点/重放）
 local sequence = 0
 
@@ -81,19 +84,35 @@ function Net.apply(payload)
     if payload.candidates ~= nil then cache.candidates = payload.candidates end
     if tonumber(payload.candidateRadius) ~= nil then cache.candidateRadius = tonumber(payload.candidateRadius) end
     if type(payload.result) == "table" then
-        cache.result = payload.result
-        Net.notify(payload.result)
+        --[[
+            只提示"新"结果：主机（自己开服）下同一份 payload 会走两条路到手
+            （dispatch 的返回值 + sendServerCommand 的回包），没有这道序号闸，
+            一次操作会弹两遍提示（本轮线上"招募操作已完成。"连刷 5 条）。
+        ]]
+        local seq = tonumber(payload.result.seq)
+        if seq == nil or seq ~= Net.resultSeq then
+            Net.resultSeq = seq
+            cache.result = payload.result
+            Net.notify(payload.result)
+        end
     end
     return cache
 end
 
--- 操作结果反馈：优先借用橙子经济的电台提示，退到 HaloNote
+--[[
+    操作结果反馈：优先借用橙子经济的电台提示，退到 HaloNote。
+
+    `*_degraded:<原因>` 是"操作成了、但岗位被降级"（例如钱收了却只给到跟随）。
+    旧代码一律显示"招募操作已完成"，玩家只能自己在名册里找线索；现在直接把原因说出来。
+]]
 function Net.notify(result)
     local code = tostring(result.code or "")
     local ok = result.ok == true
     local message
     if ok then
-        message = Config.Text.get("NoticeDone")
+        local reason = string.match(code, "^%w+_degraded:(.+)$")
+        message = reason ~= nil and Config.Text.get("NoticeDegraded", Config.Text.reason(reason))
+            or Config.Text.get("NoticeDone")
     else
         message = Config.Text.get("NoticeFailed", Config.Text.reason(code))
     end

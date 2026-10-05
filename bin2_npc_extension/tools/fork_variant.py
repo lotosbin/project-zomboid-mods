@@ -212,6 +212,7 @@ function Page.Create(context)
     function page:setMode(mode)
         self.mode = tostring(mode or "roster")
         self.selectedUid, self.selectedCandidate = nil, nil
+        self.pendingMode = nil
         self.list.selected = 0
         self:requestState(true)
         self:rebuild()
@@ -220,14 +221,9 @@ function Page.Create(context)
 
     function page:chooseMode(mode)
         local wanted = Config.normalizeMode(mode)
-        if self.mode == "roster" then
-            local contract = self:selectedContract()
-            if contract == nil then return end
-            Net.send("SetMode", { uid = contract.uid, mode = wanted }, true)
-        else
-            self.pendingMode = wanted
-            self:updateActions()
-        end
+        if self.mode == "roster" and self:selectedContract() == nil then return end
+        self.pendingMode = wanted
+        self:updateActions()
     end
 
     function page:selectedContract()
@@ -242,7 +238,7 @@ function Page.Create(context)
     function page:activeMode()
         if self.mode == "roster" then
             local contract = self:selectedContract()
-            return contract and contract.mode or nil
+            return self.pendingMode or (contract and contract.mode) or nil
         end
         return self.pendingMode or Config.defaultMode()
     end
@@ -259,6 +255,7 @@ function Page.Create(context)
                 self.selectedUid = row.uid
             end
         end
+        self.pendingMode = nil
         self:updateActions()
     end
 
@@ -276,10 +273,10 @@ function Page.Create(context)
         else
             local contract = self:selectedContract()
             if contract == nil then return end
-            Net.send("SetMode", {
-                uid = contract.uid,
-                mode = self.pendingMode or contract.mode,
-            }, true)
+            local wanted = self.pendingMode
+            if wanted == nil or wanted == Config.normalizeMode(contract.mode) then return end
+            Net.send("SetMode", { uid = contract.uid, mode = wanted }, true)
+            self.pendingMode = nil
         end
     end
 
@@ -408,7 +405,9 @@ function Page.Create(context)
             self.dismiss:setVisible(false)
         else
             self.primary:setTitle(T("ApplyMode"))
-            self.primary:setEnable(ready and contract ~= nil)
+            self.primary:setEnable(ready and contract ~= nil
+                and self.pendingMode ~= nil
+                and self.pendingMode ~= Config.normalizeMode(contract.mode))
             self.dismiss:setVisible(contract ~= nil)
             self.dismiss:setEnable(contract ~= nil)
         end

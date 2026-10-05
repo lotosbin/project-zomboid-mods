@@ -1,3 +1,42 @@
+版本 0.2.3 (2026-10-05)
+- 修复：**面板把队友误报成「居民化被拒」并降级为跟随**（截图里那句
+  「居民化被拒（resident（上游返回）），已降级为跟随」）
+  * 现象：一栏雇员明明已经是营地的居民（在打水、巡逻、被基地保护），面板上却写着「岗位：跟随」，
+    再点「居民」还被拒
+  * 根因：面板右下角「应用岗位」发的就是"当前岗位"（`mode = pendingMode or contract.mode`），
+    而岗位按钮当时是点一下立刻发 SetMode —— 于是"对已经是居民的人再应用一次居民"
+    等于请求 Jeem 再收编一次。Jeem 的 `Residents.recruit` 对已经住进来的人会回
+    `resident`（`Features/Residents/Server.lua:577`，真实含义是"**他已经是居民了**"），
+    我们把它当失败处理：把契约降级成 follow、写上 note `resident:resident`，
+    而且**写坏了缓存** —— 之后 `setMode` 只在"缓存说自己是居民"时才调 `leaveOne`，
+    玩家再点多少次「居民」都回不去了
+  * 附带表现：聊天栏连刷「招募操作已完成。」（同一份回包走了 dispatch 返回值与
+    `sendServerCommand` 两条路），以及面板显示原始码「resident（上游返回）」而不是人话
+  * 修法一（服务端幂等红线）：`Service.applyMode` 先读 Jeem 的**权威**状态
+    （新增 `Jimmy.residentEntry` / `Jimmy.canManage`），已经是居民就直接算成功；
+    `Jimmy.recruit` 同样先返回；`resident` 拒绝码再兜一层
+  * 修法二（自愈）：`Maintain.reconcile` 每 30 秒（进世界第一次立刻）把契约岗位与
+    `memory.jimmyResident` 双向对账——事实是居民就改回居民，事实不再是就落回跟随并写 `left_residence`
+  * 修法三：`hireExisting` 在**扣款前**拦住已经是居民的 NPC（`already_resident`，不再白花签约金）；
+    `dismiss`/`setMode` 都按权威状态决定要不要 `leaveOne`，Jeem 说 `busy` 时如实拒绝（`leave_busy`）
+  * 修法四：`R.recruit` 收编的是整支小队 -> 新增 `Service.adoptJoined`，
+    被同一次收编带进来的契约同步改成居民，不再留下"名册写跟随、人已是队友"的行
+  * 修法五（文案）：`Text.lua` 穷举 Jeem 的拒绝码（resident / not_allied / no_beds / …），
+    新增 19 个 CN/EN 翻译键（73 -> 92）；未知上游码仍走「（上游返回）」兜底
+  * 修法六（客户端）：岗位按钮改成"选岗位 -> 点「应用岗位」"两步，`primaryAction` 不再重发当前岗位；
+    结果码带 `*_degraded:<原因>`，提示从"招募操作已完成"改成"已处理（有降级）：<原因>"；
+    `Net.apply` 用服务端单调 `seq` 去重，一份回包只提示一次
+  * 修法七（可观测）：降级路径改用 `Config.always` 打日志（以前只在沙盒 DebugLog 打开时才打，
+    线上只能靠猜），并带上 Jeem 自己的解释文本
+- 测试：基模组 39/39、YeseMarket 变体 39/39 全绿。新增用例
+  36（重复应用同一岗位必须幂等）、37（已是居民的人在付费前被拒）、
+  38（Maintain 双向对账）、39（真失败仍降级，但原因必须是中文而不是上游码）
+- 测试基建：`run.js` 现在把**真实的 CN 文案**注入 `Config.__cnText`，
+  `MOCK.useCnTranslations()` 打开后可以直接断言"玩家实际读到的那句中文"；
+  用例 19 增加了"选岗位不发命令、只有岗位变了才发"的流程断言
+- 失败实验：把服务端的幂等预读与 `Jimmy.recruit` 的快速返回同时撤掉，用例 36 立刻变红
+  （`mode_degraded:resident:…`、岗位变 follow、写出降级 note），与截图现象一致
+
 版本 0.2.2 (2026-10-05)
 - 修复：**雇下的人当不成队友**（游戏里提示「他们对你信任不足（需要同盟关系）」）
   * 现象：用面板雇了一名 NPC（跟随/守卫），之后想让他在你的营地当居民（队友）——

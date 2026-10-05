@@ -86,6 +86,35 @@ local REASONS = {
     pending = "ReasonPending",
     dead = "StatusDead",
     unpaid = "ReasonUnpaid",
+
+    --[[
+        Jeem 的拒绝码（`Features/Residents/Server.lua:519-558` 的 refusals 表）。
+
+        为什么要穷举：这些码会**原样进契约的 note**，玩家在面板上看到的就是它。
+        不翻的话 `Text.reason` 会落到 ReasonUpstream，玩家看到的是
+        「居民化被拒（resident（上游返回）），已降级为跟随」—— 策划案里没有一句人话
+        （本轮线上就是这么暴露的：`resident` 的真实含义是"他已经是居民了"）。
+        上游改字串的风险由 ReasonUpstream 兜底，所以这里翻错也不会崩。
+    ]]
+    not_allied = "ReasonNotAllied",
+    resident = "ReasonAlreadyResident",
+    garrison = "ReasonGarrison",
+    trader = "ReasonTrader",
+    busy = "ReasonBusy",
+    no_base = "ReasonNoBase",
+    beds_unknown = "ReasonBedsUnknown",
+    no_beds = "ReasonNoBeds",
+    full = "ReasonFull",
+    full_cap = "ReasonFullCap",
+    moving = "ReasonMoving",
+    off = "ReasonJeemOff",
+    unavailable = "ReasonJeemNotReady",
+    no_areas = "ReasonNoAreas",
+    create_failed = "ReasonBaseCreateFailed",
+    update_failed = "ReasonBaseUpdateFailed",
+    already_resident = "ReasonAlreadyResident",
+    leave_busy = "ReasonLeaveBusy",
+    left_residence = "ReasonLeftResidence",
 }
 
 -- 带前缀的复合 reason（我们在 Service 里拼出来的，例如 "resident:no_beds"）

@@ -23,7 +23,7 @@ local Jimmy = Config.Jimmy
 local Net = Config.Net
 
 -- 用例总数：runTest 会把它当断言前缀用，新增用例时同步改这一个数字
-local TOTAL = 35
+local TOTAL = 39
 local failures = 0
 local passed = 0
 
@@ -623,9 +623,10 @@ runTest(12, "resident mode with Jeem: recruit called, baseId stored; no_beds deg
     payload = d(M.player, "HireExisting", { uid = uid2, mode = "resident", requestId = U("r12b") })
     M.assert_eq(M.count_calls("Residents.recruit"), 3, "recruit retried with force=true")
     M.assert_eq(M.state.recruitCalls[3] and M.state.recruitCalls[3].force, true, "the retry passes force=true")
-    -- hireExisting 成功（哪怕降级）返回 "hired"，降级原因写在契约的 note 上；
-    -- 只有 SetMode 才会回 "mode_degraded:<why>"
-    M.assert_eq(resultCode(payload), "hired", "a degraded hire still reports hired")
+    -- 降级必须在结果码里说清楚原因：旧代码只回 "hired"，玩家看到"招募操作已完成"
+    -- 却不知道自己只拿到了一个跟随，得自己翻名册里的说明
+    M.assert_eq(resultCode(payload), "hired_degraded:resident:no_beds",
+        "a degraded hire reports why it fell back")
     local contract2 = Contracts.get(Store.node(M.player, false), uid2)
     M.assert_eq(contract2 and contract2.mode, "follow", "contract degraded to follow")
     M.assert_contains(contract2 and contract2.note, "resident:no_beds", "contract note has the upstream code")
@@ -661,7 +662,7 @@ runTest(13, "resident mode without Jeem: degrades to follow and never calls Resi
     M.hideJeem(true)
     M.assert_falsy(Config.jeem(), "Config.jeem() is nil when the global is missing")
     local payload = d(M.player, "HireExisting", { uid = uid, mode = "resident", requestId = U("r13") })
-    M.assert_eq(resultCode(payload), "hired", "a degraded hire reports hired")
+    M.assert_eq(resultCode(payload), "hired_degraded:no_jeem", "a degraded hire reports why")
     M.assert_eq(requestState().capabilities.jeem, false, "payload.capabilities.jeem")
     M.assert_eq(M.count_calls("Residents.recruit"), 0, "Residents.recruit must not be called")
     local contract = Contracts.get(Store.node(M.player, false), uid)
@@ -677,7 +678,7 @@ runTest(13, "resident mode without Jeem: degrades to follow and never calls Resi
     M.assert_falsy(Config.jeem(), "Config.jeem() is nil when residents is switched off")
     M.advanceMs(1000)
     payload = d(M.player, "HireExisting", { uid = uid, mode = "resident", requestId = U("r13b") })
-    M.assert_eq(resultCode(payload), "hired", "a degraded hire reports hired when residents is off")
+    M.assert_eq(resultCode(payload), "hired_degraded:no_jeem", "degraded hire reports why when residents is off")
     local offContract = Contracts.get(Store.node(M.player, false), uid)
     M.assert_contains(offContract and offContract.note, "no_jeem", "the note explains the degradation")
     M.assert_eq(M.count_calls("Residents.recruit"), 0, "Residents.recruit must not be called when off")
@@ -688,7 +689,7 @@ runTest(13, "resident mode without Jeem: degrades to follow and never calls Resi
     uid = M.addActor({ uid = "palife:nijeem:3" })
     M.advanceMs(1000)
     payload = d(M.player, "HireExisting", { uid = uid, mode = "resident", requestId = U("r13c") })
-    M.assert_eq(resultCode(payload), "hired", "a no_base hire reports hired")
+    M.assert_eq(resultCode(payload), "hired_degraded:resident:no_base", "a no_base hire reports why")
     M.assert_eq(M.count_calls("BaseAreas.createBase"), 0, "CreateCamp=false must not create a camp")
     contract = Contracts.get(Store.node(M.player, false), uid)
     M.assert_eq(contract and contract.mode, "follow", "no_base also degrades to follow")
@@ -1148,6 +1149,44 @@ runTest(19, "ui: page registered, YeseMarket navigation row injected, button ope
     M.setClient(true)
     local okActivate, errActivate = pcall(recruitPage.activate, recruitPage)
     M.assert_eq(okActivate, true, "activate() must not throw: " .. tostring(errActivate))
+
+    --[[
+        "选岗位 -> 应用岗位"的流程契约（本轮线上 bug 的根因就在这里）：
+
+        岗位按钮以前是"点一下立刻发 SetMode"，而「应用岗位」发的又是"当前岗位"
+        （`mode = pendingMode or contract.mode`）。于是"对已经是居民的人再应用一次居民"
+        必然会被走到 —— Jeem 回 `resident`（他已经是居民了），旧服务端当成失败降级成跟随，
+        玩家看到「居民化被拒（resident（上游返回）），已降级为跟随」。
+        服务端现在幂等了，客户端这条路径也从根上取消：只有岗位**确实变了**才发命令。
+    ]]
+    Net.cache.contracts = { { uid = "palife:ui:1", name = "UI", mode = "follow", status = "active" } }
+    Net.cache.revision = (tonumber(Net.cache.revision) or 0) + 1
+    recruitPage:setMode("roster")
+    recruitPage.selectedUid = "palife:ui:1"
+    recruitPage.pendingMode = nil
+    recruitPage:updateActions()
+    local sentBefore = M.count_calls("sendClientCommand")
+
+    recruitPage:chooseMode(Config.MODE_RESIDENT)
+    M.assert_eq(M.count_calls("sendClientCommand"), sentBefore, "picking a post sends nothing")
+    M.assert_eq(recruitPage.pendingMode, Config.MODE_RESIDENT, "the picked post waits on the page")
+    M.assert_eq(recruitPage.primary.enabled, true, "「应用岗位」becomes clickable once a post is picked")
+
+    recruitPage:primaryAction()
+    local sent = M.calls_named("sendClientCommand")
+    M.assert_eq(#sent, sentBefore + 1, "「应用岗位」sends exactly one command")
+    M.assert_eq(sent[#sent] and sent[#sent].command, "SetMode", "…and it is SetMode")
+    M.assert_eq(sent[#sent] and sent[#sent].args.mode, Config.MODE_RESIDENT, "…with the picked post")
+    M.assert_eq(recruitPage.pendingMode, nil, "the pending post is consumed")
+
+    -- 岗位没变就不再发（这条正是"再应用一次居民"的路径）
+    Net.cache.contracts[1].mode = Config.MODE_RESIDENT
+    recruitPage.pendingMode = Config.MODE_RESIDENT
+    recruitPage:updateActions()
+    M.assert_eq(recruitPage.primary.enabled, false, "the primary is disabled while the post is unchanged")
+    local quiet = M.count_calls("sendClientCommand")
+    recruitPage:primaryAction()
+    M.assert_eq(M.count_calls("sendClientCommand"), quiet, "an unchanged post is never re-sent")
     M.setClient(false)
     -- 切页签也不该炸
     for _, mode in ipairs({ "hire", "summon", "roster" }) do
@@ -1200,7 +1239,7 @@ runTest(20, "translations: every literal key exists in CN and EN, and both langu
     for _ in pairs(CN_KEYS) do cnCount = cnCount + 1 end
     for _ in pairs(EN_KEYS) do enCount = enCount + 1 end
     M.assert_eq(cnCount, enCount, "CN/EN key counts differ")
-    M.assert_eq(cnCount, 73, "expected 73 translated keys in IG_UI.json")
+    M.assert_eq(cnCount, 92, "expected 92 translated keys in IG_UI.json")
     M.assert_eq(CN_KEYS.Prefix ~= nil, false, "no stray 'Prefix' key")
     M.assert_eq(CN_KEYS.PageTitle, true, "PageTitle exists")
     M.assert_eq(CN_KEYS.EntryButton, true, "EntryButton exists")
@@ -1209,7 +1248,13 @@ runTest(20, "translations: every literal key exists in CN and EN, and both langu
     M.assert_eq(CN_KEYS.ReasonUpstream, true, "ReasonUpstream exists (Text.reason fallback)")
     for _, reason in ipairs({ "ReasonNoFunds", "ReasonLimitReached", "ReasonTakenByOther", "ReasonTooFar",
         "ReasonHostile", "ReasonSpawnFailed", "ReasonDisabled", "ReasonNoJeem", "ReasonTooFast",
-        "ReasonDuplicate", "ReasonPending", "ReasonUnpaid" }) do
+        "ReasonDuplicate", "ReasonPending", "ReasonUnpaid",
+        -- Jeem 的拒绝码（resident 这条就是本轮线上那个"居民化被拒"）
+        "ReasonNotAllied", "ReasonAlreadyResident", "ReasonLeaveBusy", "ReasonLeftResidence",
+        "ReasonNoBase", "ReasonBedsUnknown", "ReasonNoBeds", "ReasonFull", "ReasonFullCap",
+        "ReasonBusy", "ReasonGarrison", "ReasonTrader", "ReasonMoving", "ReasonJeemOff",
+        "ReasonJeemNotReady", "ReasonNoAreas", "ReasonBaseCreateFailed", "ReasonBaseUpdateFailed",
+        "NoticeDegraded" }) do
         M.assert_eq(CN_KEYS[reason], true, "CN has " .. reason)
     end
 end)
@@ -1542,6 +1587,10 @@ runTest(29, "extra: Text.get falls back to the bare key and Text.reason covers e
         "no_funds", "no_alife", "no_economy", "disabled", "limit_reached", "already_hired",
         "taken_by_other", "not_found", "not_active", "too_far", "hostile", "spawn_failed",
         "not_yours", "no_jeem", "too_fast", "duplicate", "pending", "dead", "unpaid",
+        -- Jeem 的拒绝码（本轮线上 bug 的 resident 就是其中之一：他已经是居民了）
+        "not_allied", "resident", "garrison", "trader", "busy", "no_base", "beds_unknown",
+        "no_beds", "full", "full_cap", "moving", "off", "unavailable", "no_areas",
+        "create_failed", "update_failed", "already_resident", "leave_busy", "left_residence",
     }
     for _, code in ipairs(known) do
         local value = text.reason(code)
@@ -1558,16 +1607,23 @@ runTest(29, "extra: Text.get falls back to the bare key and Text.reason covers e
     M.state.translations = { IGUI_Bin2NPCExtensionYese_ReasonUpstream = "%1 (upstream)" }
     upstream = text.reason("shell_hydration_failed")
     M.assert_contains(upstream, "shell_hydration_failed", "the upstream code is substituted into %1")
-    -- 复合码 resident:no_beds -> ReasonResidentRefused(ReasonUpstream(no_beds))
-    -- （no_beds 是 Jeem 的上游码，REASONS 里刻意不穷举，统一走 ReasonUpstream 包装）
+    --[[
+        复合码 resident:no_beds -> ReasonResidentRefused(ReasonNoBeds)。
+
+        Jeem 的拒绝码现在**逐条翻**（resident 那条就是线上那个"居民化被拒"：
+        它的真实含义是"他已经是居民了"）。未穷举的上游码仍然走 ReasonUpstream 包装，
+        上游改字串时会退化成裸码而不是露出错文案。
+    ]]
     M.state.translations = {
         IGUI_Bin2NPCExtensionYese_ReasonResidentRefused = "refused: %1",
+        IGUI_Bin2NPCExtensionYese_ReasonNoBeds = "no free bed",
         IGUI_Bin2NPCExtensionYese_ReasonUpstream = "%1 (upstream)",
     }
     local resident = text.reason("resident:no_beds")
-    M.assert_eq(resident, "refused: no_beds (upstream)", "compound reason wraps the prefix and the upstream tail")
+    M.assert_eq(resident, "refused: no free bed", "compound reason wraps the translated tail")
     M.assert_not_contains(resident, "no_funds", "compound reason does not leak another translation")
-    M.assert_eq(text.reason("no_beds"), "no_beds (upstream)", "an upstream-only code is wrapped too")
+    M.assert_eq(text.reason("shell_hydration_failed"), "shell_hydration_failed (upstream)",
+        "a code we do not know is still wrapped as the upstream code")
     M.state.translations = nil
     resident = text.reason("resident:no_beds")
     M.assert_eq(resident, "ReasonResidentRefused", "without translations the wrapper key is shown")
@@ -1794,6 +1850,148 @@ runTest(34, "extra: an NPC employed by the sibling flavour cannot be hired again
     reply = d(M.player, "HireExisting", { uid = uid, mode = "follow", requestId = U("rsib2") })
     M.assert_eq(resultCode(reply), "hired", "without the sibling flavour the same NPC hires fine")
     _G[siblingId] = previous
+end)
+
+-- ===========================================================================
+-- 36. 重复应用同一岗位必须幂等（右下角「应用岗位」发的就是当前岗位）
+-- ===========================================================================
+runTest(36, "resident: re-applying the current post is idempotent, not a refusal", function()
+    resetWorld({ balance = 10000 })
+    local base = M.giveBase(6)
+    local uid = M.addActor({ uid = "palife:res:1", factionId = "bandits", memory = { groupId = "crew-res" } })
+    M.assert_eq(resultCode(d(M.player, "HireExisting",
+        { uid = uid, mode = "follow", requestId = U("r36a") })), "hired", "hired in follow mode")
+
+    local contract = Contracts.get(Store.node(M.player, false), uid)
+    M.assert_truthy(contract ~= nil, "contract exists")
+
+    -- 第一次转居民：正常成功
+    M.assert_eq(resultCode(d(M.player, "SetMode",
+        { uid = uid, mode = "resident", requestId = U("r36b") })), "mode", "resident conversion succeeds")
+    M.assert_eq(contract.mode, "resident", "contract says resident")
+    M.assert_eq(contract.note, nil, "no degrade note on success")
+    M.assert_truthy(Jimmy.residentEntry(Alife.record(uid)) ~= nil, "Jeem agrees: he is a resident")
+
+    --[[
+        回归点（本轮线上 bug）：客户端右下角「应用岗位」发的是 `pendingMode or contract.mode`，
+        所以"对已经是居民的人再应用一次居民"是**必然会被走到**的路径。
+        旧代码把它交给 Jeem 的 R.recruit，Jeem 回 `resident`（他已经是居民了，Server.lua:577），
+        我们当成失败 -> 契约降级成跟随 + 写 `resident:resident`，
+        玩家看到「居民化被拒（resident（上游返回）），已降级为跟随」而人一直是队友。
+    ]]
+    M.assert_eq(resultCode(d(M.player, "SetMode",
+        { uid = uid, mode = "resident", requestId = U("r36c") })), "mode", "re-applying resident still succeeds")
+    M.assert_eq(contract.mode, "resident", "the contract stays resident")
+    M.assert_eq(contract.note, nil, "and no 'resident:resident' note is written")
+    M.assert_truthy(Jimmy.residentEntry(Alife.record(uid)) ~= nil, "he is still a resident")
+    M.assert_eq(#(M.state.residentsByBase[base.id] or {}), 1, "no duplicate residency row in Jeem")
+end)
+
+-- ===========================================================================
+-- 37. 已经是居民的人不该被"再雇一次"（付费前拦住）
+-- ===========================================================================
+runTest(37, "hire: an NPC who is already a Jeem resident is refused before any money moves", function()
+    resetWorld({ balance = 10000 })
+    local base = M.giveBase(4)
+    local uid = M.addActor({ uid = "palife:res:2", factionId = "bandits", memory = { groupId = "crew-res2" } })
+
+    -- 让 Jeem 直接把他变成居民（等价于 Jeem 自己的右键「邀请入住」/ 同小队一起入住）
+    local previousAdmin = M.player.__admin
+    M.player.__admin = true
+    local count = Config.jeem().Residents.recruit(M.player, uid, base.id, true)
+    M.player.__admin = previousAdmin
+    M.assert_truthy(count ~= nil, "the NPC is a Jeem resident now")
+
+    local before = M.balance()
+    local reply = d(M.player, "HireExisting", { uid = uid, mode = "follow", requestId = U("r37a") })
+    M.assert_eq(resultCode(reply), "already_resident", "refused with already_resident")
+    M.assert_eq(M.balance(), before, "no coins are taken")
+    M.assert_falsy(Contracts.get(Store.node(M.player, false), uid), "no contract is written")
+
+    -- 候选名单本来就不该列居民（memory.jimmyResident 会跳过）
+    local rows = Alife.candidates(M.player, RADIUS, function() return false end)
+    for _, row in ipairs(rows) do
+        M.assert_truthy(row.uid ~= uid, "a resident never shows up in the hire list")
+    end
+end)
+
+-- ===========================================================================
+-- 38. 契约岗位与 Jeem 权威状态的对账（双向自愈）
+-- ===========================================================================
+runTest(38, "maintain: the contract's post is reconciled with Jeem's authoritative residency", function()
+    resetWorld({ balance = 10000 })
+    local base = M.giveBase(6)
+    local uid = M.addActor({ uid = "palife:res:3", factionId = "bandits", memory = { groupId = "crew-res3" } })
+    M.assert_eq(resultCode(d(M.player, "HireExisting",
+        { uid = uid, mode = "follow", requestId = U("r38a") })), "hired", "hired as a follower")
+    local contract = Contracts.get(Store.node(M.player, false), uid)
+    M.assert_eq(contract.mode, "follow", "contract says follow")
+
+    -- Jeem 那边把他收成居民，我们并不知情（同小队一起入住 / Jeem 自己的右键邀请）
+    local previousAdmin = M.player.__admin
+    M.player.__admin = true
+    Config.jeem().Residents.recruit(M.player, uid, base.id, true)
+    M.player.__admin = previousAdmin
+    M.assert_truthy(Jimmy.residentEntry(Alife.record(uid)) ~= nil, "Jeem says: resident")
+    M.assert_eq(contract.mode, "follow", "…while our contract still says follow (the divergence)")
+
+    M.advanceMs(31000)
+    Maintain.tick()
+    M.assert_eq(contract.mode, "resident", "Maintain corrects the contract to resident")
+    M.assert_eq(contract.baseId, base.id, "with the base he actually lives in")
+    M.assert_eq(contract.note, nil, "and clears the stale note")
+
+    -- 反向：Jeem 把他移出居民名单，契约要跟着落回跟随（并说明原因）
+    Config.jeem().Residents.leaveOne(M.player, uid)
+    M.assert_truthy(Jimmy.residentEntry(Alife.record(uid)) == nil, "Jeem says: not a resident")
+    M.advanceMs(31000)
+    Maintain.tick()
+    M.assert_eq(contract.mode, "follow", "Maintain falls back to follow")
+    M.assert_eq(contract.note, "left_residence", "…and says why (translatable code)")
+    M.assert_eq(Config.Text.reason(contract.note),
+        Config.Text.get("ReasonLeftResidence"), "…and it renders as a real sentence")
+end)
+
+-- ===========================================================================
+-- 39. 真正的失败仍然降级，但原因必须是人话
+-- ===========================================================================
+runTest(39, "resident: a real refusal still degrades, with a translated reason", function()
+    resetWorld({ balance = 10000 })
+    M.giveBase(4)
+    local uid = M.addActor({ uid = "palife:res:4", factionId = "bandits", memory = { groupId = "crew-res4" } })
+    M.assert_eq(resultCode(d(M.player, "HireExisting",
+        { uid = uid, mode = "follow", requestId = U("r39a") })), "hired", "hired in follow mode")
+
+    M.refuseNextRecruit(uid, "no_beds")
+    local reply = d(M.player, "SetMode", { uid = uid, mode = "resident", requestId = U("r39b") })
+    M.assert_eq(resultCode(reply), "mode_degraded:resident:no_beds",
+        "the refusal is reported to the player, not hidden")
+    local contract = Contracts.get(Store.node(M.player, false), uid)
+    M.assert_eq(contract.mode, "follow", "degraded to follow")
+    M.assert_eq(contract.note, "resident:no_beds", "the note keeps the upstream code")
+
+    -- 面板显示的就是 note，所以它必须是**人话**：接上真实的 CN 文案来断言
+    -- （不接的话 Text.get 退化成裸键名，看不到"玩家实际读到什么"）
+    M.useCnTranslations()
+    local text = Config.Text.reason(contract.note)
+    M.assert_contains(text, "床位", "no_beds reads in plain words: " .. tostring(text))
+    M.assert_not_contains(text, "上游返回",
+        "…and never falls back to the raw upstream code: " .. tostring(text))
+    M.assert_not_contains(text, "resident", "…and the raw Jeem code is not shown either")
+    M.assert_contains(Config.Text.reason("resident"), "居民",
+        "the 'resident' code says he is already a resident: " .. tostring(Config.Text.reason("resident")))
+    -- 未翻译的码仍然有兜底（上游改字串时不会露出错文案）
+    M.assert_contains(Config.Text.reason("resident:brand_new_code"), "上游返回",
+        "an unknown upstream code still degrades to ReasonUpstream")
+    M.state.translations = nil
+
+    -- 修好之后（床位够了）再应用一次居民：应当成功并清掉说明
+    M.state.pendingRecruitFailures[uid] = nil
+    M.advanceMs(1000)
+    M.assert_eq(resultCode(d(M.player, "SetMode",
+        { uid = uid, mode = "resident", requestId = U("r39c") })), "mode", "the retry succeeds")
+    M.assert_eq(contract.mode, "resident", "contract is resident now")
+    M.assert_eq(contract.note, nil, "the old degrade note is cleared")
 end)
 
 -- ===========================================================================

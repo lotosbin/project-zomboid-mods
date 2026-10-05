@@ -28,12 +28,44 @@ local function parts()
     return jeem, baseAreas, residents
 end
 
--- 某条记录是不是 Jeem 居民（只读它的判定函数，不自己解析内存字段）
-function Jimmy.isResident(record)
+--[[
+    某条记录在 Jeem 眼里的**权威**居民身份（只读它的判定函数，不自己解析内存字段）。
+
+    返回 `{ baseId = ..., index = ... }` 或 nil。这个返回值就是"事实"：
+    我们契约里的 `mode` 只是它的**缓存**，两边不一致时一律以它为准
+    （见 Service.applyMode 的幂等红线、Maintain.reconcile）。
+]]
+function Jimmy.residentEntry(record)
     local _, _, residents = parts()
-    if residents == nil or type(residents.residentOf) ~= "function" then return false end
+    if residents == nil or type(residents.residentOf) ~= "function" then return nil end
     local ok, value = pcall(residents.residentOf, record)
-    return ok and value ~= nil
+    if ok and type(value) == "table" then return value end
+    return nil
+end
+
+-- 兼容旧名：只问"是不是居民"
+function Jimmy.isResident(record)
+    return Jimmy.residentEntry(record) ~= nil
+end
+
+--[[
+    这个基地归玩家管吗（`BaseAreas.canManage`，Store.lua:330）。
+
+    只在"他已经是居民了"这条幂等路径上用：如果那个基地是个**别人的**基地，
+    那我们并没有达成玩家点「居民」的目的，不能谎报成功。
+    上游没暴露 canManage 时乐观放行 —— 只读判断，宁可如实一点也不要卡住玩家。
+]]
+function Jimmy.canManage(player, baseId)
+    if type(baseId) ~= "string" or baseId == "" then return false end
+    local _, baseAreas = parts()
+    if baseAreas == nil or type(baseAreas.base) ~= "function" then return false end
+    local okBase, base = pcall(baseAreas.base, baseId)
+    if not okBase or type(base) ~= "table" then return false end
+    if type(baseAreas.canManage) ~= "function" then return true end
+    local who = Jimmy.who(player)
+    if who == nil then return false end
+    local ok, value = pcall(baseAreas.canManage, base, who.key, who.faction, who.admin)
+    return ok and value == true
 end
 
 -- 把 Jeem 的失败码翻译成人话（它自带 explain；我们只做 pcall 包装）
@@ -205,11 +237,21 @@ end
     所以这里用「收编前后 residents 列表的差集」算出到底多了谁，
     把这些 uid 一并交给调用方登记进名册 —— 玩家付出的是"雇一个人"的钱，
     但收到的人可能不止一个（这一点必须在 UI 上写明）。
+
+    幂等（本轮线上 bug 的根因）：他**已经是**居民时直接返回 `0, nil, {}, baseId`，
+    绝不往下走 ensureBase / recruit。`R.recruit` 对已经住进来的人会返回
+    `nil, "resident"`（Server.lua:577，`resident` 的真实含义是"他已经是居民了"），
+    旧代码把它当失败处理，于是把契约降级成跟随 —— 玩家看到
+    「居民化被拒（resident（上游返回）），已降级为跟随」，而人一直是队友。
+    这条路径必然会被走到：客户端右下角「应用岗位」发的是 `pendingMode or contract.mode`。
 ]]
 function Jimmy.recruit(player, uid)
     local jeem, _, residents = parts()
     if jeem == nil or residents == nil then return nil, "no_jeem" end
     if type(residents.recruit) ~= "function" then return nil, "jimmy_api_missing" end
+
+    local existing = Jimmy.residentEntry(Alife.record(uid))
+    if false then return 0, nil, {}, existing.baseId end
 
     local base, why = Jimmy.ensureBase(player, 1)
     if base == nil then return nil, tostring(why) end

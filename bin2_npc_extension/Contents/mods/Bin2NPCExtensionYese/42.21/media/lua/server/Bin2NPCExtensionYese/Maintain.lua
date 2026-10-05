@@ -1,13 +1,15 @@
 --[[
     Bin2NPCExtensionYese :: Maintain（server，周期维护）
 
-    四件事，全部是"周期性核对"，不依赖任何一次性回调：
-      1. **岗位补派**：刚造出来的 NPC 要等 lifecycle=="active" 才能下命令，
+    五件事，全部是"周期性核对"，不依赖任何一次性回调：
+      1. **岗位对账**：契约里的 `mode` 只是 Jeem 那份权威状态（`memory.jimmyResident`）的缓存，
+         两边分叉时以事实为准双向自愈（见 reconcile）。
+      2. **岗位补派**：刚造出来的 NPC 要等 lifecycle=="active" 才能下命令，
          spawn 期间契约的 note 是 "pending"，这里续跑 Service.applyMode。
-      2. **指令重下**：A-Life 的 DecisionLoop.orders 是纯内存表，读档即失效；
+      3. **指令重下**：A-Life 的 DecisionLoop.orders 是纯内存表，读档即失效；
          跟随/守卫契约必须像 Jeem 的 Friendlies.sync 那样周期重下（quiet 模式，不刷动画）。
-      3. **阵亡清理**：record 消失或 lifecycle=="dead" → 契约标记 dead，释放名额。
-      4. **日薪结算**：每个满 24 世界小时扣一次工资；欠薪超过宽限期就解约走人。
+      4. **阵亡清理**：record 消失或 lifecycle=="dead" → 契约标记 dead，释放名额。
+      5. **日薪结算**：每个满 24 世界小时扣一次工资；欠薪超过宽限期就解约走人。
 ]]
 
 require "Bin2NPCExtensionYese/Config"
@@ -31,6 +33,48 @@ Config.Maintain = Maintain
 
 local ORDER_REFRESH_MS = 8000          -- 同一份跟随/守卫指令的重下间隔
 local lastOrderAt = {}                 -- uid -> ms
+local RECONCILE_MS = 30000             -- 契约岗位与 Jeem 权威状态的对账间隔
+local lastReconcileAt = {}             -- uid -> ms
+
+--[[
+    把契约上的 `mode` 拉回 Jeem 的**事实**（`memory.jimmyResident`）。双向自愈：
+
+      * 事实是居民、契约写着跟随 —— 同小队一起被收编、Jeem 自己的右键「邀请入住」、
+        或者在别的界面操作过，都会造成这种分叉。分叉的表象就是玩家最困惑的那一个：
+        "人明明已经是队友了，面板还写跟随，再点居民还被拒（resident = 他已经是居民了）"。
+      * 契约写着居民、事实已经不是 —— 在 Jeem 的管理台把他送走了，或者居民系统把他清了。
+
+    返回 true 表示契约被改过（调用方据此标脏并推送状态）。
+]]
+local function reconcile(contract, now)
+    if Jimmy.available() ~= true then return false end
+    if now - (lastReconcileAt[contract.uid] or 0) < RECONCILE_MS then return false end
+    lastReconcileAt[contract.uid] = now
+
+    local record = Alife.record(contract.uid)
+    if record == nil or record.lifecycle ~= "active" then return false end
+
+    local entry = Jimmy.residentEntry(record)
+    local mode = Config.normalizeMode(contract.mode)
+    if entry ~= nil and mode ~= Config.MODE_RESIDENT then
+        contract.mode = Config.MODE_RESIDENT
+        contract.baseId = entry.baseId
+        contract.note = nil
+        Config.always("reconcile: " .. tostring(contract.uid) .. " is a Jeem resident (base "
+            .. tostring(entry.baseId) .. ") but this contract said " .. tostring(mode)
+            .. "; corrected to resident")
+        return true
+    end
+    if entry == nil and mode == Config.MODE_RESIDENT then
+        contract.mode = Config.MODE_FOLLOW
+        contract.baseId = nil
+        contract.note = "left_residence"
+        Config.always("reconcile: " .. tostring(contract.uid)
+            .. " is no longer a Jeem resident; the contract fell back to follow")
+        return true
+    end
+    return false
+end
 
 local function onlinePlayers()
     local players = {}
@@ -74,6 +118,8 @@ function Maintain.tick()
                         dirty = true
                         Config.log("contract " .. tostring(contract.uid) .. " is gone (dead)")
                     elseif record.lifecycle == "active" then
+                        -- 先对账（会把 mode 改回事实），再按对账后的岗位决定要不要重下指令
+                        if reconcile(contract, now) then dirty = true end
                         local mode = Config.normalizeMode(contract.mode)
                         if contract.note == "pending" or mode == Config.MODE_FOLLOW
                                 or mode == Config.MODE_GUARD then
@@ -175,6 +221,7 @@ function Maintain.restore()
             for _, contract in ipairs(Contracts.list(node)) do
                 if contract.status == "active" then
                     local mode = Config.normalizeMode(contract.mode)
+                    lastReconcileAt[contract.uid] = 0        -- 进世界第一件事：与 Jeem 对一次账
                     if mode == Config.MODE_FOLLOW or mode == Config.MODE_GUARD then
                         lastOrderAt[contract.uid] = 0        -- 强制立刻重下
                     end

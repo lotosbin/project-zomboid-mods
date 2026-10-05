@@ -473,6 +473,17 @@ end
 Keyboard = { KEY_N = 46, KEY_M = 47 }
 UIFont = { Small = 0, Medium = 1, Large = 2, NewSmall = 3 }
 getCore = function() return { getScreenWidth = function() return 1920 end, getScreenHeight = function() return 1080 end } end
+--[[
+    测试开关：把 CN 的**真实**文案接到 getText 桩上。
+
+    默认不接（键名回退是很多用例的断言基础）；需要断言"玩家在面板上看到的那句话"时打开，
+    例如"拒绝原因必须是中文而不是上游码"。
+]]
+M.useCnTranslations = function()
+    M.state.translations = Bin2NPCExtensionYese.__cnText or {}
+    return M.state.translations
+end
+
 getTextManager = function()
     return {
         MeasureStringX = function(self, font, text) return #tostring(text) * 7 end,
@@ -1377,6 +1388,16 @@ M.installJeem = function()
         return base, { id = "area:1", baseId = base.id }
     end
 
+    -- [真实] Store.lua:330 -> 管理员 / 非联机 / 创建者 / 阵营所有 都可以管理
+    function baseAreas.canManage(base, key, factionName, admin)
+        if type(base) ~= "table" then return false end
+        if admin == true or M.state.isMultiplayer ~= true then return true end
+        if key ~= nil and (base.createdBy == key or (base.ownerKind == "player" and base.owner == key)) then
+            return true
+        end
+        return base.ownerKind == "faction" and factionName ~= nil and base.owner == factionName
+    end
+
     function baseAreas.transmit()
         record("BaseAreas.transmit", {})
         return true
@@ -1415,7 +1436,6 @@ M.installJeem = function()
     S.clamp = clamp
     S.ladder = S.ladder or LADDER
     S.thresholds = S.thresholds or THRESHOLDS
-    S.allyGroupPoints = 50            -- [真实] Features/Residents/Server.lua:22
     S.baseline = S.baseline or {}     -- 测试可改：factionId -> 该阵营对你的默认标签
 
     local function ladderIndex(name)
@@ -1508,7 +1528,9 @@ M.installJeem = function()
         if key == nil or type(record) ~= "table" then return false end
         if record.factionId ~= nil and S.labelFor(key, record.factionId) == "allied" then return true end
         local groupId = type(record.memory) == "table" and record.memory.groupId or nil
-        return groupId ~= nil and S.groupPoints(key, groupId) >= S.allyGroupPoints
+        local R = J.Residents
+        local threshold = R ~= nil and tonumber(R.allyGroupPoints) or 50
+        return groupId ~= nil and S.groupPoints(key, groupId) >= threshold
     end
 
     -- ---- Residents -----------------------------------------------------
@@ -1532,6 +1554,9 @@ M.installJeem = function()
         moving = "IGUI_ALJ_Residents_Moving",
         not_resident = "IGUI_ALJ_Residents_NotResident",
     }
+
+    -- [真实] Features/Residents/Server.lua:22 -> R.allyGroupPoints（挂在 Residents 上，不是 StandingService）
+    residents.allyGroupPoints = 50
 
     -- [真实] Residents.lua:120 -> memory.jimmyResident（必须同时带 baseId）
     function residents.residentOf(record)
