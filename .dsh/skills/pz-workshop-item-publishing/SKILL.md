@@ -49,6 +49,8 @@ whenToUse: The task is about workshop.txt, changelog.txt, preview.png / poster.p
 | `tags` | `;` 分隔 | **必须**取自游戏 `media/WorkshopTags.txt`（如 `Build 42`、`QoL`、`Misc`、`Interface`、`Framework`、`Language/Translation`） |
 | `visibility` | `public` \| `friendsOnly` \| `private` \| `unlisted` | 解析成 `getVisibilityInteger()`：**`0` = public，`1` = friendsOnly，`2` = private，`3` = unlisted**；写错任何值都**静默变成 0 = public** |
 
+**没有**声明依赖的字段：`required=` / `dependencies=` 同样被静默忽略（只有这 6 个键会被解析）—— 见 §2.2。
+
 ### 2.1 `description` 的解析细节与富文本（B42.21 实测 + 字节码）
 
 `readWorkshopTxt()` 只做四件事：**每行 `trim()` → 用单个 `\n` 拼接 → 追加 ID 行 → 原样交给
@@ -100,6 +102,23 @@ visibility      = 0                       # public
 tags            = [Build 42, QoL, Misc]   # 在白名单内才会这样解析出来
 description     = 1680 chars              # 多行 description= 累加正确
 ```
+
+### 2.2 依赖（Steam 的「必需物品」）**不能**声明，只能网页手填
+
+`workshop.txt` 只有上表那 6 个合法键，`required=` / `dependencies=` 会被**静默忽略**
+（实测：追加这两行后 `description` 字节数与原来逐字节相同，无报错）。
+上传链路也没有这个能力 —— native 只有 `n_SetItemTitle/Description/Visibility/Tags/Content/Preview/
+SubmitItemUpdate`，上传界面只有 标题/描述/标签/可见性/预览图/内容目录/ID。
+
+反过来游戏**会读** `SteamUGCDetails.getChildren()` / `SteamWorkshop.GetQueryUGCChildren()`，
+所以手填 Required Items 是有意义的（订阅者那边能顺着订阅）。
+
+- 查 id：`python3 bin2_workshop_upload_fix/tools/workshop_requires.py --item <物品>`
+  （从本机已订阅工坊内容的 mod.info 反查 mod id → 工坊 id）
+- 该脚本 `--write <物品>` 还能往 `workshop.txt` 生成一段可点击的依赖小节
+  （`[url=https://steamcommunity.com/sharedfiles/filedetails/?id=<id>]名字[/url]`，
+  用 `#` 行做标记，解析器会跳过标记）
+- **每个物品只需在网页上设一次**，之后更新内容不用重设
 
 ## 3. `changelog.txt` 规格
 
@@ -218,6 +237,7 @@ n_SetItemContent / n_SetItemPreview`（**唯独不调 `n_SubmitItemUpdate`**）�
   忘了闭合会连游戏追加的 `Workshop ID:` / `Mod ID:` 行一起吞进列表。游戏内渲染的是 mod.info 那套
   `<LINE>` / `<RGB:…>`，两套别混。
 - `tags` 乱写不在白名单里不会报错，但会被 Steam 忽略 → 从 `media/WorkshopTags.txt` 里挑。
+- **依赖键是不存在的**：`required=` / `dependencies=` 写在 `workshop.txt` 里会被整行丢弃（实测 `description` 字节数不变）；Steam 的「必需物品」只能网页/客户端手填（§2.2）。
 - 物品内**只打包 `Contents/`**：想让某个文件进工坊就必须放在 `Contents` 下；
   物品根的 `preview.png`/`changelog.txt` 是工坊元数据，不是模组内容。
 - 发布前记得把 `visibility` 从 `private` 改成 `public`（`getVisibilityInteger()` 2→0）。
@@ -232,3 +252,6 @@ n_SetItemContent / n_SetItemPreview`（**唯独不调 `n_SubmitItemUpdate`**）�
 - [ ] 探针：`readWorkshopTxt=true`、`validatePreviewImage=OK`、`contentFolder exists=true`
 - [ ] staging 软链就位（`~/Zomboid/Workshop/<name>`）且游戏 Mods 里已启用
 - [ ] 上传后：`id=` 写回并提交进仓库；必要时重跑本仓库的补丁脚本（游戏更新会覆盖游戏文件）
+- [ ] 依赖：`workshop_requires.py --item <物品>` 查清 id；**上传后在工坊页面手工添加 Required Items**
+      （`workshop.txt` 声明不了、API 也没有这个能力；每个物品一次，填完记进 `docs/`）
+- [ ] 简介里的依赖写成可点击的 `[url=…]`（§2.2），并跑 `check_all.sh` 确认标签闭合与 8000 字节上限

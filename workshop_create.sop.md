@@ -86,7 +86,8 @@ javaPkgName=<包名>
 | `tags` | `;` 分隔 | **必须**取自游戏 `media/WorkshopTags.txt` 白名单，见 §3.2 |
 | `visibility` | `public` / `friendsOnly` / `private` / `unlisted` | 见 §3.3 |
 
-`changelog=`、`preview_image=`、`author=`、`preview=` **都不存在**，写了也不会被解析。
+`changelog=`、`preview_image=`、`author=`、`preview=` **都不存在**，写了也不会被解析；
+**依赖同样不在里面** —— `required=` / `dependencies=` 也一样被静默忽略，见 §3.6。
 
 ### 3.1 `description` 的真实语义（本项目实测过）
 
@@ -297,6 +298,72 @@ submitDesc      = 145 chars / 217 bytes   (Steam 上限 8000 字节，这里已�
 
 ---
 
+### 3.6 依赖（Steam 的「必需物品」）**无法**在这里声明
+
+`workshop.txt` 没有依赖键，`required=` / `dependencies=` 与 `changelog=` 一样会被**静默忽略**。三条证据：
+
+1. **字节码**：`zombie.core.znet.SteamWorkshopItem.readWorkshopTxt()` 里出现的键字符串只有
+   `version= / id= / title= / description= / tags= / visibility=`（外加 `#`、`//` 注释处理）。
+2. **实测**（本仓库探针）：往一份已发布的 `workshop.txt` 末尾追加
+   `required=3803984183,3806944055` 与 `required0=3803984183`，用游戏自己的解析器跑 ——
+   `description` 仍是 **2315 chars / 4239 bytes，与不含这两行时逐字节相同**，标题/标签/可见性不变，
+   也没有任何报错。未知键整行丢弃。
+3. **上传链路没有这个能力**：游戏对 Steam 的 native 只有
+   `n_SetItemTitle / n_SetItemDescription / n_SetItemVisibility / n_SetItemTags / n_SetItemContent /
+   n_SetItemPreview / n_SubmitItemUpdate`；上传界面 `OptionScreens/WorkshopSubmitScreen.lua` 的输入项
+   也只有 标题/描述/标签/可见性/预览图/内容目录/ID。**没有任何"设置依赖"的调用**。
+
+反过来，游戏**会读**这个字段：`SteamUGCDetails.getChildren()/getNumChildren()/getChildID(i)` 与
+`SteamWorkshop.GetQueryUGCChildren()` 都是暴露的（Steam 上的 Required Items 会被客户端/网页用来
+展示与"一键订阅"），只是游戏自己的 Lua 没有调用点。
+
+**所以「必需物品」只能在 Steam 网页 / 客户端手填，且每个物品只需填一次**（之后更新内容不用重设）。
+
+#### 3.6.1 先在本机把 id 查清楚（`tools/workshop_requires.py`）
+
+```bash
+python3 bin2_workshop_upload_fix/tools/workshop_requires.py                  # 全仓库只读报告
+python3 bin2_workshop_upload_fix/tools/workshop_requires.py --item bin2_npc_extension
+python3 bin2_workshop_upload_fix/tools/workshop_requires.py --write <物品目录名>   # 可选：生成可点击的依赖小节
+```
+
+它从**本机已订阅的工坊内容**（`workshop/content/108600/<id>/**/mod.info` 的 `id=`/`name=`）反查
+mod id → 工坊 id，再叠加本仓库自己物品的 `id=`；查不到的一律标 `unknown`，绝不猜。
+`--write` 生成的块用 `#` 行做标记（`#` 开头整行被解析器跳过，所以标记不会进简介），并自动插到
+`[ ALERT_CONFIG ]` 之前。
+
+#### 3.6.2 本仓库各物品的依赖对照表（2026-10-05 由上面的脚本生成）
+
+| 物品目录 | 必需（require=）→ 工坊 id | 可选（loadModAfter=）→ 工坊 id |
+| --- | --- | --- |
+| `bin2` | modoptions=2169435993 | — |
+| `bin2_ProjectALifeNPCs_extensions` | ProjectALifeNPCs=3803984183, ProjectALifeJimmy=3806944055 | — |
+| `bin2_XantjiRecycleEverything` | XantjiRecycleEverything=? | — |
+| `bin2_b42` | （349 个，见 mod.info 的 require） | — |
+| `bin2_blocky_alpaca` | CompanionDogs=3740052292, CompanionDogsAlpaca=? | — |
+| `bin2_companion_alpaca` | CompanionDogs=3740052292 | — |
+| `bin2_energy_routing_system` | ERS_SmallProducersPack=3671637901, EnergyRoutingSystem=3665315101 | — |
+| `bin2_extensive_health_rework` | EHR=?, EHR_TranslationFix=? | B42ModTrans_CN=3556540080, B42Trans_CN_Simple=? |
+| `bin2_extensive_power_rework` | EPR_B42=3643765614 | — |
+| `bin2_lingering_voices_cn` | Lingering Voices=? | — |
+| `bin2_neat_controller_support` | Neat_Building_AddonXP=3540503606, Neat_Crafting_Controller_Support=3644159457, Neat_Building_Controller_Support=3644159457, Neat_Crafting_AddonXP=3540503606 | — |
+| `bin2_npc_extension` | OrangeCommunityEconomy=3777900792, ProjectALifeJimmy=3806944055 | ProjectALifeNPCs=3803984183 |
+| `bin2_tikitown` | tikitown=3037854728, TikitownPower=3037854728 | Tikitown_CN=3448869708, B42ModTrans_CN=3556540080, B42Trans_CN=3556544454 |
+| `bin2_viewpoint` | ZombieBuddy=3619862853 | — |
+| `bin2_workshop_upload_fix` | ZombieBuddy=3619862853 | — |
+
+`?` = 本机没装/未订阅，需要点开工坊页手查 id。
+`bin2_b42` 是 modpack，`require=` 里有 300+ 项，不适合逐个设 Required Items。
+
+#### 3.6.3 简介里给可点击链接（能自动化的那一半）
+
+Required Items 那一步绕不过去，但简介完全可自动化：`description=` 支持 Steam BBCode，
+把依赖写成 `[url=https://steamcommunity.com/sharedfiles/filedetails/?id=<id>]名字[/url]`，
+玩家点一下就能跳去订阅。本仓库已这样做：`bin2_npc_extension`、`bin2_ProjectALifeNPCs_extensions`。
+
+⚠️ 标签必须成对闭合，否则游戏追加的 `Workshop ID: / Mod ID:` 两行会被折进列表（§3.5.2 规则 6），
+改完务必跑一次 `check_all.sh`。
+
 ## 4. `Changelog.txt`：游戏内更新弹窗（**在版本目录或 `common/`**）
 
 `getModFileReader(modID, file)` 的解析顺序（反汇编确认）：
@@ -400,7 +467,10 @@ link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/
 11. 成功判据：向导日志出现 success；Steam 客户端 `logs/workshop_log.txt` 出现该物品的 update 记录；
     工坊页面体积不再是 `0.000 B`。
 12. 向导会把 `id=` 写回 `workshop.txt` ⇒ **提交进仓库**，下次即走"更新"分支。
-13. 内容稳定后把 `visibility` 改成 `public`，按 `modify.sop.md` 走后续版本更新。
+13. **在工坊页面手工设置「必需物品 / Required Items」**（§3.6：`workshop.txt` 声明不了、API 也没有这个能力）。
+    先用 `python3 bin2_workshop_upload_fix/tools/workshop_requires.py --item <物品>` 查出 id 清单再填。
+    **每个物品只需要做一次**，之后更新内容不用重设；填完把该物品的 id 记进 `docs/`。
+14. 内容稳定后把 `visibility` 改成 `public`，按 `modify.sop.md` 走后续版本更新。
 
 ---
 
@@ -416,6 +486,7 @@ link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/
 | 页面上的快捷键 / 版本号 / 条目数已经过时 | 改了 `mod.info` 与代码，没同步 `workshop.txt` | 一起改；本次巡检发现 viewpoint 写着 F9/F10、A-Life 写着 v0.1.0、tikitown 写着 214 / 84 条，实际都已变（§10 的 check 只查格式，内容要靠人核） |
 | `Workshop ID:` / `Mod ID:` 两行被折进列表或引用块 | BBCode 未闭合，游戏追加的 ID 行被裹进去了 | 补上 `[/list]` / `[/quote]` 等（§3.5.2 规则 6） |
 | 工坊页面简介被截断 | 超过 8000 **字节**（汉字 3 字节/字） | 控到 8000 字节内，用探针看 `submitDesc = … bytes` |
+| 在 `workshop.txt` 里写了 `required=` / `dependencies=`，但工坊页面上的「必需物品」还是空的 | 这两个键**不被解析**（只有 6 个合法键），整行静默丢弃 —— 实测 `description` 字节数与不写时逐字节相同 | 只能在工坊页面/客户端手填，见 §3.6 |
 | 标签在工坊页面上没生效 | 用了逗号分隔，或标签不在白名单 | 用 `;` 分隔，且照抄 `media/WorkshopTags.txt` |
 | 明明写了 `visibility=private` 却是公开 | 值写错（如 `friends`、拼错）⇒ 静默返回 0 = public | 只能是 `public` / `friendsOnly` / `private` / `unlisted` |
 | 上传成功但订阅者拿不到某个文件 | 文件放在 `Contents/` 之外 | 只有 `Contents/` 会打包 |

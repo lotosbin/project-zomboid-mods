@@ -5,10 +5,10 @@ description=[h1]开局自带友方 NPC[/h1]
 description=新角色开局身边就有友方 NPC。默认它会跟着你走；也可以切换成 Jeem Extension 的「居民」，
 description=让它去守你的营地。（v0.1.5，Build 42.20+）
 description=
-description=[h2]依赖（缺一不可）[/h2]
+description=[h2]依赖（缺一不可，点开即订阅）[/h2]
 description=[list]
-description=[*]Project A-Life [ALIFE NPCS]（mod id [b]ProjectALifeNPCs[/b]，工坊 3803984183）
-description=[*]Project A-Life - Jeem Extension（mod id [b]ProjectALifeJimmy[/b]，工坊 3806944055）
+description=[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3803984183]Project A-Life [ALIFE NPCS][/url]（mod id [b]ProjectALifeNPCs[/b]）
+description=[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3806944055]Project A-Life - Jeem Extension[/url]（mod id [b]ProjectALifeJimmy[/b]）
 description=[/list]
 description=只有「居民」模式需要 Jeem Extension；普通同伴模式只要有 A-Life 即可。
 description=

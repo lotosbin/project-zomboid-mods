@@ -228,3 +228,28 @@ requestId 去重队列改为**按时间裁剪**（原来按条数留 64 条，60
 **教训**：布局是**状态函数的输出**（尺寸 × 页签 × 选中项 × 依赖可用性四个变量），
 不能靠"看起来排好了"交付。把它写成可断言的几何契约只要十几行，却能挡住这类
 "必然在某个窗口尺寸下出现"的问题 —— 这一条已回填到 `docs/design.md` §8.2。
+
+### 九、追问「workshop.txt 能不能声明必需物品」：不能，并把它变成可查的表
+
+用户的实际痛点是每发布一个物品都要在 Steam 网页手动加 Required Items。查清后答案是**不能**，
+三条证据：① `readWorkshopTxt()` 的键字符串只有 6 个（`javap -c`）；② 把 `required=`/`required0=`
+追加进真实文件，用游戏自己的解析器跑，`description` 字节数与原来**逐字节相同**、无任何报错；
+③ 上传 native 只有 `n_SetItemTitle/Description/Visibility/Tags/Content/Preview/SubmitItemUpdate`，
+提交界面也只有那 6 项输入 —— 链路里根本没有"设置依赖"这一步。
+反向发现：游戏**会读**（`SteamUGCDetails.getChildren` / `SteamWorkshop.GetQueryUGCChildren`），
+只是自己的 Lua 零调用点，所以手填 Required Items 的价值在于 Steam 客户端的"一键订阅"。
+
+于是把"手动"里能自动化的部分做掉：
+
+1. 新工具 `bin2_workshop_upload_fix/tools/workshop_requires.py`：从本机已订阅工坊内容的
+   `mod.info` 反查 mod id → 工坊 id（索引 1169 个），输出每个物品的 必需/可选 清单与可点击 URL，
+   `--write` 可直接往 `workshop.txt` 生成依赖小节（`#` 行做标记，解析器会跳过）；
+2. 两份简介的依赖段升级成 `[url=…]` 可点击链接，`check_all.sh` 仍 18/18 通过；
+3. SOP 新增 §3.6（含本仓库依赖 id 对照表）与执行步骤第 13 步，skill 新增 §2.2 与清单两条；
+4. 顺手订正两处过期文档（两个项目的发布状态还写着 private/未上传）。
+
+**踩坑**：拿错 staging 路径时探针**不报错**，只打印空字段 —— 见到全空先确认路径存在
+（`bin2_ProjectALifeNPCs_extensions` 的 staging 实际叫 `ALifeStartWithNPC`）。
+
+**留给作者定夺**：`mod.info` 里 `require=\ProjectALifeJimmy`（作者自己改的）与代码的软挂接设计不一致 ——
+前者会让游戏在缺 Jeem 时拒绝启用，而代码 `no_jeem` 分支本可降级。工坊简介已按现状改写，是否降回可选出作者决定。

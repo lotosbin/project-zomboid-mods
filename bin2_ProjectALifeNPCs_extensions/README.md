@@ -114,7 +114,9 @@ bash bin2_workshop_upload_fix/tools/pz_workshop_probe/run.sh "" ~/Zomboid/Worksh
 `contentFolder exists=true`、`validatePreviewImage=OK`、`id=null`（首次上传前不带 id）。
 物品根现在是：`workshop.txt` + `preview.png`(256×256) + `changelog.txt` + `Contents/`（只有 `Contents/` 会被打包）。
 
-> `workshop.txt` 的 `visibility` 目前是 **private** —— 首次上传建议先私有验证，确认没问题再改 `public` 重传。
+> 已发布：工坊 id **3813096783**、`visibility=public`（2026-10-05 复核 `workshop.txt` 实测）。
+> ⚠️ 依赖（Steam 的「必需物品」）只能在工坊页面手填，`workshop.txt` 声明不了；
+> 本物品需要 `3803984183`（A-Life）与 `3806944055`（Jeem Extension），详见 `../workshop_create.sop.md` §3.6。
 
 ## 5.7 第二个模组：`bin2_npc_extension`（橙子社区经济 × NPC 招募，**在隔壁目录**）
 

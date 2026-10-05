@@ -2,7 +2,8 @@
 
 > 目标模组：`Bin2NPCExtension`（物品目录 `bin2_npc_extension`）
 > 依赖：`OrangeCommunityEconomy`（必需）、`ProjectALifeNPCs`（需要）、`ProjectALifeJimmy`（可选）
-> 版本：0.1.1（2026-10-05）｜ 状态：**已进游戏跑通基础流程，完整清单（T1~T18）未跑完**
+> 版本：0.1.1（2026-10-05）｜ 工坊 id：3813914438（已发布）
+> 状态：**已进游戏跑通基础流程，完整清单（T1~T18）未跑完**
 
 ---
 

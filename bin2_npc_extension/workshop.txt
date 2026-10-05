@@ -14,13 +14,13 @@ description=[*][b]不是[/b]：不修改橙子社区经济 / A-Life / Jeem 的�
 description=[*][b]钱[/b]只走橙子社区经济的服务端账本：余额不足就是招不了，价格由服务端按沙盒选项重算，客户端改不动。
 description=[/list]
 description=
-description=[h2]依赖[/h2]
+description=[h2]依赖（点开即订阅）[/h2]
 description=[list]
-description=[*][b]必需[/b] 橙子社区经济（mod id [b]OrangeCommunityEconomy[/b]，工坊 3777900792）
-description=[*][b]需要[/b] Project A-Life [ALIFE NPCS]（[b]ProjectALifeNPCs[/b]，工坊 3803984183）—— 没有它就只能看到提示
-description=[*][b]可选[/b] Project A-Life - Jeem Extension（[b]ProjectALifeJimmy[/b]，工坊 3806944055）—— 没有它就没有「居民」岗位
+description=[*][b]必需[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777900792]橙子社区经济[/url]（mod id [b]OrangeCommunityEconomy[/b]）
+description=[*][b]必需[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3806944055]Project A-Life - Jeem Extension[/url]（mod id [b]ProjectALifeJimmy[/b]）
+description=[*][b]需要[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3803984183]Project A-Life [ALIFE NPCS][/url]（mod id [b]ProjectALifeNPCs[/b]）—— Jeem Extension 会把它一起装上
 description=[/list]
-description=三个依赖全部软挂接：缺哪个都只降级，不会报错、不会崩。
+description=前两项写在 mod.info 的 require 里，缺了游戏不会让你启用。代码本身对三者都是[b]软挂接[/b]：上游改名或缺失只会降级并在控制台打日志，不报错、不写坏存档。
 description=
 description=[h2]怎么用[/h2]
 description=[list]

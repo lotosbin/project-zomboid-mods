@@ -2386,3 +2386,58 @@ Jeem 的 `R.isAlly` 认"阵营标签为 allied"或"组点数 ≥ 50"两条路，
 **教训**：布局是**状态函数的输出**，不能靠"看起来排好了"交付 —— 它依赖窗口尺寸、页签、
 选中项、依赖可用性四个变量。把它写成可断言的几何契约（并在测试里跑几种尺寸），
 成本只有十几行，却能挡住这类"必然会在某个窗口尺寸下出现"的问题。
+
+---
+
+## 2026-10-05 · 追问：「workshop.txt 里能不能直接声明必需物品？」
+
+用户的实际痛点：每发布一个物品都要在 Steam 网页上手动加「必需物品 / Required Items」。
+结论 **不能**，三条证据（前两条是本轮新做的取证）：
+
+| # | 证据 | 结果 |
+| --- | --- | --- |
+| 1 | `javap -p -c zombie.core.znet.SteamWorkshopItem` 的 `readWorkshopTxt()` | 键字符串只有 `version= / id= / title= / description= / tags= / visibility=`（外加 `#`、`//` 注释）。**没有** `required=` / `dependencies=` |
+| 2 | 把 `required=3803984183,3806944055` 与 `required0=3803984183` 追加进一份真实 `workshop.txt`，用**游戏自己的解析器**跑（`WorkshopTxtProbe`） | `description` 仍是 **2315 chars / 4239 bytes，与不含这两行时逐字节相同**；标题/标签/可见性不变；**没有任何报错** —— 未知键整行静默丢弃 |
+| 3 | `SteamWorkshop` 的 native 清单 + `OptionScreens/WorkshopSubmitScreen.lua` 的输入项 | 只有 `n_SetItemTitle/Description/Visibility/Tags/Content/Preview/SubmitItemUpdate`；界面上只有 标题/描述/标签/可见性/预览图/内容目录/ID。**没有设置依赖的调用** |
+
+反向发现：游戏**会读**这个字段 —— `SteamUGCDetails.getChildren()/getNumChildren()/getChildID(i)`
+与 `SteamWorkshop.GetQueryUGCChildren()` 都是暴露的（`GetQueryUGCChildren` 只在 `SteamWorkshop.class`
+内部被引用，游戏自己的 Lua 里零调用点），所以 Steam 上的 Required Items 是给客户端/网页用的
+"一键订阅"便利，游戏侧不参与。**结论：只能在网页/客户端手填，且每个物品只需一次。**
+
+（Steamworks API 是否有设置依赖的接口**没能联网核实** —— 本机 `web_fetch` 对 `partner.steamgames.com`
+一律返回 `resolves to a non-public IP`，搜索只回本地化文档目录页。文中按"据我所知没有"表述。）
+
+**新工具** `bin2_workshop_upload_fix/tools/workshop_requires.py`：
+
+* 从**本机已订阅的工坊内容**（`workshop/content/108600/<id>/**/mod.info` 的 `id=`/`name=`）反查
+  mod id → 工坊 id（本次索引到 **1169 个**），再叠加本仓库自己物品的 `id=`；查不到一律标 `unknown`；
+* `--check`（默认）打印每个物品的 必需(require=) / 可选(loadModAfter=) → 工坊 id + 可点击 URL；
+* `--write <物品>` 生成一段可点击的依赖小节写进 `workshop.txt`：用 `#` 行做标记
+  （`#` 开头整行被解析器跳过，标记不会进简介），自动插到 `[ ALERT_CONFIG ]` 之前；依赖 >12 个的物品跳过。
+  写入路径先在 `/tmp` 的副本上验证过。
+
+**顺带做掉的**：`bin2_npc_extension` 与 `bin2_ProjectALifeNPCs_extensions` 两份简介里的依赖段升级为
+`[url=https://steamcommunity.com/sharedfiles/filedetails/?id=<id>]名字[/url]` 可点击链接
+（玩家点一下即可订阅）。改完仓库级 `check_all.sh` 仍 **ALL CHECKS PASSED (18 item(s))**，
+两份的 `submitDesc` 分别 4564 / 3483 字节，距 8000 上限仍有余量。
+
+**文档沉淀**：`workshop_create.sop.md` 新增 §3.6（含 §3.6.1 工具用法 / §3.6.2 **本仓库各物品依赖 id 对照表** /
+§3.6.3 简介可点击链接），§8 执行步骤新增第 13 步"在工坊页面手工设置 Required Items"，
+§9 常见错误新增一行「写了 `required=` 但页面上还是空的」；skill `pz-workshop-item-publishing`
+新增 §2.2、§8 踩坑一条、§9 清单两条。
+
+**顺手订正两处过期文档**：`bin2_npc_extension` 的 README/`design.md`/`changelog.txt` 还写着
+"尚未上传工坊（无 id、private）"（实际 id=3813914438、public）；`bin2_ProjectALifeNPCs_extensions/README.md`
+还写着 `visibility 目前是 private`（实际已发布 id=3813096783、public）。
+
+**踩到的一个探针坑（值得记）**：仓库目录名与 staging 目录名不一定同名 ——
+`bin2_ProjectALifeNPCs_extensions` 的 staging 是 `~/Zomboid/Workshop/ALifeStartWithNPC`。
+拿错路径时 `WorkshopTxtProbe` **不报错**，而是打印一串空字段（`title=` / `tags=[]` / `description=0 chars`），
+看起来像"文件坏了"。以后见到全空先确认路径存在。
+
+**一个需要作者定夺的不一致**：`bin2_npc_extension/mod.info` 现在写着
+`require=\OrangeCommunityEconomy,\ProjectALifeJimmy`（本轮之前用户自己改的），
+而代码对 Jeem 是**软挂接**（`Config.jeem()` 拿不到就只剩跟随/守卫，`no_jeem` 有专门分支）。
+`require=` 会让游戏在缺 Jeem 时**不让启用**，比代码的容错策略更严。工坊简介已按 mod.info 的现状
+改写（必需=橙子经济+Jeem，需要=A-Life），但"要不要把 Jeem 降回可选"由作者决定。
