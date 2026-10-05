@@ -2,10 +2,18 @@ version=1
 id=3813914438
 title=Project A-Life NPC 招募扩展 (bin2_npc_extension ) - A-Life / Jeem (Build 42)
 description=[h1]用社区货币雇佣 A-Life NPC[/h1]
-description=给「橙子社区经济」（Orange Community Economy）加开一家佣兵中介：
-description=花社区货币把身边的 A-Life NPC 收编成雇员，或者直接下单让 A-Life 现造一名新人交给你。
-description=雇员可以跟随你、在你指定的位置站岗，或者交给 Jeem Extension 的居民系统去守营地。
-description=（v0.1.1，Build 42.20+）
+description=给[b]经济模组[/b]加开一家佣兵中介：花社区货币把身边的 A-Life NPC 收编成雇员，
+description=或者直接下单让 A-Life 现造一名新人交给你。雇员可以跟随你、在你指定的位置站岗，
+description=或者交给 Jeem Extension 的居民系统去守营地。
+description=（v0.2.0，Build 42.20+）
+description=
+description=[h2]这个物品里有两个模组，按你的经济模组选一个启用[/h2]
+description=[list]
+description=[*][b]Bin2NPCExtension[/b] —— 配[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777900792]橙子社区经济[/url]（必需）
+description=[*][b]Bin2NPCExtensionYese[/b] —— 配[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567]YeseMarket[/url]（必需）
+description=[/list]
+description=两个可以同时启用：它们共用同一套 A-Life / Jeem 招募内核，界面各自挂在自己的经济模组里；
+description=同一个 NPC 不会被两边同时雇走（各自的名册会互查）。
 description=
 description=[h2]这是什么，不是什么[/h2]
 description=[list]
@@ -16,7 +24,8 @@ description=[/list]
 description=
 description=[h2]依赖（点开即订阅）[/h2]
 description=[list]
-description=[*][b]必需[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777900792]橙子社区经济[/url]（mod id [b]OrangeCommunityEconomy[/b]）
+description=[*][b]必需（橙子版）[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777900792]橙子社区经济[/url]（mod id [b]OrangeCommunityEconomy[/b]）
+description=[*][b]必需（YeseMarket 版）[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567]YeseMarket[/url]（mod id [b]YeseMarket[/b]）
 description=[*][b]必需[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3806944055]Project A-Life - Jeem Extension[/url]（mod id [b]ProjectALifeJimmy[/b]）
 description=[*][b]需要[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3803984183]Project A-Life [ALIFE NPCS][/url]（mod id [b]ProjectALifeNPCs[/b]）—— Jeem Extension 会把它一起装上
 description=[/list]
@@ -58,7 +67,7 @@ description=[/list]
 description=
 description=[h2]已知限制（诚实声明）[/h2]
 description=[list]
-description=[*]v0.1.1 已进游戏跑过基础流程（招募/界面），但[b]完整清单 T1~T18 未跑完[/b]，请当作试验版
+description=[*]v0.2.0：橙子版已进游戏跑过基础流程（招募/界面）；[b]YeseMarket 版尚未进游戏验证[/b]；完整清单（T1~T24）未跑完，请当作试验版
 description=[*]Jeem 的居民招募是「按小队」的：把一个人转成居民时，他在 A-Life 眼里的小队可能一起进营地
 description=[*]A-Life 的 follow 命令是内存态，读档后由本模组自动重下（每秒级同步），首次进档可能有几秒延迟
 description=[*]与其它 NPC 模组（Bandits2 等）的共存未测试

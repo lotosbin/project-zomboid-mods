@@ -1,7 +1,8 @@
 # bin2_npc_extension
 
-> **「橙子社区经济」× A-Life 的 NPC 招募扩展**
-> Mod ID：`Bin2NPCExtension` ｜ 工坊 id：**3813914438**（已发布，public）｜ 归属：`bin2` 系列
+> **经济模组 × A-Life 的 NPC 招募扩展**（一个工坊物品，两个口味）
+> Mod ID：`Bin2NPCExtension`（橙子社区经济版）/ `Bin2NPCExtensionYese`（YeseMarket 版）
+> 工坊 id：**3813914438**（已发布，public）｜ 归属：`bin2` 系列
 > 状态：已进游戏跑通基础流程，完整清单（`docs/test-plan.md` T1~T18）未跑完
 > 建档：2026-10-05
 
@@ -35,6 +36,22 @@ native 也没有这个能力），每个物品一次** —— 详见该节的反
 * `docs/design.md` —— 本模组的功能与实现设计（含降级矩阵、存档格式、风险清单）
 
 ---
+
+## 1.5 一个物品里的两个模组
+
+| mod id | 配哪个经济模组 | 入口 | 备注 |
+| --- | --- | --- | --- |
+| `Bin2NPCExtension` | 橙子社区经济（`OrangeCommunityEconomy`，3777900792） | 首页「NPC 招募」按钮 + Ctrl+Alt+N | 已进游戏跑过基础流程 |
+| `Bin2NPCExtensionYese` | YeseMarket（3735641567） | **导航栏插一行**「NPC Recruit」+ Ctrl+Alt+N | **尚未进游戏验证** |
+
+两者共用同一套 A-Life / Jeem 招募内核（契约、维护循环、命令路由），差别只在"钱包 + UI 容器"：
+YeseMarket 版的 `Config`/`Economy` 由替换表生成，只有 `ui/Entry.lua` 是**独立实现**
+（它的 `Open(playerNum)` 不接受 pageId、首页也没有橙子版那两个锚点）。
+两份可以同时启用；各自的名册会互查，同一个 NPC 不会被两边同时雇走。
+
+> **变体目录是生成物**：`Contents/mods/Bin2NPCExtensionYese/` 与 `tools/test-yese/` 都由
+> `tools/fork_variant.py` 产出，`--check` 会在有人手改变体时报差异（防两份核心代码悄悄分叉）。
+> 要改变体，改生成器的替换表/补丁，而不是直接改变体文件。
 
 ## 2. 目录导览
 

@@ -1,10 +1,10 @@
 -- ===========================================================================
--- test_recruit.lua —— Bin2NPCExtension 招募流程的离线集成断言
+-- test_recruit.lua —— Bin2NPCExtensionYese 招募流程的离线集成断言
 -- ===========================================================================
 --
 -- 环境由 run.js + mock_env.lua 准备好：
 --   * MOCK        —— 引擎桩 / 依赖 mock / 调用记录 / 时间推进 / 断言框架
---   * Bin2NPCExtension / ProjectALife / ProjectALifeJimmy / OrangeTradingMod*
+--   * Bin2NPCExtensionYese / ProjectALife / ProjectALifeJimmy / YeseMarket*
 --     —— 被测的 14 个文件跑完后的产物
 --
 -- 返回失败条数（run.js 用它当退出码：0 = ALL PASS）。
@@ -13,7 +13,7 @@
 local M = MOCK
 
 -- ---------------------------------------------------------------- 被测对象
-local Config = Bin2NPCExtension
+local Config = Bin2NPCExtensionYese
 local Contracts = Config.Contracts
 local Store = Config.Store
 local Service = Config.Service
@@ -127,8 +127,8 @@ local SOURCE_KEYS = Config.__sourceKeys or {}
 -- ===========================================================================
 runTest(1, "loader: 14 files, expected globals only, require is idempotent", function()
     M.assert_eq(Config.__loadedCount, 14, "loaded file count")
-    M.assert_eq(Config.MODULE, "Bin2NPCExtension", "Config.MODULE")
-    M.assert_eq(Bin2NPCExtension, Config, "Bin2NPCExtension is the Config table")
+    M.assert_eq(Config.MODULE, "Bin2NPCExtensionYese", "Config.MODULE")
+    M.assert_eq(Bin2NPCExtensionYese, Config, "Bin2NPCExtensionYese is the Config table")
     M.assert_truthy(type(Config.Text.get) == "function", "Config.Text.get")
     M.assert_truthy(type(Contracts.sanitize) == "function", "Contracts.sanitize")
     M.assert_truthy(type(Store.playerKey) == "function", "Store.playerKey")
@@ -145,16 +145,16 @@ runTest(1, "loader: 14 files, expected globals only, require is idempotent", fun
     local compatCall = M.calls_named("foreignCopies")[1]
     M.assert_truthy(type(compatCall) == "table" and type(compatCall.active) == "table",
         "foreignCopies receives the active-mod set (A-Life's own signature)")
-    M.assert_falsy(ProjectALife.ModCompat.known["Bin2NPCExtension"] ~= nil,
+    M.assert_falsy(ProjectALife.ModCompat.known["Bin2NPCExtensionYese"] ~= nil,
         "this mod must NOT write itself into ProjectALife.ModCompat.known")
 
     -- 只多出预期全局
     local allowed = {
-        Bin2NPCExtension = true,
+        Bin2NPCExtensionYese = true,
         ProjectALife = true,
         ProjectALifeJimmy = true,
-        OrangeTradingMod = true,
-        OrangeTradingModServer = true,
+        YeseMarket = true,
+        YeseMarketServer = true,
     }
     local unexpected = {}
     for _, name in ipairs(M.newGlobals()) do
@@ -163,10 +163,10 @@ runTest(1, "loader: 14 files, expected globals only, require is idempotent", fun
     M.assert_eq(#unexpected, 0, "unexpected new globals: " .. table.concat(unexpected, ", "))
 
     -- require 同一文件两次不会重复执行（package.loaded 命中，第二次连 searcher 都不进）
-    local before = M.requireCounts["Bin2NPCExtension/Contracts"] or 0
-    local again = require "Bin2NPCExtension/Contracts"
+    local before = M.requireCounts["Bin2NPCExtensionYese/Contracts"] or 0
+    local again = require "Bin2NPCExtensionYese/Contracts"
     M.assert_truthy(again == Contracts, "second require returns the cached module table")
-    local after = M.requireCounts["Bin2NPCExtension/Contracts"] or 0
+    local after = M.requireCounts["Bin2NPCExtensionYese/Contracts"] or 0
     M.assert_eq(after, before, "the second require never re-ran the searcher (file not re-executed)")
     -- 13 个模块（14 个文件里两个 Bootstrap 同名）都只被解析一次：
     -- 第二次 require 直接命中 package.loaded，连 searcher 都不进。
@@ -179,11 +179,11 @@ runTest(1, "loader: 14 files, expected globals only, require is idempotent", fun
     end
     M.assert_eq(#duplicated, 0, "modules resolved twice: " .. table.concat(duplicated, ", "))
     -- Config 被 12 个文件依赖；每个依赖链都只解析一次
-    M.assert_eq(M.requireCounts["Bin2NPCExtension/Config"], 1, "Config resolved once")
-    M.assert_eq(M.requireCounts["Bin2NPCExtension/Contracts"], 1, "Contracts resolved once")
-    M.assert_eq(M.requireCounts["Bin2NPCExtension/ui/Page"], 1, "ui/Page resolved once")
+    M.assert_eq(M.requireCounts["Bin2NPCExtensionYese/Config"], 1, "Config resolved once")
+    M.assert_eq(M.requireCounts["Bin2NPCExtensionYese/Contracts"], 1, "Contracts resolved once")
+    M.assert_eq(M.requireCounts["Bin2NPCExtensionYese/ui/Page"], 1, "ui/Page resolved once")
     -- 两个 Bootstrap 是被引擎 LoadDirBase 直接执行的（没有任何文件 require 它们）
-    M.assert_falsy(M.requireCounts["Bin2NPCExtension/Bootstrap"], "Bootstrap is engine-loaded, not required")
+    M.assert_falsy(M.requireCounts["Bin2NPCExtensionYese/Bootstrap"], "Bootstrap is engine-loaded, not required")
     -- Page.lua 的 require "ISUI/ISPanel" / "ui/page_registry" 由 package.preload 提供（searcher 不进）
     M.assert_truthy(pageUsesISPanelStub(), "ui/Page used the ISPanel stub")
 end)
@@ -498,7 +498,7 @@ runTest(10, "hireSpawned: creates + requests, pays SpawnPrice, pending note, Mai
     -- create 的参数：operationId 以 :create 结尾，fingerprint 是模块级常量
     local createCall = M.calls_named("ActorRegistry.create")[1]
     M.assert_truthy(string.sub(createCall.spec.operationId, -7) == ":create", "create operationId suffix")
-    M.assert_eq(createCall.spec.fingerprint, "Bin2NPCExtension:v1", "create fingerprint")
+    M.assert_eq(createCall.spec.fingerprint, "Bin2NPCExtensionYese:v1", "create fingerprint")
     M.assert_eq(createCall.spec.factionId, "bin2_test_friendly", "create factionId")
     M.assert_eq(createCall.spec.profileId, "npc_test_1", "create profileId")
     M.assert_truthy(type(createCall.spec.memory) == "table", "create memory table")
@@ -913,7 +913,7 @@ runTest(18, "client net: single player dispatches directly, multiplayer uses sen
     M.assert_eq(ok, true, "Net.send returned true for a multiplayer client")
     local sent = M.calls_named("sendClientCommand")
     M.assert_eq(#sent, before + 1, "sendClientCommand was called")
-    M.assert_eq(sent[#sent] and sent[#sent].module, "Bin2NPCExtension", "command module name")
+    M.assert_eq(sent[#sent] and sent[#sent].module, "Bin2NPCExtensionYese", "command module name")
     M.assert_eq(sent[#sent] and sent[#sent].command, "RequestState", "command name")
     M.assert_eq(Net.cache.limits.max, 0, "the cache is NOT refreshed by the outbound call")
 
@@ -936,7 +936,7 @@ runTest(18, "client net: single player dispatches directly, multiplayer uses sen
     local snapshot = Net.cache.coins
     M.pushFromServer({ coins = 5 })
     M.trigger("OnServerCommand", "ProjectALife", "State", { coins = 5 })
-    M.trigger("OnServerCommand", "Bin2NPCExtension", "Other", { coins = 5 })
+    M.trigger("OnServerCommand", "Bin2NPCExtensionYese", "Other", { coins = 5 })
     M.assert_eq(Net.cache.coins, 5, "a payload without a coins field leaves the cache alone")
     M.setClient(false)
 end)
@@ -944,43 +944,80 @@ end)
 -- ===========================================================================
 -- 19. UI 接入
 -- ===========================================================================
-runTest(19, "ui: page registered, home entry wrapped, button opens the page, page renders", function()
+runTest(19, "ui: page registered, YeseMarket navigation row injected, button opens the page, page renders", function()
     local ui = Config.economy()
-    M.assert_truthy(ui ~= nil, "OrangeTradingMod is present")
+    M.assert_truthy(ui ~= nil, "YeseMarket is present")
     local registry = ui.UIPageRegistry
     M.assert_truthy(registry ~= nil, "UIPageRegistry present")
 
-    -- 重置成"橙子经济刚加载完"的样子，再重新装一次入口
+    --[[
+        YeseMarket 版的入口策略是**导航栏插一行**（橙子版才是包首页工厂 `factories.index`），
+        所以这里换成对应断言：钩子把按钮塞进 `self.navButtons`，点它走 `self:setPage(我们的 id)`；
+        另外 `Entry.open()` 走"`Open(number)` → `Window:setPage(id)`"两步（YeseMarket 的 Open 只吃一个参数）。
+    ]]
     registry.factories = {}
     registry.order = {}
     Config.Entry.installed = false
-    local homePageCalls = 0
-    local cachedHome = nil
-    -- 真实注册表工厂是"同一 context 返回同一张 page"的单例（ui/bootstrap.lua 的做法）
-    local originalIndex = function(context)
-        homePageCalls = homePageCalls + 1
-        if cachedHome ~= nil and cachedHome.context == context then return cachedHome end
-        local page = ISPanel:new(0, 0, 800, 600)
-        page.context = context
-        page.width, page.height = 800, 600
-        function page:relayout(rect) self.relayouted = rect end
-        cachedHome = page
-        return page
-    end
-    registry.factories.index = originalIndex
+    Config.Entry.navInstalled = false
+    M.resetShell()
 
     local installed = Config.Entry.install()
     M.assert_eq(installed, true, "Entry.install() returned true")
     M.assert_eq(registry.Has("bin2NpcRecruit"), true, "UIPageRegistry.Has('bin2NpcRecruit')")
-    M.assert_truthy(registry.factories.index ~= originalIndex, "the index factory was wrapped")
     local ids, idCount = {}, 0
     for _, id in ipairs(registry.Ids()) do ids[id] = (ids[id] or 0) + 1 idCount = idCount + 1 end
     M.assert_eq(ids.bin2NpcRecruit, 1, "the recruit page was registered exactly once")
-    M.assert_eq(idCount, 1, "only the recruit page was registered by Entry.install (mock index is pre-installed)")
+    M.assert_eq(idCount, 1, "only the recruit page was registered by Entry.install")
     local ok, err = pcall(registry.Register, "bin2NpcRecruit", function() end)
     M.assert_eq(ok, false, "registering the same page twice raises (idempotence relies on Has)")
 
-    -- 造 context 并调用被包装的 index 工厂
+    -- 包了 YeseMarket.UIShell 的 buildNavigation / layoutNavigationItems
+    local shell = ui.UIShell
+    M.assert_truthy(type(shell) == "table", "YeseMarket.UIShell present")
+    M.assert_truthy(type(shell.buildNavigation) == "function", "buildNavigation is hooked")
+    local instance = setmetatable({}, { __index = shell })
+    instance:buildNavigation()
+    M.assert_truthy(type(instance.navButtons) == "table", "mock shell built its navButtons")
+    local navButton = instance.navButtons["bin2NpcRecruit"]
+    M.assert_truthy(navButton ~= nil, "the recruit page got its own navigation row")
+    M.assert_eq(navButton and navButton.pageId, "bin2NpcRecruit", "nav button carries the page id")
+    instance:layoutNavigationItems()
+    M.assert_truthy(navButton and tonumber(navButton.y) ~= nil and navButton.y >= 0,
+        "the injected nav row is positioned by layoutNavigationItems")
+
+    -- 幂等：再调一次 buildNavigation 不会插第二行
+    local rowsBefore = 0
+    for _, child in ipairs(instance.navigationViewport.children) do
+        if child.ymNavId == "bin2NpcRecruit" then rowsBefore = rowsBefore + 1 end
+    end
+    instance:buildNavigation()
+    local rowsAfter = 0
+    for _, child in ipairs(instance.navigationViewport.children) do
+        if child.ymNavId == "bin2NpcRecruit" then rowsAfter = rowsAfter + 1 end
+    end
+    M.assert_eq(rowsAfter, rowsBefore, "the nav row is not injected twice")
+
+    -- 点击导航行 -> shell 切到我们的页面
+    M.state.opened = {}
+    navButton:click()
+    local switched = M.calls_named("UIShell.setPage")
+    M.assert_truthy(#switched >= 1, "clicking the nav row calls shell:setPage")
+    M.assert_eq(switched[#switched] and switched[#switched].pageId, "bin2NpcRecruit",
+        "…with our page id")
+
+    -- Entry.open：窗口没开时先 Open(number) 再切页；已开则只切页
+    ui.Window = nil
+    M.state.opened = {}
+    local opensBefore = M.count_calls("YeseMarket.Open")
+    M.assert_eq(Config.Entry.open(0), true, "Entry.open() with no window open returns true")
+    M.assert_truthy(M.count_calls("YeseMarket.Window.setPage") >= 1, "Entry.open switched the window with Window:setPage")
+    M.assert_eq(M.count_calls("YeseMarket.Open"), opensBefore + 1, "…and it called Open(playerNum)")
+    local openCall = M.calls_named("YeseMarket.Open")
+    M.assert_eq(openCall[#openCall] and openCall[#openCall].number, 0, "Open got the player number")
+    M.assert_eq(Config.Entry.open(0), true, "Entry.open() on an already-open window returns true")
+    M.assert_eq(M.count_calls("YeseMarket.Open"), opensBefore + 1,
+        "…and it did NOT open a second window (only setPage)")
+
     local primitives = {}
     function primitives.FitText(value, font, width)
         return tostring(value or "")
@@ -1042,31 +1079,8 @@ runTest(19, "ui: page registered, home entry wrapped, button opens the page, pag
     M.assert_truthy(built ~= nil, "Registry.Create builds the recruit page")
     M.assert_eq(built.pageId, "bin2NpcRecruit", "Registry.Create stamps pageId")
 
-    local page = registry.factories.index(context)
-    M.assert_eq(homePageCalls, 1, "the original index factory still runs")
-    M.assert_truthy(page ~= nil, "the wrapped factory returned the page")
-    M.assert_truthy(page.bin2NpcButton ~= nil, "the page carries bin2NpcButton")
-    M.assert_eq(page.bin2NpcButton.ymNavId, "bin2NpcRecruit", "button nav id")
-    M.assert_eq(page.bin2NpcButton.title, "EntryButton", "button title (translated)")
-    M.assert_truthy(page.bin2NpcButton.tooltip ~= nil, "button tooltip is set")
-    M.assert_truthy(#page.children >= 1, "the button was added as a child")
-
-    -- 按钮回调 -> OrangeTradingMod.Open(number, "bin2NpcRecruit")
-    page.bin2NpcButton:click()
-    M.assert_eq(#M.state.opened, 1, "Open was called once")
-    M.assert_eq(M.state.opened[1].number, 0, "Open got the player number")
-    M.assert_eq(M.state.opened[1].pageId, "bin2NpcRecruit", "Open got the page id")
-
-    -- 幂等：同一 context（同一张 page）再调一次工厂不会再挂一个按钮
-    local sameContext = page.context
-    local again = registry.factories.index(sameContext)
-    M.assert_eq(again.bin2NpcButton, page.bin2NpcButton, "the same page object keeps the same button")
-    M.assert_eq(homePageCalls, 2, "the original factory still ran again")
-    local buttonCount = 0
-    for _, child in ipairs(page.children) do
-        if child.ymNavId == "bin2NpcRecruit" then buttonCount = buttonCount + 1 end
-    end
-    M.assert_eq(buttonCount, 1, "exactly one recruit button is attached to the page")
+    -- （入口这一段的断言已经在上面 YeseMarket 段落里做过：橙子版此处是
+    --   「包首页工厂 + page.bin2NpcButton」，YeseMarket 版没有对应物）
 
     -- Page.Create 的页面契约
     local recruitPage = Config.RecruitPage.Create(context)
@@ -1271,7 +1285,7 @@ runTest(24, "extra: server Bootstrap registers the events and routes OnClientCom
 
     resetWorld({ balance = 10000 })
     local uid = M.addActor({ uid = "palife:cmd:1" })
-    local count, err = M.trigger("OnClientCommand", "Bin2NPCExtension", "HireExisting", M.player,
+    local count, err = M.trigger("OnClientCommand", "Bin2NPCExtensionYese", "HireExisting", M.player,
         { uid = uid, mode = "follow", requestId = U("r24a") })
     M.assert_eq(err, nil, "OnClientCommand handler must not error: " .. tostring(err))
     M.assert_eq(count >= 1, true, "at least one handler ran")
@@ -1281,13 +1295,13 @@ runTest(24, "extra: server Bootstrap registers the events and routes OnClientCom
     -- 别人的 module 不处理
     local uid2 = M.addActor({ uid = "palife:cmd:2" })
     M.advanceMs(1000)
-    M.trigger("OnClientCommand", "OrangeTradingMod", "HireExisting", M.player,
+    M.trigger("OnClientCommand", "YeseMarket", "HireExisting", M.player,
         { uid = uid2, mode = "follow", requestId = U("r24b") })
     M.assert_eq(M.balance(), 10000 - SIGN, "a foreign module name does nothing")
 
     -- 兼容自检（详细断言在用例 1：加载期就调过 foreignCopies、且绝不写 known）。
     -- 这里只确认它在"有自带 A-Life 副本的模组"时也能跑完，并且是幂等的。
-    M.assert_falsy(ProjectALife.ModCompat.known["Bin2NPCExtension"] ~= nil,
+    M.assert_falsy(ProjectALife.ModCompat.known["Bin2NPCExtensionYese"] ~= nil,
         "this mod must NOT write itself into ProjectALife.ModCompat.known")
     M.setForeignCopies({ "SomeA-lifeCopy (3807277264) -> incompatible: ships its own copy" })
     M.assert_eq(Config.ServerBootstrap.reportCompat(), true,
@@ -1505,7 +1519,7 @@ runTest(29, "extra: Text.get falls back to the bare key and Text.reason covers e
     local text = Config.Text
     -- getText 桩原样返回 key -> Text.get 去掉前缀
     M.assert_eq(text.get("PageTitle"), "PageTitle", "Prefixing then stripping the prefix")
-    M.assert_eq(text.get("IGUI_Bin2NPCExtension_PageTitle"), "PageTitle", "already-prefixed keys are kept")
+    M.assert_eq(text.get("IGUI_Bin2NPCExtensionYese_PageTitle"), "PageTitle", "already-prefixed keys are kept")
     M.assert_eq(text.get(nil), "", "nil key")
     M.assert_eq(text.mode("guard"), "ModeGuard", "mode translation")
     M.assert_eq(text.mode("resident"), "ModeResident", "resident mode translation")
@@ -1531,14 +1545,14 @@ runTest(29, "extra: Text.get falls back to the bare key and Text.reason covers e
     M.assert_not_contains(upstream, "%1", "no raw placeholder is left behind")
     M.assert_not_contains(upstream, "IGUI_", "the namespace prefix is stripped for display")
     -- 有真翻译时 %1 必须被替换成上游码
-    M.state.translations = { IGUI_Bin2NPCExtension_ReasonUpstream = "%1 (upstream)" }
+    M.state.translations = { IGUI_Bin2NPCExtensionYese_ReasonUpstream = "%1 (upstream)" }
     upstream = text.reason("shell_hydration_failed")
     M.assert_contains(upstream, "shell_hydration_failed", "the upstream code is substituted into %1")
     -- 复合码 resident:no_beds -> ReasonResidentRefused(ReasonUpstream(no_beds))
     -- （no_beds 是 Jeem 的上游码，REASONS 里刻意不穷举，统一走 ReasonUpstream 包装）
     M.state.translations = {
-        IGUI_Bin2NPCExtension_ReasonResidentRefused = "refused: %1",
-        IGUI_Bin2NPCExtension_ReasonUpstream = "%1 (upstream)",
+        IGUI_Bin2NPCExtensionYese_ReasonResidentRefused = "refused: %1",
+        IGUI_Bin2NPCExtensionYese_ReasonUpstream = "%1 (upstream)",
     }
     local resident = text.reason("resident:no_beds")
     M.assert_eq(resident, "refused: no_beds (upstream)", "compound reason wraps the prefix and the upstream tail")
@@ -1571,7 +1585,7 @@ runTest(30, "extra: Economy balance/pay/refund/record and RecordPlayerFlow extra
     M.assert_truthy(flow ~= nil, "RecordPlayerFlow was called")
     M.assert_eq(flow.direction, "out", "flow direction")
     M.assert_eq(flow.kind, "npc_hire", "flow kind")
-    M.assert_eq(flow.itemType, "Bin2NPCExtension.contract", "flow itemType")
+    M.assert_eq(flow.itemType, "Bin2NPCExtensionYese.contract", "flow itemType")
     M.assert_eq(flow.coins, 100, "flow coins")
     M.assert_eq(flow.extra and flow.extra.labelKey, "FlowHire", "flow extra labelKey")
 

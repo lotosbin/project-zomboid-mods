@@ -1,25 +1,25 @@
 --[[
-    Bin2NPCExtension :: Service（server，命令处理 = 唯一改状态的地方）
+    Bin2NPCExtensionYese :: Service（server，命令处理 = 唯一改状态的地方）
 
     客户端 → 服务端：
-        module = "Bin2NPCExtension"（我们自己的 mod id，不能借用 A-Life / Jeem 的）
+        module = "Bin2NPCExtensionYese"（我们自己的 mod id，不能借用 A-Life / Jeem 的）
         command ∈ { RequestState, ScanCandidates, HireExisting, HireSpawned, SetMode, Dismiss }
 
     服务端 → 客户端：
-        sendServerCommand(player, "Bin2NPCExtension", "State", payload)
+        sendServerCommand(player, "Bin2NPCExtensionYese", "State", payload)
     单机下 sendServerCommand 是空操作，所以 dispatch 同时**返回** payload，
     客户端 Net 层在单机下直接拿返回值（Jeem 的 Menu.send 也是这个套路）。
 ]]
 
-require "Bin2NPCExtension/Config"
-require "Bin2NPCExtension/Contracts"
-require "Bin2NPCExtension/Text"
-require "Bin2NPCExtension/Store"
-require "Bin2NPCExtension/Alife"
-require "Bin2NPCExtension/Jimmy"
-require "Bin2NPCExtension/Economy"
+require "Bin2NPCExtensionYese/Config"
+require "Bin2NPCExtensionYese/Contracts"
+require "Bin2NPCExtensionYese/Text"
+require "Bin2NPCExtensionYese/Store"
+require "Bin2NPCExtensionYese/Alife"
+require "Bin2NPCExtensionYese/Jimmy"
+require "Bin2NPCExtensionYese/Economy"
 
-local Config = Bin2NPCExtension
+local Config = Bin2NPCExtensionYese
 local Contracts = Config.Contracts
 local Store = Config.Store
 local Alife = Config.Alife

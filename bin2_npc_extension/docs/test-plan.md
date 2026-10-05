@@ -53,3 +53,18 @@ T7：结果=通过/失败；console 关键行=<粘贴 5~10 行>；截图=<文件
 * 转居民时「整支小队一起进营地」的实际观感
 * 首页按钮与「社区中心」按钮的排布是否永远不重叠（对方改布局就会变）
 * 与其它 NPC 模组（Bandits2、The Mutants 等）的共存
+
+## YeseMarket 版（`Bin2NPCExtensionYese`）补充用例
+
+同一物品里的另一个口味配 [YeseMarket](https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567)。
+它的入口不是首页按钮，而是**导航栏新插的一行**，所以下面这几条必须单独跑一遍：
+
+| 组 | 用例 | 期望 | 失败时先看 |
+| --- | --- | --- | --- |
+| Y 入口 | Y1 装 YeseMarket + 本模组（**不要**装橙子版依赖） | 控制台 `recruit page registered; YeseMarket navigation row installed` | `Config.economy()` 是否拿到 `YeseMarket` |
+| Y 入口 | Y2 开 YeseMarket 界面 | 左侧导航栏**多出一行**「NPC Recruit」，在最后一行下方 | 上游是否改了 `navButtons` / `navigationButtonHeight` 等字段名 |
+| Y 入口 | Y3 点那一行 | 右侧切到招募页（**不是**首页） | `setPage` 是否放行我们的 pageId |
+| Y 入口 | Y4 按 Ctrl+Alt+N | 从任意时刻都能打开招募面板；与 YeseMarket 自带按键不冲突（它全库零绑定） | 热键是这条路径的兜底 |
+| Y 入口 | Y5 先关窗口再按热键 | 会先开窗再切到招募页（`Open(playerNum)` → `Window:setPage`），不会停在首页 | `Open` 只吃一个参数 |
+| Y 功能 | Y6 收编 / 派遣 / 岗位 / 工资 / 解雇 | 与 T6~T18 相同；货币显示为「金币」 | 记账看 `RecordPlayerFlow` 的 out/in 两行 |
+| Y 共存 | Y7 两个口味同时启用 | 两个界面各自可开；**同一个 NPC 只能被一边雇走**（另一边报「已被其他玩家雇佣」） | `Service.hiredBySibling` 互查 |

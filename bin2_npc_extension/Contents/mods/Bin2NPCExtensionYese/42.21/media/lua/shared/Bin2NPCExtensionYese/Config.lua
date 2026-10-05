@@ -1,5 +1,5 @@
 --[[
-    Bin2NPCExtension :: Config（shared，客户端与服务端共用）
+    Bin2NPCExtensionYese :: Config（shared，客户端与服务端共用）
 
     职责：常量、沙盒选项读取、日志、探测三个依赖是否可用。
 
@@ -10,16 +10,16 @@
       * 缺依赖只降级、不报错：任何一处都用存在性探测 + pcall。
 ]]
 
-Bin2NPCExtension = Bin2NPCExtension or {}
+Bin2NPCExtensionYese = Bin2NPCExtensionYese or {}
 
-local Config = Bin2NPCExtension
+local Config = Bin2NPCExtensionYese
 
 -- 翻译工具挂到同一张表上（Text 不依赖 Config，没有循环 require）
-require "Bin2NPCExtension/Text"
+require "Bin2NPCExtensionYese/Text"
 
-Config.MODULE = "Bin2NPCExtension"       -- 必须等于 mod.info 的 id
+Config.MODULE = "Bin2NPCExtensionYese"       -- 必须等于 mod.info 的 id
 Config.VERSION = "0.2.0"
-Config.TAG = "Bin2NPCExtension.Contracts.v1"   -- 我们自己的 ModData 存档表
+Config.TAG = "Bin2NPCExtensionYese.Contracts.v1"   -- 我们自己的 ModData 存档表
 
 --[[
     同一个工坊物品里的"另一个口味"的 mod id（可选）。
@@ -37,7 +37,7 @@ Config.MODE_GUARD = "guard"
 Config.MODE_RESIDENT = "resident"
 
 -- 沙盒选项表名
-Config.TABLE = "Bin2NPCExtension"
+Config.TABLE = "Bin2NPCExtensionYese"
 
 -- 沙盒选项默认值（沙盒表缺失时用同一份默认值）
 Config.DEFAULTS = {
@@ -202,16 +202,16 @@ function Config.count(source)
 end
 
 --[[
-    依赖探测：橙子社区经济（硬依赖，但探测写法保持软性）
+    依赖探测：YeseMarket（硬依赖，但探测写法保持软性）
 ]]
 function Config.economy()
-    local mod = rawget(_G, "OrangeTradingMod")
+    local mod = rawget(_G, "YeseMarket")
     if type(mod) ~= "table" then return nil end
     return mod
 end
 
 function Config.economyServer()
-    local server = rawget(_G, "OrangeTradingModServer")
+    local server = rawget(_G, "YeseMarketServer")
     if type(server) ~= "table" then return nil end
     if type(server.PlayerData) ~= "function" then return nil end
     return server

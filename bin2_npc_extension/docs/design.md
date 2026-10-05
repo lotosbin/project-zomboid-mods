@@ -2,7 +2,7 @@
 
 > 目标模组：`Bin2NPCExtension`（物品目录 `bin2_npc_extension`）
 > 依赖：`OrangeCommunityEconomy`（必需）、`ProjectALifeNPCs`（需要）、`ProjectALifeJimmy`（可选）
-> 版本：0.1.1（2026-10-05）｜ 工坊 id：3813914438（已发布）
+> 版本：0.2.0（2026-10-05）｜ 工坊 id：3813914438（已发布，物品内含两个模组）
 > 状态：**已进游戏跑通基础流程，完整清单（T1~T18）未跑完**
 
 ---
@@ -300,3 +300,58 @@ follow   → Alife.orderFollow(player, uid, quiet)
 4. **欠薪仲裁**：欠薪时让雇员降为中立而非直接消失（需要改关系，属于 A-Life 内部行为，谨慎）。
 5. **每名雇员的独立工资/岗位配置**：现在工资是全局一项；加个 per-contract 覆盖需要扩展存档字段
    （`Contracts.sanitize` 已经能吃下新增字段，属于向后兼容改动）。
+
+---
+
+## 11. 第二个口味：YeseMarket 版（`Bin2NPCExtensionYese`）
+
+同一个工坊物品里再放一个模组，配另一个经济模组 [YeseMarket](https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567)（mod id `YeseMarket`，作者 Dusk）。
+
+### 11.1 为什么能几乎照搬：两边的 API 是同一套形状
+
+逆向报告（`docs/research/yese-integration-hooks.md`）逐条比对后的结论：
+`Pay / AddCoins / PlayerData().coins / IsSinglePlayer / UIPageRegistry.{Register,Has,Ids} / setPage / RecordPlayerFlow`
+**签名完全一致**，只有两处实质断点：
+
+| 断点 | 橙子经济 | YeseMarket |
+| --- | --- | --- |
+| 打开面板 | `Open(number, targetPage)` 支持直接指定页 | `Open(playerNum)` **只吃一个参数**（`client/event_handlers.lua:299`）→ 必须 `Open(n)` 后再 `Window:setPage(id)` |
+| 入口位置 | 首页工厂有官方先例（包 `factories.index`），锚点是 `communityCenterButton` | 首页**没有**那两个锚点；导航是 `shell.lua:32` 的 `local NAVIGATION`，加不进去 → 改为**包 `UIShell:buildNavigation` + `:layoutNavigationItems` 插一行**（壳把按钮与度量放在实例字段上） |
+
+所以变体里只有 `ui/Entry.lua` 是**独立实现**，其余全部由生成器从基模组派发。
+
+### 11.2 变体目录是生成物（防分叉）
+
+`tools/fork_variant.py`：
+
+* `--write` 从 `Contents/mods/Bin2NPCExtension/42.21/**` 生成 `Bin2NPCExtensionYese/**` 与 `tools/test-yese/**`
+  （替换表 + per-file 补丁 + 区域替换 + 单个文件的 override）；
+* `--check` 重新生成到临时目录并逐字节比对磁盘上的变体 —— **有人手改变体就会报差异**。
+  这条是这套方案能站住的关键：A-Life 适配层最容易随上游变动，两份手抄必分叉。
+
+生成器里三处"非机械"的地方，都在源码注释里写明了理由：`ui/Entry.lua`（入口策略不同）、
+`Config.SIBLING_MODULE`（PRE_SUBS 补丁，把兄弟模组 id 翻过来）、测试 19 的入口断言（策略不同，断言自然不同）。
+
+### 11.3 跨模组互查：同一个 NPC 不能被两边同时雇走
+
+两个模组各有一份 ModData、各自独立的名册。没有互查的话，玩家可以在两个界面各雇一次同一个 actor，
+两边都认为自己拥有它，而 `DecisionLoop.orders` 是**一人一槽**，指令会互相顶掉。
+
+`Service.hireExisting` 里加了一道**只读**互查（`takenBySibling`）：读 `Config.SIBLING_MODULE` 指向的模组的
+`Store.data()` + `Contracts.owner()`，有主的直接返回 `taken_by_other`；对方不存在/字段缺失就当没有，
+不会把自己锁死。测试用例 34 覆盖了"有主被拒 / 拿掉替身后又能雇"。
+
+### 11.4 YeseMarket 版的稳定性评级
+
+| 接口 | 评级 | 说明 |
+| --- | --- | --- |
+| `YeseMarket.UIPageRegistry.{Register,Has,Ids}`、`Pay/AddCoins/PlayerData`、`RecordPlayerFlow`、`setPage` | 半稳定 | 与橙子版同形状；`setPage` 对未进 `NAVIGATION` 的 id 默认放行（`navigationEnabled()` 兜底 `return true`） |
+| `YeseMarket.Open(playerNum)` | 半稳定 | 唯一开窗入口，只吃一个参数 |
+| `YeseMarket.UIShell.buildNavigation / layoutNavigationItems` 包装 | **内部实现细节** | 依赖 `navButtons`/`navigationViewport`/`navigationButtonHeight`/`navigationGap`/`navigationContentHeight` 五个实例字段；字段改名则该行消失（**热键仍可用**，且只会在日志里留一行） |
+| `YeseMarket.Window:setPage` | 半稳定 | 开窗后切页的唯一路径 |
+
+### 11.5 进游戏验证补充（并进 `docs/test-plan.md`）
+
+除橙子版的 T1~T18 外，YeseMarket 版要额外测：导航栏那一行是否出现且位置正确、
+点它是否切到招募页、Ctrl+Alt+N 是否也能开、`Open` 后是否停在招募页而不是首页、
+以及两个模组同时启用时同一名 NPC 只能被一边雇走。

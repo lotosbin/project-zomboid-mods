@@ -1,3 +1,17 @@
+版本 0.2.0 (2026-10-05)
+- 新增：同一物品里的第二个模组 `Bin2NPCExtensionYese` —— 同一套招募功能，配 YeseMarket（工坊 3735641567）
+  * 与 Project A-Life Jeem Extension 的兼容方式、岗位、名册、日薪等与橙子版完全一致
+  * 差别只在"钱包 + UI 容器"：YeseMarket 的 `Open(playerNum)` 不接受 pageId，
+    所以入口是「先开窗 → `YeseMarket.Window:setPage(我们的页面)`」；
+    它的导航是文件内 local 表、加不进去，改为包 `UIShell:buildNavigation` / `layoutNavigationItems` 插一行
+  * 兜底：Ctrl+Alt+N 热键在两种口味里都可用
+- 新增：两个口味之间的**互查**（`Config.SIBLING_MODULE` + `Service.takenBySibling`）——
+  同一个 A-Life NPC 不会被两边同时雇走（各自名册独立，但会读一眼对方的存档）
+- 工程：变体目录由 `tools/fork_variant.py` 生成，`--check` 会在有人手改变体时报差异（防两份核心代码分叉）；
+  变体自带一套离线测试（`tools/test-yese/`，34 条断言，覆盖 YeseMarket 的入口与打开语义）
+- 版本号 0.1.1 → 0.2.0（mod.info / Config.VERSION / 工坊简介）
+- 已知限制：YeseMarket 版**尚未进游戏验证**；橙子版仍只跑过基础流程
+
 版本 0.1.1 (2026-10-05)
 - 修复（玩家实测反馈：按钮/文字错位）：
   1. 招募面板右侧的说明文字会压住「跟随/守卫/居民」按钮行（窗口越矮越明显）。
