@@ -86,7 +86,7 @@
 5. **正文里不能出现字面量 `description=`**：解析用 `replace("description=", "")`，会删掉所有出现。
 6. 提交时 `getSubmitDescription()` 会自动追加 `Workshop ID:` / `Mod ID:` 两行，不必自己写。
 
-可直接抄的骨架（本仓库 17 份 `workshop.txt` 统一采用这套排版，细节见下一节）：
+可直接抄的骨架（本仓库 18 份 `workshop.txt` 统一采用这套排版，细节见下一节）：
 
 ```ini
 version=1
@@ -100,7 +100,13 @@ description=[*]<要点一>
 description=[*]<要点二，续行也要写 description= 前缀>
 description=[/list]
 description=
-description=源码与完整分析：<仓库链接>
+description=[hr][/hr]
+description=[h2]链接 / Links[/h2]
+description=[list]
+description=[*][b]GitHub[/b] —— 源码、更新日志与问题反馈：[url=https://github.com/lotosbin/project-zomboid-mods]lotosbin/project-zomboid-mods[/url]
+description=[*][b]Ko-Fi[/b] —— 请作者喝杯咖啡：[url=https://ko-fi.com/lotosbin]ko-fi.com/lotosbin[/url]
+description=[*][b]爱发电[/b] —— 支持后续更新：[url=https://afdian.com/a/bin_2]afdian.com/a/bin_2[/url]
+description=[/list]
 tags=Build 42;QoL;Misc
 visibility=public
 ```
@@ -159,11 +165,15 @@ description=[url=https://github.com/lotosbin/project-zomboid-mods]源码（GitHu
   少一个 `[/list]` / `[/quote]`，那两行就被折进列表或引用块里。
 - **长度上限 8000 字节**（Steamworks `k_cchPublishedDocumentDescriptionMax`，UTF-8 **字节**不是字符）：
   一个汉字 3 字节 ⇒ 纯中文简介约 2600 字封顶，额度还要和 BBCode 标记、追加的 ID 行一起算。
-  本仓库现有 17 份 `workshop.txt` 实测最大 3015 字节，余量充足。
+  本仓库 18 份 `workshop.txt` 在 2026-10-05 全量实测，最大 `submit` 约 **5.5 KB**（`bin2_npc_extension`，
+  该物品仍在迭代、数值会变；`check_all.sh` 表里 `desc/submit` 两列就是**字节**数），余量充足。
 - **游戏内看不到渲染结果**：上传向导的输入框是纯文本编辑框，渲染只发生在 Steam 页面上。
-- 本仓库既有物品用 `[ ALERT_CONFIG ]` … `[ ------ ]` 作为区块标记，那是社区模组
-  （Mod Update and Alert System）的约定，不是 BBCode；它与 BBCode 混用没有已知冲突，
-  但它本身**不会被渲染成特殊样式**，只是普通文本行。
+- **`[ ALERT_CONFIG ]` 不要写进 `workshop.txt`**：`link1 = GitHub = …` / `[ ------ ]` 那套是社区模组
+  （Mod Update and Alert System）在**模组目录内的 `Changelog.txt`** 里用的格式；`workshop.txt` 的
+  `description=` 没有任何解析器会读它，写进去只会在 Steam 页面上原样显示成普通文本（链接也不可点）。
+  本仓库统一改用真正的 BBCode 页脚：`[hr][/hr]` + `[h2]链接 / Links[/h2]` + `[list]` 里三条
+  `[url=https://…]可点文字[/url]`；站外链接**不用**手写 `steamcommunity.com/linkfilter/?u=` 前缀，
+  Steam 渲染时自己会加跳转提示。
 
 ### 游戏内那份（`mod.info`）的标签
 

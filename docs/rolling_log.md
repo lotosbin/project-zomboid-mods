@@ -2441,3 +2441,87 @@ Jeem 的 `R.isAlly` 认"阵营标签为 allied"或"组点数 ≥ 50"两条路，
 而代码对 Jeem 是**软挂接**（`Config.jeem()` 拿不到就只剩跟随/守卫，`no_jeem` 有专门分支）。
 `require=` 会让游戏在缺 Jeem 时**不让启用**，比代码的容错策略更严。工坊简介已按 mod.info 的现状
 改写（必需=橙子经济+Jeem，需要=A-Life），但"要不要把 Jeem 降回可选"由作者决定。
+
+---
+
+## 2026-10-05 · 统一 18 份 `workshop.txt` 的简介页脚（`[ ALERT_CONFIG ]` → 真 BBCode 链接小节）
+
+**起因**：用户要求"优化所有 `workshop.txt` 里的 `[ ALERT_CONFIG ]` 部分"。18 份物品（含
+`bin2_title_cover/` 两份子物品）里的这 5 行**完全逐字节相同**：
+
+```ini
+description=[ ALERT_CONFIG ]
+description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
+description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
+description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
+description=[ ------ ]
+```
+
+**先定性（复用本项目已有的反汇编结论，见 `docs/pz_mod_update_alert_system.md`）**：
+`[ ALERT_CONFIG ]` 是社区模组 **Mod Update and Alert System / Chuckleberry Finn** 的格式，消费者的解析入口是
+`getModFileReader(modID, "ChangeLog.md"|"ChangeLog.txt")` —— 即**模组目录内的 `Changelog.txt`**，
+`workshop.txt` 的 `description=` **没有任何解析器会读**（`SteamWorkshopItem.readWorkshopTxt()` 只认
+`version/id/title/description/tags/visibility` 六个键，然后原样交给 `n_SetItemDescription`）。
+⇒ 写在这儿的唯一效果是：Steam 页面上原样显示成调试样式的文本，且**链接不可点**。
+
+**再看现状取证（本次新做的）**：
+
+| 检查 | 结果 |
+| --- | --- |
+| 全仓库含该块的 `workshop.txt` | **18/18 份**，块前面都已有一行空的 `description=` |
+| 任一工具是否读 `workshop.txt` 的该块 | 只有 `tools/workshop_requires.py --write` 把它当**插入锚点**（不解析内容）；`scripts/bin2_modpack_update.fnl` 只改 `Changelog.txt` |
+| 各物品模组内 `Changelog.txt` 是否真的有 ALERT_CONFIG | 只有 `bin2_b42` / `bin2_extensive_health_rework` / `bin2_tikitown` / `bin2_XantjiRecycleEverything` 有；其余 14 份本来就没有（功能侧没丢东西，只是本来没做） |
+
+**改动**（用户选定方案 A：换成真 BBCode）：18 份统一替换为新页脚，每份 +166 字节
+
+```ini
+description=[hr][/hr]
+description=[h2]链接 / Links[/h2]
+description=[list]
+description=[*][b]GitHub[/b] —— 源码、更新日志与问题反馈：[url=https://github.com/lotosbin/project-zomboid-mods]lotosbin/project-zomboid-mods[/url]
+description=[*][b]Ko-Fi[/b] —— 请作者喝杯咖啡：[url=https://ko-fi.com/lotosbin]ko-fi.com/lotosbin[/url]
+description=[*][b]爱发电[/b] —— 支持后续更新：[url=https://afdian.com/a/bin_2]afdian.com/a/bin_2[/url]
+description=[/list]
+```
+
+顺带去掉 `steamcommunity.com/linkfilter/?u=` 前缀：那是 Steam 渲染站外链接时**自己**加的跳转包装，
+简介里手写一层等于把 wrapper 暴露给玩家；`[url=原始链接]` 更短也更好维护。
+
+**验证（都用游戏自己的解析器，`bin2_workshop_upload_fix/tools/pz_workshop_probe/`）**：
+
+* `check_all.sh` → **ALL CHECKS PASSED (18 item(s))**：标签白名单 / 非法键 / 值里字面量 `description=` /
+  BBCode 配平 / 8000 字节全过。改动当时最大 `submit` 从 4540 涨到 **4706 字节**（`bin2_npc_extension`，
+  每份净增 166 字节），余量充足。⚠️ 随后**另一个并发会话**在 16:27 又扩写了 `bin2_npc_extension`
+  （新增 YeseMarket 变体说明），该份涨到 **5471 字节**；我加的页脚被完整保留，复查 18/18 份页脚逐行一致。
+* `WorkshopTxtProbe` dump 模式（`|…|` 是探针加的边界标记）实测：新页脚 7 行**逐行原样**出现在
+  `getDescription()` 里，且 `Workshop ID: null` 落在 `[/list]` **之后** —— 直接证明列表没吞掉游戏追加的 ID 行：
+
+  ```
+  ||                                    ← 空的 description= 贡献的空行
+  |[hr][/hr]|
+  |[h2]链接 / Links[/h2]|
+  |[list]|
+  |[*][b]GitHub[/b] —— 源码、更新日志与问题反馈：[url=…]lotosbin/project-zomboid-mods[/url]|
+  |[*][b]Ko-Fi[/b] —— 请作者喝杯咖啡：[url=…]ko-fi.com/lotosbin[/url]|
+  |[*][b]爱发电[/b] —— 支持后续更新：[url=…]afdian.com/a/bin_2[/url]|
+  |[/list]|
+  ||
+  |Workshop ID: null|
+  ```
+
+**顺带修的工装**：`tools/workshop_requires.py` 的 `write_block()` 原本只认 `[ ALERT_CONFIG` 锚点（没了就退到
+`tags=`，会把依赖小节排到链接页脚**下面**）。改成锚点优先级 `description=[hr][/hr]` → `description=[h2]链接`
+→ 老物品的 `[ ALERT_CONFIG ]` → `tags=` → 文件末尾；在 `/tmp` 副本上实跑确认依赖小节落在页脚**上方**，
+`--write` 没在本仓库任何文件上执行（`apply=False` 预演）。
+
+**一个附带发现（未改，留待作者定夺）**：`bin2_viewpoint/preview.png` 是 **1024×1024**，
+`WorkshopProbe` 对它的判定是 `validatePreviewImage = PreviewDimensions`（规则：正方形且边长只能是 256 或 512）
+⇒ **用游戏内上传向导时会直接判失败**。其余 17 张物品预览图都是 256×256 且 <1024000 字节
+（`bin2/Contents/mods/Respawn2/preview.png` 是模组海报，不在物品预览的校验范围内）。
+要用 `tools/make_images.py` 重新出一张 256×256 的才能过（会换掉现有美术，所以没擅自动手）。
+
+**文档同步**：`workshop_create.sop.md` §3.4 骨架与排版约定、§3.5.3 标签表（`[url=]` 行 + 新增"不要写 ALERT_CONFIG"
+说明）、§3.6.1 锚点说明、长度统计（过期的"17 份/3015 B"改成 18 份实测口径 + "以 `check_all.sh` 为准"）；
+`guides/workshop-txt-guide.md` 骨架与
+排版陷阱；`docs/pz_mod_update_alert_system.md` 的"两处都写了"订正为"只在 Changelog.txt 写"；`modify.sop.md`
+第 3 步加一句页脚不要回退；skill `pz-workshop-item-publishing` §2.1 骨架换成新页脚并加禁止项。

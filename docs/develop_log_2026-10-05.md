@@ -253,3 +253,81 @@ requestId 去重队列改为**按时间裁剪**（原来按条数留 64 条，60
 
 **留给作者定夺**：`mod.info` 里 `require=\ProjectALifeJimmy`（作者自己改的）与代码的软挂接设计不一致 ——
 前者会让游戏在缺 Jeem 时拒绝启用，而代码 `no_jeem` 分支本可降级。工坊简介已按现状改写，是否降回可选出作者决定。
+
+---
+
+## 课题四：18 份 `workshop.txt` 的简介页脚 —— `[ ALERT_CONFIG ]` 换成真 BBCode 链接小节
+
+### 用户的一句话与它背后的两个可能理解
+
+需求是 *"优化所有 workshop.txt 中的 `description=[ ALERT_CONFIG ]` 这部分"*。这个块 18 份逐字节相同，
+所以先把它"是什么、谁在读"查清楚，再决定怎么优化 —— 因为"社区约定的标记"和"该删的调试文本"
+是两种完全相反的结论，做错方向就是 18 份已发布页面一起改错：
+
+* 读它的代码在本项目里已有结论（课题一 + `docs/pz_mod_update_alert_system.md`）：消费者是
+  **Mod Manager 的 `ModManager/Utils/WorkshopSubmit.lua`**，入口 `getModFileReader(modID, "ChangeLog.txt")`
+  —— **只读模组目录内的 `Changelog.txt`**，`parseTxtVersionHeader` 里用 `v ~= "ALERT_CONFIG"` 跳过配置块。
+  ⇒ `workshop.txt` 的 `description=` 没有任何解析器，写了只在工坊页面上原样显示。
+* 页面效果：`[ ALERT_CONFIG ]` 与 `[ ------ ]` 不是 Steam BBCode，会当普通文本显示；三条链接是
+  `link1 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=…` 这种调试赋值式写法，**不可点**。
+
+于是把选择权交回用户（工具里带三个方案），用户选 **方案 A：换成真正的 BBCode 链接小节**。
+
+### 改动（18/18 份，每份净 +166 字节）
+
+```ini
+description=[hr][/hr]
+description=[h2]链接 / Links[/h2]
+description=[list]
+description=[*][b]GitHub[/b] —— 源码、更新日志与问题反馈：[url=https://github.com/lotosbin/project-zomboid-mods]lotosbin/project-zomboid-mods[/url]
+description=[*][b]Ko-Fi[/b] —— 请作者喝杯咖啡：[url=https://ko-fi.com/lotosbin]ko-fi.com/lotosbin[/url]
+description=[*][b]爱发电[/b] —— 支持后续更新：[url=https://afdian.com/a/bin_2]afdian.com/a/bin_2[/url]
+description=[/list]
+```
+
+两处连带判断：
+
+1. **去掉 `linkfilter/?u=` 手写前缀** —— 那是 Steam 渲染站外链接时自己加的跳转包装，简介里再套一层
+   等于把 wrapper 暴露给玩家。
+2. **不去动 `Changelog.txt`** —— 功能侧该写的地方保持原样（4 份有、14 份本来就没有，本轮不扩权）。
+
+### 校验：用游戏自己的解析器，两条证据
+
+* 批量：`check_all.sh` → **ALL CHECKS PASSED (18 item(s))**（标签白名单 / 非法键 / 值里字面量
+  `description=` / BBCode 配平 / 8000 字节）。改动当时最大 `submit` **4540 → 4706 字节**
+  （`bin2_npc_extension`，每份净增 166 字节）。**并发提示**：16:27 另一个会话扩写了
+  `bin2_npc_extension`（YeseMarket 变体），该份涨到 5471 字节 —— 页脚被完整保留，18/18 复查一致；
+  简介字节数会随内容迭代变化，以 `check_all.sh` 的输出为准。
+* 单份边界（`WorkshopTxtProbe` dump 模式，`|…|` 是探针加的标记）：新页脚 7 行**逐行原样**进入
+  `getDescription()`，且 `Workshop ID: null` 出现在 `[/list]` **之后** —— 直接证明列表闭合正确、
+  没有把游戏追加的 ID 行吞进去（SOP §3.5.2 规则 6 的那类坑）。
+* 未做：**没有真实上传**去核对 Steam 页面渲染（本机 `web_fetch` 依旧不通）。首次上传后建议点开
+  物品页面看一眼 `[hr]` 与三条链接的渲染。
+
+### 工装修正：`workshop_requires.py` 的插入锚点
+
+`write_block()` 原先只认 `[ ALERT_CONFIG` 这个锚点（就是本次删掉的块），删块后会退到 `tags=`，
+把**依赖小节排到链接页脚下面**（语义倒挂：内容在页脚之后）。改为锚点优先级：
+
+```
+description=[hr][/hr]  →  description=[h2]链接  →  [ ALERT_CONFIG ]（老物品兼容）  →  tags=  →  文件末尾
+```
+
+在 `/tmp` 副本上 `apply=True` 实跑确认依赖小节落在页脚**上方**；本仓库任何文件都没有执行 `--write`。
+
+### 附带发现（未改，交给作者）
+
+`bin2_viewpoint/preview.png` 是 **1024×1024**，`WorkshopProbe` 判定 `validatePreviewImage = PreviewDimensions`
+（规则：正方形且边长只能是 **256 或 512**）⇒ 游戏内上传向导会直接拒。其余 17 张物品预览图均合规
+（`bin2/Contents/mods/Respawn2/preview.png` 是模组海报，不在校验范围）。重出图要用
+`tools/make_images.py`，会覆盖现有美术，故等作者点头。
+
+### 产出
+
+* 18 份 `workshop.txt` 页脚统一替换
+* `bin2_workshop_upload_fix/tools/workshop_requires.py`：页脚锚点逻辑 + docstring
+* `workshop_create.sop.md`：§3.4 骨架/排版约定、§3.5.3 标签表、§3.6.1 锚点、长度统计（改成 18 份实测口径）
+* `guides/workshop-txt-guide.md`：骨架与"排版陷阱"（新增"不要写进 workshop.txt"一条）
+* `docs/pz_mod_update_alert_system.md`：订正为"只在 `Changelog.txt` 写 ALERT_CONFIG"
+* `modify.sop.md`：第 3 步（更新 workshop.txt）加"页脚不要回退"
+* skill `pz-workshop-item-publishing` §2.1：骨架换成新页脚 + 禁止写 ALERT_CONFIG 的说明

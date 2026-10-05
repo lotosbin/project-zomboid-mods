@@ -220,7 +220,11 @@ def strip_block(lines):
 
 
 def write_block(item, index, apply):
-    """把块插到 `[ ALERT_CONFIG ]` 之前；没有那个块就追加到末尾。返回 (状态, 行数变化)。"""
+    """把块插到简介末尾的「页脚」之前。返回 (状态, 行数变化)。
+
+    锚点按优先级：`[ ALERT_CONFIG ]`（老版页脚，已废弃但保留兼容）→ 新的
+    `[h2]链接 / Links[/h2]` 页脚小节 → `tags=` 行（页脚之后的第一行）→ 文件末尾。
+    """
     path = os.path.join(item["dir"], "workshop.txt")
     with open(path, "r", encoding="utf-8") as handle:
         original = handle.read().splitlines()
@@ -234,10 +238,16 @@ def write_block(item, index, apply):
     body = strip_block(original)
     block = render_block(required, optional, index)
 
+    # 页脚起始行的候选前缀（顺序 = 优先级；越靠前越"新"）。
+    # 新版页脚 = `[hr][/hr]` 分隔线 + `[h2]链接 / Links[/h2]` 小节。
+    FOOTER_ANCHORS = ("[ ALERT_CONFIG", "description=[hr][/hr]", "description=[h2]链接")
     insert_at = None
-    for i, line in enumerate(body):
-        if line.strip().startswith("[ ALERT_CONFIG"):
-            insert_at = i
+    for anchor in FOOTER_ANCHORS:
+        for i, line in enumerate(body):
+            if line.strip().startswith(anchor):
+                insert_at = i
+                break
+        if insert_at is not None:
             break
     if insert_at is None:
         for i, line in enumerate(body):

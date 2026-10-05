@@ -16,6 +16,8 @@
    - 在上层目录
    - 根据需要更新 `description`
    - 保持 `id` 不变
+   - 简介结尾的 `[hr][/hr]` + `[h2]链接 / Links[/h2]` 页脚原样保留；**不要**改回
+     `[ ALERT_CONFIG ]` / `link1 = …` / `[ ------ ]` 字面量（那套只在 `Changelog.txt` 里生效）
 
 ## Changelog.txt 格式
 

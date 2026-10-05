@@ -148,11 +148,13 @@ description=
 description=[b]<不适合做小节的强调段>[/b]
 description=…
 description=
-description=[ ALERT_CONFIG ]
-description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
-description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
-description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
-description=[ ------ ]
+description=[hr][/hr]
+description=[h2]链接 / Links[/h2]
+description=[list]
+description=[*][b]GitHub[/b] —— 源码、更新日志与问题反馈：[url=https://github.com/lotosbin/project-zomboid-mods]lotosbin/project-zomboid-mods[/url]
+description=[*][b]Ko-Fi[/b] —— 请作者喝杯咖啡：[url=https://ko-fi.com/lotosbin]ko-fi.com/lotosbin[/url]
+description=[*][b]爱发电[/b] —— 支持后续更新：[url=https://afdian.com/a/bin_2]afdian.com/a/bin_2[/url]
+description=[/list]
 tags=Build 42;QoL;Misc
 visibility=private
 ```
@@ -163,7 +165,10 @@ visibility=private
 * 列表只能用「`[list]` + 每项一行 `[*]` + `[/list]`」，每项占一个 `description=` 行。
 * 空行只能用**空的 `description=`**；续行/缩进的空格写在 `description=` **之后**。
 * `[b]` / `[h2]` / `[list]` 必须成对闭合 —— 漏闭合会把游戏追加的 `Workshop ID:` / `Mod ID:` 行一起吞进列表。
-* 结尾的 `[ ALERT_CONFIG ]` 块是社区约定（Mod Update and Alert System），**原样保留**，不要包进 BBCode。
+* 结尾统一是**页脚**：`[hr][/hr]` 分隔线 + `[h2]链接 / Links[/h2]` + 三条 `[url=…]`（GitHub / Ko-Fi / 爱发电）。
+  **不要**再写 `[ ALERT_CONFIG ]` / `link1 = …` / `[ ------ ]`：那套是社区模组（Mod Update and Alert System）
+  在 `Changelog.txt` 里用的格式，写进 `workshop.txt` 的 `description=` **不会被任何代码消费**（见 §3.5.3），
+  只会在 Steam 页面上原样显示成调试样式的文本，而且链接不可点。要那个功能请写 `Changelog.txt`（§4）。
 * 全文 ≤ 8000 **字节**（见 §3.5.3）；改完用 §10 的 `check_all.sh` 一次校验全部物品。
 
 ### 3.5 富文本 / 排版：两侧方言别混用
@@ -258,7 +263,7 @@ submitDesc      = 145 chars / 217 bytes   (Steam 上限 8000 字节，这里已�
 | `[b]…[/b]` `[i]…[/i]` `[u]…[/u]` `[strike]…[/strike]` | 粗体 / 斜体 / 下划线 / 删除线 |
 | `[h1]…[/h1]` `[h2]` `[h3]` | 标题（自动换行、字号递减） |
 | `[list]` + 每行 `[*]条目` + `[/list]`；`[olist]` | 无序 / 有序列表（**每项各占一行 `description=`**） |
-| `[url=链接]文字[/url]`、`[url]链接[/url]` | 链接（站外链接 Steam 会加跳转提示；本仓库 ALERT_CONFIG 用的 `linkfilter/?u=` 只是那个社区约定的写法） |
+| `[url=链接]文字[/url]`、`[url]链接[/url]` | 链接（**页脚三条链接就用这个**；站外链接 Steam 会自己加跳转提示，**不用**手写 `steamcommunity.com/linkfilter/?u=` 前缀） |
 | `[img]图片URL[/img]` | 图片（必须是公网可达的 URL） |
 | `[quote]…[/quote]`、`[code]…[/code]` | 引用块、代码块 |
 | `[spoiler]…[/spoiler]` | 折叠的剧透块 |
@@ -268,8 +273,9 @@ submitDesc      = 145 chars / 217 bytes   (Steam 上限 8000 字节，这里已�
 
 **长度上限**：Steamworks 定义 `k_cchPublishedDocumentDescriptionMax = 8000`，单位是**字节**（UTF-8），
 不是字符 —— 一个汉字占 3 字节，所以纯中文简介约 2600 字封顶，而且这个额度要和 BBCode 标记、
-游戏追加的 ID 行一起算。本仓库现有 17 份 `workshop.txt` 实测最大 **3015 字节**
-（`bin2_companion_alpaca`），余量充足；用 §10 的探针可以看到自己的 `submitDesc = … bytes`。
+游戏追加的 ID 行一起算。本仓库 18 份 `workshop.txt` 在 2026-10-05 全量实测，最大 `submit` 约 **5.5 KB**
+（`bin2_npc_extension`，且该物品仍在迭代、数值会变 —— 以 `check_all.sh` 打印的 `desc/submit` 两列**字节**数为准），
+余量充足；用 §10 的探针可以看到自己的 `submitDesc = … chars / … bytes`。
 
 > 这一节里"Steam 侧渲染"的结论来自 Steam 平台文档（见文末"参考资料"），**本次未做真实上传验证**；
 > 而"游戏侧不转义、原样透传"是上面探针的实测结果。上传后打开工坊页面看一眼渲染结果是最稳的收尾。
@@ -330,7 +336,8 @@ python3 bin2_workshop_upload_fix/tools/workshop_requires.py --write <物品目�
 它从**本机已订阅的工坊内容**（`workshop/content/108600/<id>/**/mod.info` 的 `id=`/`name=`）反查
 mod id → 工坊 id，再叠加本仓库自己物品的 `id=`；查不到的一律标 `unknown`，绝不猜。
 `--write` 生成的块用 `#` 行做标记（`#` 开头整行被解析器跳过，所以标记不会进简介），并自动插到
-`[ ALERT_CONFIG ]` 之前。
+简介**页脚之前** —— 锚点优先级：`description=[hr][/hr]` → `description=[h2]链接` →
+（老物品的）`[ ALERT_CONFIG ]` → `tags=` 行 → 文件末尾，所以依赖小节永远排在链接页脚上方。
 
 #### 3.6.2 本仓库各物品的依赖对照表（2026-10-05 由上面的脚本生成）
 

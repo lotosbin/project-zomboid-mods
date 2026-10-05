@@ -15,7 +15,11 @@ Mod Update and Alert System 是 Project Zomboid 提供的一个 API，允许模�
 > 跳过配置块、把 `[ ------ ]` 当块终止符。
 >
 > ⇒ 把 ALERT_CONFIG 写进 `workshop.txt` 的 `description=` **不会**在游戏内生效，它只会作为工坊页面的
-> 描述文本显示出来（本项目确实两处都写了：`Changelog.txt` 负责功能，`workshop.txt` 负责页面展示）。
+> 描述文本显示出来。所以本项目**只在 `Changelog.txt` 里写 ALERT_CONFIG**（功能性那份）；
+> `workshop.txt` 的简介结尾改用真正的 Steam BBCode 页脚
+> （`[hr][/hr]` + `[h2]链接 / Links[/h2]` + `[url=…]`），可点击且在页面上正常渲染 ——
+> 原先 18 份物品里的 `[ ALERT_CONFIG ] / link1 = … / [ ------ ]` 字面量会原样显示成调试样式的文本，
+> 已于本次统一替换。
 
 ### `workshop.txt` 的 `description=` 到底怎么解析（反汇编自 `zombie.core.znet.SteamWorkshopItem`）
 

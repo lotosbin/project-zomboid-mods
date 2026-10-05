@@ -84,10 +84,23 @@ description=[*]<要点一>
 description=[*]<要点二，续行也要写 description= 前缀>
 description=[/list]
 description=
-description=源码与完整分析：<仓库链接>
+description=[hr][/hr]
+description=[h2]链接 / Links[/h2]
+description=[list]
+description=[*][b]GitHub[/b] —— 源码、更新日志与问题反馈：[url=https://github.com/lotosbin/project-zomboid-mods]lotosbin/project-zomboid-mods[/url]
+description=[*][b]Ko-Fi[/b] —— 请作者喝杯咖啡：[url=https://ko-fi.com/lotosbin]ko-fi.com/lotosbin[/url]
+description=[*][b]爱发电[/b] —— 支持后续更新：[url=https://afdian.com/a/bin_2]afdian.com/a/bin_2[/url]
+description=[/list]
 tags=Build 42;QoL;Misc
 visibility=public
 ```
+
+**页脚统一用上面这套 BBCode 链接小节**（`[hr][/hr]` + `[h2]链接 / Links[/h2]` + 三条 `[url=…]`）。
+**不要**把社区模组（Mod Update and Alert System）在 `Changelog.txt` 里用的
+`[ ALERT_CONFIG ]` / `link1 = …` / `[ ------ ]` 写进 `workshop.txt` 的 `description=`：
+那份配置只有模组目录内的 `Changelog.txt` 会被 Mod Manager 解析，`workshop.txt` 的简介没有任何消费者，
+写进去只会在工坊页面上原样显示成调试样式文本、链接还不可点（本仓库 18 份已统一替换）。
+同理，站外链接**不用**手写 `steamcommunity.com/linkfilter/?u=` 前缀，Steam 渲染时自己会加跳转提示。
 
 `[b]` / `[h2]` / `[list]` 必须成对闭合（漏闭合会吞掉追加的 ID 行）；Markdown 无效（`#` 开头整行会被当注释丢掉）。
 改完一次校验仓库里所有物品：`bin2_workshop_upload_fix/tools/pz_workshop_probe/check_all.sh`

@@ -23,10 +23,12 @@ description=[*]订阅原模组 + 本补丁 → 主菜单 [b]Mods[/b] 里把两�
 description=[*]只含翻译文件，[b]不含原模组[/b]；不装原模组不会生效
 description=[/list]
 description=
-description=[ ALERT_CONFIG ]
-description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
-description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
-description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
-description=[ ------ ]
+description=[hr][/hr]
+description=[h2]链接 / Links[/h2]
+description=[list]
+description=[*][b]GitHub[/b] —— 源码、更新日志与问题反馈：[url=https://github.com/lotosbin/project-zomboid-mods]lotosbin/project-zomboid-mods[/url]
+description=[*][b]Ko-Fi[/b] —— 请作者喝杯咖啡：[url=https://ko-fi.com/lotosbin]ko-fi.com/lotosbin[/url]
+description=[*][b]爱发电[/b] —— 支持后续更新：[url=https://afdian.com/a/bin_2]afdian.com/a/bin_2[/url]
+description=[/list]
 tags=Build 42;Language/Translation;QoL
 visibility=public
