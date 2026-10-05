@@ -1396,21 +1396,119 @@ M.installJeem = function()
     end
 
     -- ---- StandingService -----------------------------------------------
-    -- [真实] Services/Standing.lua:178 -> addGroup(key, groupId, factionId, delta)
-    J.StandingService = J.StandingService or { clamp = 400 }
-    function J.StandingService.addGroup(key, groupId, factionId, delta)
+    --[[
+        [真实] 逐条对齐 ProjectALifeJimmy/Services/Standing.lua：
+          ladder / thresholds / clamp / data().players[key]
+          steps(points)  -> 过了几个阈值（正负对称）
+          points / groupPoints / defaultLabel / labelFor / toNext
+          add(key, factionId, delta, info)  -> 阵营点数（带 clamp），并按 info.groupId 顺带顶小队点数
+          addGroup(key, groupId, factionId, delta) -> 只顶小队点数
+
+        这里必须**忠实**，否则"垫声望"这类改动在离线测试里永远看不见（真实案例：mock 原来把
+        同盟判定写成 points >= 0，且漏了 labelFor 那条路，于是"雇了人却当不了队友"的 bug 测试全绿）。
+    ]]
+    local LADDER = { "hostile", "careful", "neutral", "friendly", "allied" }
+    local THRESHOLDS = { 25, 75, 150, 250 }
+    local clamp = 400
+    J.StandingService = J.StandingService or {}
+    local S = J.StandingService
+    S.clamp = clamp
+    S.ladder = S.ladder or LADDER
+    S.thresholds = S.thresholds or THRESHOLDS
+    S.allyGroupPoints = 50            -- [真实] Features/Residents/Server.lua:22
+    S.baseline = S.baseline or {}     -- 测试可改：factionId -> 该阵营对你的默认标签
+
+    local function ladderIndex(name)
+        for i, value in ipairs(LADDER) do if value == name then return i end end
+        return 1
+    end
+
+    function S.defaultLabel(factionId)
+        return S.baseline[factionId] or "hostile"      -- A-Life 默认多为敌对
+    end
+
+    function S.steps(points)
+        points = tonumber(points) or 0
+        local n = 0
+        for _, threshold in ipairs(THRESHOLDS) do
+            if math.abs(points) >= threshold then n = n + 1 end
+        end
+        return points < 0 and -n or n
+    end
+
+    function S.playerState(key)
+        local state = M.state.standing[key]
+        if type(state) ~= "table" then
+            state = { factions = {}, groups = {} }
+            M.state.standing[key] = state
+        end
+        state.factions = type(state.factions) == "table" and state.factions or {}
+        state.groups = type(state.groups) == "table" and state.groups or {}
+        return state
+    end
+
+    function S.points(key, factionId)
+        return tonumber(S.playerState(key).factions[factionId]) or nil
+    end
+
+    function S.poolBonus() return 0 end          -- 单人测试里没有同阵营队友
+
+    function S.labelFor(key, factionId, extraPoints)
+        local base = ladderIndex(S.defaultLabel(factionId))
+        local steps = S.steps((S.points(key, factionId) or 0) + (tonumber(extraPoints) or 0))
+        return LADDER[math.max(1, math.min(#LADDER, base + steps))]
+    end
+
+    function S.groupPoints(key, groupId)
+        local state = M.state.standing[key]
+        local group = type(state) == "table" and type(state.groups) == "table" and state.groups[groupId] or nil
+        return type(group) == "table" and (tonumber(group.points) or 0) or 0
+    end
+
+    -- [真实] Standing.lua:151 -> add(key, factionId, delta, info)，返回 before/after 标签
+    function S.add(key, factionId, delta, info)
+        record("StandingService.add", {
+            key = key, factionId = factionId, delta = delta,
+            groupId = type(info) == "table" and info.groupId or nil,
+            kind = type(info) == "table" and info.kind or nil,
+        })
+        if key == nil or factionId == nil or tonumber(delta) == nil then return nil end
+        info = type(info) == "table" and info or {}
+        local state = S.playerState(key)
+        local before = S.labelFor(key, factionId)
+        local points = (tonumber(state.factions[factionId]) or 0) + delta
+        state.factions[factionId] = math.max(-clamp, math.min(clamp, points))
+        if info.groupId ~= nil then
+            local group = type(state.groups[info.groupId]) == "table" and state.groups[info.groupId]
+                or { factionId = factionId, points = 0 }
+            group.points = math.max(-clamp, math.min(clamp,
+                (tonumber(group.points) or 0) + (tonumber(info.groupPoints) or delta)))
+            group.factionId = factionId
+            state.groups[info.groupId] = group
+        end
+        return before, S.labelFor(key, factionId)
+    end
+
+    -- [真实] Standing.lua:178 -> addGroup(key, groupId, factionId, delta)
+    function S.addGroup(key, groupId, factionId, delta)
         record("StandingService.addGroup", {
             key = key, groupId = groupId, factionId = factionId, delta = delta,
         })
         if key == nil or groupId == nil or tonumber(delta) == nil then return end
-        local state = M.state.standing[key]
-        if type(state) ~= "table" then state = { groups = {} } M.state.standing[key] = state end
-        local group = state.groups[groupId]
-        if type(group) ~= "table" then group = { factionId = factionId, points = 0 } end
-        local clamp = tonumber(J.StandingService.clamp) or 400
+        local state = S.playerState(key)
+        local group = type(state.groups[groupId]) == "table" and state.groups[groupId]
+            or { factionId = factionId, points = 0 }
         group.points = math.max(-clamp, math.min(clamp, (tonumber(group.points) or 0) + delta))
         group.factionId = factionId
         state.groups[groupId] = group
+    end
+
+    -- [真实] Features/Residents/Server.lua:490 -> R.isAlly（两条路：阵营标签 或 小队点数）
+    S.isAlly = function(key, record)
+        if key == nil or type(record) ~= "table" then return false end
+        if record.factionId ~= nil and S.labelFor(key, record.factionId) == "allied" then return true end
+        local groupId = type(record.memory) == "table" and record.memory.groupId or nil
+        return groupId ~= nil and S.groupPoints(key, groupId) >= S.allyGroupPoints
     end
 
     -- ---- Residents -----------------------------------------------------
@@ -1463,12 +1561,9 @@ M.installJeem = function()
         return out
     end
 
+    -- [真实] R.isAlly：阵营标签 allied 或 小队点数 >= 50（原来这里写成 points >= 0，几乎永远为真）
     local function isAllied(key, record)
-        local memory = type(record) == "table" and type(record.memory) == "table" and record.memory or {}
-        local state = M.state.standing[key]
-        local group = type(state) == "table" and type(state.groups) == "table"
-            and state.groups[memory.groupId] or nil
-        return type(group) == "table" and (tonumber(group.points) or 0) >= 0
+        return J.StandingService.isAlly(key, record) == true
     end
 
     local function crewOf(record)

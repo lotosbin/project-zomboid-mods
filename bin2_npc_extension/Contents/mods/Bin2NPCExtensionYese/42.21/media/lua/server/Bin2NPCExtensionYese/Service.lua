@@ -228,6 +228,26 @@ local function takenBySibling(uid)
     return ownerKey ~= nil
 end
 
+--[[
+    签约那一刻就把「玩家 ↔ 该 NPC 阵营/小队」的 Jeem 声望垫到同盟（沙盒 `MakeAllied`，默认开）。
+
+    为什么放在签约而不是"转居民"那一步：
+      * Jeem 自己的右键菜单「邀请入住」和我们面板的「居民」模式检查的是**同一个**
+        `R.isAlly`（`Residents/Server.lua:581`）—— 只在转居民时垫，等于让玩家先被拒一次，
+        而且先用 follow 雇下的人之后永远转不成队友；
+      * 沙盒选项 `MakeAllied` 的文档写的就是"签约后把声望垫到同盟档"。
+
+    失败只记日志（拿不到 key / Jeem 没装 / 选项关掉），绝不影响雇佣本身。
+]]
+function Service.markAllied(player, record)
+    if record == nil then return false end
+    local ok, why = Jimmy.makeAllied(player, record)
+    if ok ~= true and Config.verbose() then
+        Config.log("alliance pad skipped: " .. tostring(why))
+    end
+    return ok == true
+end
+
 -- 收编一个已经在场的 NPC
 function Service.hireExisting(player, uid, mode)
     if not Config.enabled() then return Service.fail(player, "disabled") end
@@ -272,6 +292,7 @@ function Service.hireExisting(player, uid, mode)
         wagePaidHours = Config.worldHours(),
     }
     Contracts.add(node, contract)
+    Service.markAllied(player, record)
     local applied, appliedWhy = Service.applyMode(player, contract, contract.mode)
     Store.transmit()
     Service.ok(player, applied and "hired" or ("hired_degraded:" .. tostring(appliedWhy)))
@@ -343,6 +364,7 @@ function Service.hireSpawned(player, mode)
         wagePaidHours = Config.worldHours(),
     }
     Contracts.add(node, contract)
+    Service.markAllied(player, record)
     note(contract, "pending")                                -- 等实体激活后再指派岗位
     Store.transmit()
     Service.ok(player, "summoned")

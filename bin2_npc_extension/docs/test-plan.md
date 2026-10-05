@@ -67,6 +67,8 @@ T7：结果=通过/失败；console 关键行=<粘贴 5~10 行>；截图=<文件
 | Y 入口 | Y4 按 Ctrl+Alt+N | 从任意时刻都能打开招募面板；与 YeseMarket 自带按键不冲突（它全库零绑定） | 热键是这条路径的兜底 |
 | Y 入口 | Y5 先关窗口再按热键 | 会先开窗再切到招募页（`Open(playerNum)` → `Window:setPage`），不会停在首页 | `Open` 只吃一个参数 |
 | Y 功能 | Y6 收编 / 派遣 / 岗位 / 工资 / 解雇 | 与 T6~T18 相同；货币显示为「金币」 | 记账看 `RecordPlayerFlow` 的 out/in 两行 |
+| Y 队友 | Y10 用面板雇一名 NPC（跟随）→ 让他当居民/队友 | 能成功：`labelFor == allied`（或小队点数 ≥50），Jeem 右键「邀请入住」也能过 | 控制台应有 `standing <faction> -> allied (was hostile), group … = 400 (needs >= 50)`；若报 `not_allied`，说明签约时没垫声望 |
+| Y 队友 | Y11 把沙盒 `MakeAllied` 关掉再雇 | 雇得成，但转居民会被拒（`not_allied`）—— 这是选项的预期行为 | 这时需要玩家自己刷 Jeem 声望 |
 | Y 共存 | Y7 两个口味同时启用 | 两个界面各自可开；**同一个 NPC 只能被一边雇走**（另一边报「已被其他玩家雇佣」） | `Service.takenBySibling` 互查 |
 | Y 界面 | Y8 看导航那一行的按钮文字 | 显示「NPC 招募」，**不是** `IGUI_YeseMarket_EntryButton` 这种原始键 | 标题必须取自本模组自己的翻译表（对方 `Text()` 会强制加它自己的前缀） |
 | Y 界面 | Y9 招募页里的雇员/候选列表 | 每行是四行信息的卡片样式，点击能选中（高亮），滚动正常 | 列表用 `CreateList` + `doDrawItem`；若报 `call nil`，说明又用了橙子独有的 `CreateCardGrid` |

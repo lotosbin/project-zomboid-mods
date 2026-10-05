@@ -1,3 +1,29 @@
+版本 0.2.2 (2026-10-05)
+- 修复：**雇下的人当不成队友**（游戏里提示「他们对你信任不足（需要同盟关系）」）
+  * 现象：用面板雇了一名 NPC（跟随/守卫），之后想让他在你的营地当居民（队友）——
+    无论是用 Jeem 自己的右键「邀请入住」还是面板里的「居民」岗位，都会被拒绝
+  * 根因：那句提示来自 Jeem 本身（`[ALIFE-JIMMY]`），拦截点是它的同盟门槛
+    `Residents.recruit` -> `R.isAlly`（`Features/Residents/Server.lua:581` / `:490-497`）。
+    沙盒选项 `MakeAllied` 的说明写的是"签约后把声望垫到同盟档"，但代码**只在转居民那一步**垫，
+    而且只用 `StandingService.addGroup`（小队路径）—— `memory.groupId` 拿不到时整段静默跳过。
+    于是：先经 follow 雇下的人，之后永远过不了那道门
+  * 修法一：**签约那一刻**就垫声望（`Service.markAllied`，所有岗位都走），
+    Jeem 自己的右键邀请与面板的居民岗位检查的是同一个门槛，所以两条路一起通了
+  * 修法二：改用 Jeem 的 `StandingService.add(key, factionId, delta, {groupId, groupPoints})`
+    —— 阵营标签与小隊点数一起顶。档位是 hostile→careful→neutral→friendly→allied
+    （thresholds {25,75,150,250}，clamp 400），从最坏情况要 ≥250 点，所以一次给到 400；
+    小队那条只要 ≥50（`R.allyGroupPoints`）。`groupId` 拿不到时不再整段失效
+  * 修法三：新增 `Jimmy.who(player)`，照 Jeem 自己的兜底顺序取玩家 key
+    （`BaseAreas.who` → `playerKey` → `username`，同 `Features/DoorMarks/Marks.lua:326`）
+- 测试：新增用例 35，断言的是**端到端结果**——"雇下之后这支小队真的能被收编成居民"；
+  关掉沙盒开关时断言 `not_allied`（与游戏里一致）
+- 测试基建（本轮真正的教训）：变体/基模组测试里 Jeem 的 mock 把同盟判定写成 `points >= 0`
+  （几乎永远为真）且漏了阵营标签那条路，`StandingService` 也没有 `add`/`labelFor`/`groupPoints`
+  —— 整条"垫声望"链路在离线测试里**从未被覆盖**，所以这个 bug 一路绿着进了游戏。
+  现在 mock 逐条对齐 `Services/Standing.lua`（ladder/thresholds/clamp/add/labelFor/groupPoints）
+  与 `R.isAlly`（`allyGroupPoints = 50`）。已做失败实验：撤销修复后用例 35 立刻以 `not_allied` 变红
+- 版本号 0.2.1 → 0.2.2（mod.info / Config.VERSION / 工坊简介）
+
 版本 0.2.1 (2026-10-05)
 - 修复（YeseMarket 版进游戏实测暴露的两个问题）：
   1. **招募页打不开**，界面弹出「该页面暂时不可用」。根因：橙子经济的 UI 原语 `CreateCardGrid`

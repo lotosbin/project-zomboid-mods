@@ -13,7 +13,7 @@ description=[*][b]Bin2NPCExtensionYese[/b] —— 配[url=https://steamcommunity
 description=[/list]
 description=两者共用同一套 A-Life / Jeem 招募内核，现金各自走自己那个经济模组的服务端账本；
 description=它们各有一份名册，但会互相查重 —— 同一个 NPC 不会被两边同时雇走。
-description=（v0.2.1，Build 42.20+）
+description=（v0.2.2，Build 42.20+）
 description=
 description=[h2]这是什么，不是什么[/h2]
 description=[list]
@@ -67,6 +67,8 @@ description=[h2]兼容与降级（都写进日志）[/h2]
 description=[list]
 description=[*]A-Life / Jeem / 经济模组 任一升级导致接口变动时：相关能力自动禁用并打日志（启动时会打印
 description=  [b]hooks active=N inactive=M[/b] 并列出缺了哪些），不会抛错、不会把存档写坏
+description=[*]签约时会把「你 ↔ 该 NPC 阵营/小队」的 Jeem 声望垫到同盟档（沙盒 [b]MakeAllied[/b]，默认开），
+description=  这样雇下的人可以直接当队友；关掉它则维持原版声望，转居民会被 Jeem 的同盟门槛拒绝
 description=[*]Jeem 缺失 / 居民被拒（床位不足、声望不够）：契约[b]降级为跟随[/b]，钱不退但人还在，面板上写明原因
 description=[*]A-Life 人口上限导致生成失败：自动全额退款，不会出现「花了钱没人」
 description=[*]多人：服务端权威。距离、名额、价格、归属都在服务端校验，同一名 NPC 不会被两名玩家同时雇走
@@ -75,6 +77,8 @@ description=[/list]
 description=
 description=[h2]更新记录[/h2]
 description=[list]
+description=[*]v0.2.2 —— 修复「雇下的人当不成队友」（游戏提示「他们对你信任不足」）：
+description=  现在签约那一刻就把你与该 NPC 阵营/小队的声望垫到同盟档，Jeem 的居民（队友）门槛直接通过
 description=[*]v0.2.1 —— 修复 YeseMarket 版的「页面暂时不可用」（它没有橙子经济的那两个 UI 原语）
 description=  与导航按钮名显示成原始翻译键的问题
 description=[*]v0.2.0 —— 新增 YeseMarket 版（同一物品里的第二个模组）

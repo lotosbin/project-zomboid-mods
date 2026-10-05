@@ -109,35 +109,92 @@ function Jimmy.residentUids(baseId)
     return set
 end
 
--- 把玩家与该 NPC 阵营/小队的声望垫到「同盟」，否则非管理员玩家收编会被 not_allied 拦住
-function Jimmy.makeAllied(player, record)
-    if not Config.makeAllied() then return false, "disabled" end
+--[[
+    玩家在 Jeem 眼里的身份（`BaseAreas.who` 优先，拿不到就照 Jeem 自己的兜底写法取 key）。
+
+    Jeem 内部各处也是这么做的（`Features/DoorMarks/Marks.lua:326`）：
+    先问 `BaseAreas.who(player)`，没有再退回 `playerKey` / `username`。
+    取不到 key 就没法记声望 —— 这时调用方按"降级"处理，不抛错。
+]]
+function Jimmy.who(player)
     local jeem, baseAreas = parts()
-    if jeem == nil then return false, "no_jeem" end
-    local standing = jeem.StandingService
-    if type(standing) ~= "table" or type(standing.addGroup) ~= "function"
-            or type(baseAreas.who) ~= "function" then return false, "standing_missing" end
-    local memory = type(record) == "table" and record.memory or nil
-    local groupId = type(memory) == "table" and memory.groupId or nil
-    local factionId = type(record) == "table" and record.factionId or nil
-    if type(groupId) ~= "string" or type(factionId) ~= "string" then return false, "no_group" end
-    local okWho, who = pcall(baseAreas.who, player)
-    if not okWho or type(who) ~= "table" then return false, "no_who" end
-    local points = tonumber(standing.clamp) or 400
-    local ok, result = pcall(standing.addGroup, who.key, groupId, factionId, points)
-    if not ok then return false, tostring(result) end
-    --[[
-        只读复核：`R.isAlly` 认两条路 —— 阵营标签为 allied，或**组点数 ≥ 50**（`Residents.allyGroupPoints`）。
-        我们走的是组点数那条，但 `addGroup` 的 clamp / poolShare 语义没有正式承诺，
-        所以把结果打成一行日志 —— 进游戏验证 T15/M2（非管理员转居民）时就是靠这行定案的。
-    ]]
-    if type(standing.groupPoints) == "function" then
-        local okPoints, value = pcall(standing.groupPoints, who.key, groupId)
-        if okPoints then
-            Config.log(string.format("standing group %s = %s (needs >= 50 for R.isAlly)",
-                tostring(groupId), tostring(value)))
+    if baseAreas ~= nil and type(baseAreas.who) == "function" then
+        local ok, who = pcall(baseAreas.who, player)
+        if ok and type(who) == "table" and type(who.key) == "string" and who.key ~= "" then
+            return who
         end
     end
+    if jeem == nil then return nil end
+    local key = nil
+    for _, name in ipairs({ "playerKey", "username" }) do
+        if type(jeem[name]) == "function" then
+            local ok, value = pcall(jeem[name], player)
+            if ok and type(value) == "string" and value ~= "" then key = value break end
+        end
+    end
+    if key == nil then return nil end
+    return { key = key }
+end
+
+--[[
+    把「玩家 ↔ 该 NPC 所属阵营/小队」的 Jeem 声望垫到同盟。
+
+    为什么必须垫：Jeem 的居民收编有同盟门槛（`Residents/Server.lua:581`，理由码 `not_allied`，
+    玩家看到的就是「他们对你信任不足（需要同盟关系）」）。`R.isAlly`（:490-497）认两条路：
+
+      ① 阵营标签 `StandingService.labelFor(key, factionId) == "allied"`
+      ② 该小队自己的点数 `groupPoints(key, groupId) >= 50`（`R.allyGroupPoints`）
+
+    两条都垫，而不是只垫第 ② 条：
+      * `memory.groupId` 不是承诺字段（新造的 NPC 可能还没有 crew），只走 ② 会在拿不到 groupId 时
+        整段失效 —— 这正是"雇了人却当不了队友"的原因；
+      * ① 的档位是 `ladder = hostile→careful→neutral→friendly→allied`、`thresholds = {25,75,150,250}`，
+        最坏（hostile）要 ≥250 点，所以一次给到 `clamp`(400)。
+
+    这也是 `StandingService.add` 的公开用法：它按 `info.groupId` 顺带把小队点数一起顶上，
+    并发出 `standingChanged` 事件（Jeem 自己的赏罚功能都走这条）。
+]]
+function Jimmy.makeAllied(player, record)
+    if not Config.makeAllied() then return false, "disabled" end
+    local jeem = parts()
+    if jeem == nil then return false, "no_jeem" end
+    local standing = jeem.StandingService
+    if type(standing) ~= "table" or type(standing.add) ~= "function" then
+        return false, "standing_missing"
+    end
+
+    local factionId = type(record) == "table" and record.factionId or nil
+    if type(factionId) ~= "string" or factionId == "" then return false, "no_faction" end
+    local memory = type(record) == "table" and record.memory or nil
+    local groupId = type(memory) == "table" and memory.groupId or nil
+
+    local who = Jimmy.who(player)
+    if who == nil then return false, "no_who" end
+
+    local delta = tonumber(standing.clamp) or 400
+    local okAdd, before, after = pcall(standing.add, who.key, factionId, delta,
+        { kind = "bin2_hired", groupId = groupId, groupPoints = delta })
+    if not okAdd then return false, tostring(before) end
+
+    if type(groupId) == "string" and type(standing.addGroup) == "function" then
+        pcall(standing.addGroup, who.key, groupId, factionId, delta)
+    end
+
+    --[[
+        只读复核 + 一行日志：进游戏验证时就是靠这行定案的
+        （`R.isAlly` 认可的条件 = label allied 或 groupPoints >= 50）。
+    ]]
+    local label, groupPoints = tostring(after or "?"), nil
+    if type(standing.labelFor) == "function" then
+        local ok, value = pcall(standing.labelFor, who.key, factionId)
+        if ok and value ~= nil then label = tostring(value) end
+    end
+    if type(groupId) == "string" and type(standing.groupPoints) == "function" then
+        local ok, value = pcall(standing.groupPoints, who.key, groupId)
+        if ok then groupPoints = value end
+    end
+    Config.log(string.format("standing %s -> %s (was %s), group %s = %s (needs >= 50)",
+        tostring(factionId), label, tostring(before), tostring(groupId), tostring(groupPoints)))
     return true
 end
 

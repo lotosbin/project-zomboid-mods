@@ -20,7 +20,7 @@
     "Sandbox_Bin2NPCExtension.AllowHostile": "允许招募敌对 NPC",
     "Sandbox_Bin2NPCExtension.AllowHostile_tooltip": "开启后，态度为 hostile 的 A-Life NPC 也会出现在收编列表里。默认关闭：把枪口对着你的人花钱雇下来并不合理。",
     "Sandbox_Bin2NPCExtension.MakeAllied": "签约时把对方阵营拉到同盟",
-    "Sandbox_Bin2NPCExtension.MakeAllied_tooltip": "开启时，收编成功后会把「你 ↔ 该 NPC 所在小队/阵营」的 Jeem 声望垫到同盟档，这样非管理员玩家也能把它转成居民。注意：Jeem 的声望是按阵营记录的，所以变成同盟的是整个阵营，而不只是这一名 NPC。",
+    "Sandbox_Bin2NPCExtension.MakeAllied_tooltip": "开启时，签约那一刻（所有岗位都算）就把「你 ↔ 该 NPC 所在阵营/小队」的 Jeem 声望垫到同盟档，小队点数一并顶上。这样 ① 选「居民」不会被 Jeem 的同盟门槛拒绝，② 之后用 Jeem 自己的右键「邀请入住」也能通过 —— 两处卡的是同一个门槛。注意：声望是按阵营记录的，所以变成同盟的是整个阵营，不只是这一名 NPC。",
     "Sandbox_Bin2NPCExtension.SpawnDistance": "派遣生成距离（格）",
     "Sandbox_Bin2NPCExtension.SpawnDistance_tooltip": "中介派遣出来的 NPC 出现在离你多远处。太近会把你挤开，一般 2~3 格合适。",
 

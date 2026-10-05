@@ -2,7 +2,7 @@
 
 > 目标模组：`Bin2NPCExtension`（物品目录 `bin2_npc_extension`）
 > 依赖：`OrangeCommunityEconomy`（必需）、`ProjectALifeNPCs`（需要）、`ProjectALifeJimmy`（可选）
-> 版本：0.2.1（2026-10-05）｜ 工坊 id：3813914438（已发布，物品内含两个模组）
+> 版本：0.2.2（2026-10-05）｜ 工坊 id：3813914438（已发布，物品内含两个模组）
 > 状态：**已进游戏跑通基础流程，完整清单（T1~T18）未跑完**
 
 ---
@@ -370,3 +370,49 @@ follow   → Alife.orderFollow(player, uid, quiet)
 
 > 通用原则：**跨模组 fork 时，mock 必须按目标模组的真实 API 面重建，而不是按来源模组替换** ——
 > 否则"绿着的测试"反而是最危险的信号。
+
+### 11.7 第二轮进游戏：雇下的人当不成队友（v0.2.2 修复）
+
+**现象**：面板里雇下一名 NPC（跟随），之后想让他在营地当居民（队友）—— 不管是用 Jeem 自己的右键
+「邀请入住」还是我们面板的「居民」岗位，都被拒绝，游戏提示
+`[ALIFE-JIMMY] 他们对你信任不足（需要同盟关系）。`
+
+**取证**（`~/Zomboid/console.txt` 6 次同样的提示，且我们模组一行日志都没有 → 说明我们**没参与**那次判定）：
+提示本身来自 Jeem，拦截点是它的同盟门槛：
+
+| 证据 | 位置 | 内容 |
+| --- | --- | --- |
+| 拦截点 | `ProjectALifeJimmy/Features/Residents/Server.lua:581` | `if not force and not R.isAlly(who.key, record) then return nil, "not_allied" end` |
+| 判定 | 同上 `:490-497` | `labelFor(key, factionId) == "allied"` **或** `groupPoints(key, groupId) >= R.allyGroupPoints` |
+| 阈值 | `:22` | `R.allyGroupPoints = 50` |
+| 档位 | `Services/Standing.lua:24-27` | `ladder = hostile→careful→neutral→friendly→allied`、`thresholds = {25,75,150,250}`、`clamp = 400` |
+
+**根因（两条叠加）**：
+1. 沙盒选项 `MakeAllied` 的说明写的是"签约后把声望垫到同盟档"，但代码**只在 `Jimmy.recruit`（转居民）里**垫；
+   于是先用 follow 雇下的人，之后永远过不了那道门（而 Jeem 自己的右键邀请走的是同一个门槛）。
+2. 垫声望只调了 `StandingService.addGroup`（**小队**路径），而且要求 `memory.groupId` 是字符串 ——
+   拿不到就整段静默跳过，`groupId` 那本来就不是承诺字段。
+
+**修法**：
+* 签约即垫（`Service.markAllied`，`hireExisting` / `hireSpawned` 都调用）—— 让选项兑现它文档承诺的行为；
+* 改用 `StandingService.add(key, factionId, delta, { groupId = …, groupPoints = delta })`：
+  阵营标签与小队点数一起顶。从最坏（hostile）到 allied 要 ≥250 点，所以一次给到 `clamp`(400)；
+* 新增 `Jimmy.who(player)`：照 Jeem 自己的兜底顺序取 key（`BaseAreas.who` → `playerKey` → `username`，
+  同 `Features/DoorMarks/Marks.lua:326`）。
+
+**测试基建的教训（第二次同类）**：mock 里 Jeem 的同盟判定写成 `points >= 0`（几乎永远为真），
+而且**漏了阵营标签那条路**，`StandingService` 也没有 `add`/`labelFor`/`groupPoints` ——
+整条"垫声望"链路在离线测试里从未被覆盖，所以 bug 一路绿着进游戏。
+现在 mock 逐条对齐真实实现，用例 35 断言的是**端到端结果**：
+
+```
+雇下（follow）→ labelFor == "allied" 且 groupPoints >= 50 且 R.isAlly == true
+             → Residents.recruit(..., force=false) 成功 → 这名 NPC 成为居民（队友）
+关掉 MakeAllied → labelFor == "hostile" → R.isAlly == false → 收编被拒，理由码就是 not_allied
+```
+
+**失败实验**：撤销修复后用例 35 立刻以 `not_allied` 变红（与游戏里同一句话），已记进日志。
+
+> 这两轮（11.6 容器原语、11.7 同盟门槛）暴露的是同一个方法论问题：
+> **mock 必须按目标模组的真实实现重建**。凡是 mock 比真实实现"更宽松"的地方，
+> 就是下一个会在游戏里爆炸的地方。

@@ -20,7 +20,7 @@
     "Sandbox_Bin2NPCExtensionYese.AllowHostile": "Allow hiring hostile NPCs",
     "Sandbox_Bin2NPCExtensionYese.AllowHostile_tooltip": "When on, NPCs whose stance toward you is hostile also appear in the hire list. Off by default: paying someone who is shooting at you makes little sense.",
     "Sandbox_Bin2NPCExtensionYese.MakeAllied": "Make the faction allied on hire",
-    "Sandbox_Bin2NPCExtensionYese.MakeAllied_tooltip": "When on, a successful hire pushes your Jeem standing with that NPC's group/faction to the allied tier, which is what lets non-admin players convert it into a resident. Note that Jeem records standing per faction, so the whole faction becomes allied, not just this NPC.",
+    "Sandbox_Bin2NPCExtensionYese.MakeAllied_tooltip": "When on, signing the contract (right away, for every mode) pushes your Jeem standing with that NPC's faction/crew to the allied tier, and tops up the crew points too. That is what lets you convert the hire into a resident, AND what lets Jeem's own right-click 'invite the crew' succeed later - both check the same allied gate. Note that Jeem records standing per faction, so the whole faction becomes allied, not just this NPC.",
     "Sandbox_Bin2NPCExtensionYese.SpawnDistance": "Spawn distance (tiles)",
     "Sandbox_Bin2NPCExtensionYese.SpawnDistance_tooltip": "How far from you an agency-summoned NPC appears. Too close shoves you aside; 2-3 tiles is usually right.",
 

@@ -373,3 +373,29 @@ description=[hr][/hr]  →  description=[h2]链接  →  [ ALERT_CONFIG ]（老�
 
 **可复用的原则**：跨模组 fork 时，**mock 要按目标模组的真实 API 面重建，不能按来源模组替换** ——
 替换出来的 mock 会把"来源模组的方言"当成"目标模组的契约"，从而系统性地漏掉整类不兼容。
+
+### 十二、第三轮进游戏：「信任不足」——签约即垫声望（承接课题五）
+
+用户实测：面板里雇下一名 NPC（跟随），之后想让他当队友（营地居民）时被拒，
+提示「他们对你信任不足（需要同盟关系）」。
+
+那句话来自 **Jeem 本身**（`[ALIFE-JIMMY]`），而这几次我们模组没有任何日志 —— 说明我们没参与判定。
+顺藤摸下去：拦截点是 Jeem 的居民同盟门槛 `R.isAlly`（`Residents/Server.lua:581` / `:490-497`），
+判定 = 阵营标签 allied **或** 小队点数 ≥ 50；档位 `hostile→careful→neutral→friendly→allied`
+（thresholds `{25,75,150,250}`，clamp 400）。
+
+我们其实已经写了垫声望的函数，但它有两处不到位：只在"转居民"那一步调用（沙盒选项 `MakeAllied`
+的文档写的却是"签约后"），而且只走 `addGroup` 小队路径、拿不到 `memory.groupId` 时整段静默跳过。
+于是"先 follow 雇下、再想当队友"这条路必然失败 —— 而 Jeem 自己的右键邀请走的是同一个门槛。
+
+修法三步：签约即垫（`Service.markAllied`）；改走 `StandingService.add(key, factionId, delta,
+{groupId, groupPoints})` 把阵营标签与小队点数一起顶；新增 `Jimmy.who(player)` 按 Jeem 自己的兜底
+顺序取玩家 key。
+
+**第二次同类教训**：mock 里 Jeem 的同盟判定写成 `points >= 0`（几乎永远为真）且漏了阵营标签那条路，
+`StandingService` 也没有 `add`/`labelFor`/`groupPoints` —— 整条链路从未被测试覆盖。
+现在 mock 逐条对齐真实实现，用例 35 断言端到端结果（雇下 → 真能收编成居民；关掉选项 → `not_allied`），
+并做了失败实验：撤销修复后用例立刻变红。
+
+**沉淀的判断**：mock 比真实实现宽松的地方，就是下一个会在游戏里爆炸的地方 ——
+跨模组集成时，mock 要照着**对方的源码**写，不是照着"我们以为的契约"写。

@@ -23,7 +23,7 @@ local Jimmy = Config.Jimmy
 local Net = Config.Net
 
 -- 用例总数：runTest 会把它当断言前缀用，新增用例时同步改这一个数字
-local TOTAL = 34
+local TOTAL = 35
 local failures = 0
 local passed = 0
 
@@ -609,7 +609,12 @@ runTest(12, "resident mode with Jeem: recruit called, baseId stored; no_beds deg
     M.assert_eq(contract and contract.note, nil, "no degradation note on success")
     M.assert_eq(M.calls_named("BaseAreas.createBase")[1], nil, "an existing base is reused, no camp built")
     M.assert_truthy(Jimmy.isResident(Alife.record(uid)), "the actor is a Jeem resident now")
-    M.assert_eq(M.count_calls("StandingService.addGroup"), 1, "standing was padded before recruiting")
+    -- 签约时垫一次、转居民前再垫一次（幂等），所以这里断言"垫到了同盟"而不是调用次数
+    M.assert_truthy(M.count_calls("StandingService.addGroup") >= 1, "standing was padded before recruiting")
+    local standingAdd = M.calls_named("StandingService.add")[1]
+    M.assert_truthy(standingAdd ~= nil, "StandingService.add was used (the faction path)")
+    M.assert_truthy((tonumber(standingAdd and standingAdd.delta) or 0) >= 250,
+        "the pad clears the worst case (hostile needs >= 250 points)")
 
     -- 第二个人：recruit 返回 no_beds（两次都失败，包括 force 重试）
     local uid2 = M.addActor({ uid = "palife:resident:2" })
@@ -1681,6 +1686,64 @@ runTest(33, "hireSpawned with an actor that vanishes right after SpawnService ac
     M.advanceMs(9000)
     Maintain.tick()
     M.assert_eq(Contracts.activeCount(node), 0, "still no contract after the maintenance tick")
+end)
+
+-- ===========================================================================
+-- 35. 签约即把 Jeem 声望垫到同盟（否则雇下的人当不成队友：not_allied）
+--     用户实测："yesemarket 招募后需要自动变成队友，现在提示信任不足"
+-- ===========================================================================
+runTest(35, "extra: hiring pads Jeem standing to allied so the crew can become teammates", function()
+    --[[
+        用户实测："yesemarket 招募后需要自动变成队友，现在提示信任不足"。
+
+        那条提示来自 Jeem 自己（`[ALIFE-JIMMY] 他们对你信任不足（需要同盟关系）。`），
+        拦截点 `Residents/Server.lua:581` 用的是 `R.isAlly`；Jeem 自己的右键「邀请入住」
+        和我们面板的「居民」模式走的是**同一个**门槛。所以签约那一刻就得把声望垫上去。
+    ]]
+    local jeem = Config.jeem()
+    M.assert_truthy(jeem ~= nil, "Jeem is present in this scenario")
+    local standing = jeem.StandingService
+    local residents = jeem.Residents
+    M.assert_truthy(standing ~= nil and residents ~= nil, "StandingService / Residents present")
+
+    local key = "jimmy:" .. tostring(M.player:getUsername())
+    local function hire(uid, requestId)
+        return d(M.player, "HireExisting", { uid = uid, mode = "follow", requestId = U(requestId) })
+    end
+
+    -- ① 默认（MakeAllied = true）：签约即垫到同盟 -> 之后可以直接当队友
+    resetWorld({ balance = 10000 })            -- 注意：resetWorld 会清掉基地，所以基地在它之后给
+    local base = M.giveBase(4)
+    local uid = M.addActor({ uid = "palife:crew:1", factionId = "bandits", memory = { groupId = "crew-1" } })
+    M.assert_eq(resultCode(hire(uid, "r35a")), "hired", "hire in follow mode succeeds")
+    local record = Alife.record(uid)
+    M.assert_eq(standing.labelFor(key, record.factionId), "allied",
+        "signing pushes the faction label to allied")
+    M.assert_truthy(standing.groupPoints(key, "crew-1") >= 50,
+        "the crew's own points pass allyGroupPoints (50)")
+    M.assert_eq(standing.isAlly(key, record), true, "R.isAlly accepts this crew now")
+
+    -- 真正要断言的是"能当队友"：非 force 的居民收编必须成功
+    local count, why = residents.recruit(M.player, uid, base.id, false)
+    M.assert_truthy(count ~= nil, "the crew can become residents now: " .. tostring(why))
+    M.assert_truthy(residents.residentOf(Alife.record(uid)) ~= nil,
+        "the hired NPC is a resident (teammate)")
+
+    -- ② 关掉沙盒开关：不垫声望 -> 收编被同盟门槛拦住（这条用例要能抓到这个门槛本身）
+    resetWorld({ balance = 10000 })
+    local base2 = M.giveBase(4)
+    M.setSandbox("MakeAllied", false)
+    local uid2 = M.addActor({ uid = "palife:crew:2", factionId = "bandits", memory = { groupId = "crew-2" } })
+    M.assert_eq(resultCode(hire(uid2, "r35b")), "hired", "hire still succeeds with MakeAllied off")
+    local record2 = Alife.record(uid2)
+    M.assert_eq(standing.labelFor(key, record2.factionId), "hostile",
+        "without the pad the faction stays at its hostile baseline")
+    M.assert_eq(standing.isAlly(key, record2), false, "…so R.isAlly still refuses")
+    local count2, why2 = residents.recruit(M.player, uid2, base2.id, false)
+    M.assert_eq(count2, nil, "…and the resident recruit is refused")
+    M.assert_eq(tostring(why2), "not_allied",
+        "…with the same not_allied code the player sees in game")
+    M.setSandbox("MakeAllied", true)
 end)
 
 -- ===========================================================================

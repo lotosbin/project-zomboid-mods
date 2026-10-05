@@ -2628,3 +2628,46 @@ description=[/list]
 `tags=[Build 42, Interface, Misc, Multiplayer, QoL, WIP]`、`submitDescription=3822 chars`（上限 8000）、
 `contentFolder exists=true`、`validatePreviewImage=OK`、`n_Set*` 全 true（不调 Submit）；
 `check_all.sh` → `ALL CHECKS PASSED (18 item(s))`（本物品 6762 字节，接近但仍在上限内）。
+
+---
+
+## 2026-10-05 · 「雇了人却当不成队友」：契约签了就垫声望（0.2.2）
+
+用户实测：用面板雇下一名 NPC 之后，想让他当**队友**（营地居民）时被拒，游戏提示
+`他们对你信任不足（需要同盟关系）`。
+
+**先读日志，不猜**：这句话来自 **Jeem 自己**（`[ALIFE-JIMMY]`，console.txt 里出现 6 次），
+而且那几次我们模组**一行日志都没有** → 说明我们没参与判定。顺着提示找拦截点：
+
+| 证据 | 位置 | 内容 |
+| --- | --- | --- |
+| 拦截点 | `ProjectALifeJimmy/Features/Residents/Server.lua:581` | `if not force and not R.isAlly(who.key, record) then return nil, "not_allied" end` |
+| 判定 | 同上 `:490-497` | 阵营标签 `labelFor == "allied"` **或** 小队点数 `groupPoints >= R.allyGroupPoints` |
+| 阈值 | 同上 `:22` | `R.allyGroupPoints = 50` |
+| 档位 | `Services/Standing.lua:24-27` | `ladder = hostile→careful→neutral→friendly→allied`、`thresholds = {25,75,150,250}`、`clamp = 400` |
+
+**根因是两条叠加**：① 沙盒选项 `MakeAllied` 的文档写"签约后把声望垫到同盟档"，
+但代码**只在 `Jimmy.recruit`（转居民）里**垫 —— 先用 follow 雇下的人，之后永远过不了那道门
+（而 Jeem 自己的右键「邀请入住」和我们面板的「居民」岗位检查的**是同一个门槛**）；
+② 垫声望只调 `StandingService.addGroup`（小队路径）且要求 `memory.groupId` 是字符串，
+拿不到就**整段静默跳过** —— 而 `groupId` 本来就不是承诺字段。
+
+**修法**：签约即垫（`Service.markAllied`，`hireExisting`/`hireSpawned` 都调）；
+改用 `StandingService.add(key, factionId, delta, {groupId, groupPoints})`，阵营标签与小队点数一起顶
+（从最坏 hostile 到 allied 要 ≥250 点，一次给到 clamp 400）；新增 `Jimmy.who(player)`，
+照 Jeem 自己的兜底顺序取 key（`BaseAreas.who` → `playerKey` → `username`，
+同 `Features/DoorMarks/Marks.lua:326`）。
+
+**这次真正的教训还是 mock**（继上一轮"容器原语"之后第二次同类）：mock 里 Jeem 的同盟判定写成
+`points >= 0`（几乎永远为真），而且**漏了阵营标签那条路**；`StandingService` 也没有
+`add`/`labelFor`/`groupPoints` —— 整条"垫声望"链路在离线测试里**从未被覆盖**，bug 一路绿着进游戏。
+现在 mock 逐条对齐 `Services/Standing.lua` 与 `R.isAlly`，用例 35 断言**端到端结果**：
+雇下（follow）→ label allied、小队点数 ≥50、`R.isAlly` 为真 → `Residents.recruit(force=false)` 成功
+→ 这名 NPC 成为居民；关掉 `MakeAllied` → `not_allied`（与游戏里同一个理由码）。
+**失败实验**：撤销修复后用例 35 立刻以 `not_allied` 变红。
+
+> 方法论：**mock 比真实实现宽松的地方，就是下一个会在游戏里爆炸的地方。**
+
+**数字**：Lua 语法 28 文件 0 失败；两套离线测试各 **35/35**；`--check` 一致；
+`check_all.sh` → `ALL CHECKS PASSED (18 item(s))`（本物品简介 7247 字节）。
+版本 0.2.1 → 0.2.2。
