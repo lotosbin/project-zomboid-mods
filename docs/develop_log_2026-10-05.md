@@ -101,3 +101,130 @@ ALL CHECKS PASSED (17 item(s))
 * 顺带发现但**未改**：`bin2_title_cover` 两个模组的 `mod.info` 里
   `incompatible=\ZomboidTitleCover,\ZomboidTitleCoverWide` 把**自己**也列进了互斥名单，
   疑似复制粘贴笔误（16:9 版声明 16:9 版互斥），已单独提出待确认。
+
+---
+
+## 课题三：新模组 `bin2_npc_extension` —— 把 NPC 招募做进橙子社区经济
+
+用户给的需求是一句话：*npc 扩展模组 bin2_npc_extension，兼容 Project A-Life Jeem Extension（3806944055），
+在 橙子社区经济模组（3777900792）中增加 npc 招募功能*。它同时牵动三个第三方模组，所以**先取证、再动手**。
+
+### 一、两端各请一个子代理做只读逆向，产出可引用的规格
+
+两份报告都落在 `bin2_npc_extension/docs/research/`，每条结论带 `文件:行号`：
+
+| 报告 | 规模 | 对我们最有用的三件事 |
+| --- | --- | --- |
+| `economy-integration-hooks.md` | 1087 行 / 41 个被引文件 | ① 页面注册表是**公开 API**；② 侧栏 `MENU`、社区中心 `TABS` 是 `local`，加不进 —— 唯一先例是它自己包首页工厂；③ 服务端路由对非自己 module 直接 return，所以**用自己的 module 名发包即可，零 patch** |
+| `jeem-recruit-api.md` | 638 行 / 两份 mod.info + 关键函数逐行核对 | ① A-Life **没有**任何雇佣/同伴机制，跟随只能靠 `DecisionLoop.setOrder`；② `R.recruit` 收编**整支 crew**、服务端**不校验距离**、且**不收费**；③ `memory.persistent` 与 `memory.admin.persistent` 管的是两个不同的回收函数 |
+
+### 二、设计上被这两份报告改动的地方
+
+1. **不用对方的网络通道**：橙子经济的 `command_router` 只认 `module == "OrangeTradingMod"`，
+   硬塞进去要么改对方文件、要么抢它的包解析；我们直接用 `Bin2NPCExtension` 自己的 module，
+   A-Life 也明文禁止第三方复用 `"ProjectALife"`。两边红线一次满足。
+2. **客户端不读 ModData**：A-Life 的 `Executor.PROTECTED` 白名单不含第三方 memory 键，
+   多人下"运行该 NPC 的客户端"看不到我们的标记；统一由服务端 `sendServerCommand` 推快照，
+   就不会出现"主机能看到、别人看不到"。
+3. **钱自己收**：Jeem 招募免费、只有阵营声望代价，所以扣款、退款、欠薪全是我们的责任 ——
+   也因此必须自带限速与 `requestId` 去重（对方的 `action_request_guard` 是白名单制，第三方塞不进去）。
+4. **岗位失败只降级、不撤销契约**：钱已收、人已造，最差也要给玩家一个"跟随"的雇员，
+   并把降级原因写进契约备注、显示在面板上（`Reason*` 系列翻译）。
+
+### 三、交付物与自检
+
+* 模组：`Contents/mods/Bin2NPCExtension/42.21/`（14 个 Lua、4 份翻译 JSON、14 个沙盒选项、poster）
+* 文档：`docs/design.md`（架构/数据模型/降级矩阵/稳定性评级/风险）、`docs/test-plan.md`（T1~T18 + M1~M4）
+* 工具：`tools/make_images.py`（新写）、`tools/lua_syntax_check.mjs`（复用）、`tools/test/`（离线逻辑测试）
+* 校验结果：
+  * Lua 语法：14/14 OK；
+  * 工坊探针：`readWorkshopTxt=true`、tags 全在白名单、`validatePreviewImage=OK`、`submitDescription=4274` 字节；
+  * 仓库级 `check_all.sh`：`ALL CHECKS PASSED (18 item(s))`（新增我们这一份）；
+  * 翻译一致性：代码里 45 个字面量键 + `Text.lua` 映射表值 → CN/EN 零缺失、键集合完全相同。
+
+### 四、未做 / 未验证（都写进了工坊简介的"已知限制"）
+
+没有进游戏实跑；`StandingService.addGroup` 能否真把组点数顶过同盟阈值、转居民时"整支小队一起进营地"的
+实际观感、首页按钮与「社区中心」按钮的排布是否会随对方布局变化重叠、与 Bandits2 等 NPC 模组的共存、
+专用服非管理员玩家转居民的成功率 —— 全部列在 `docs/test-plan.md` 的待确认清单里。
+
+### 五、离线逻辑测试：33/33，并抓出 4 个真缺陷
+
+补记一节，因为这是本课题里回报率最高的一步。测试（`bin2_npc_extension/tools/test/run_lua_test.sh`，
+fengari + 忠实 mock 三个依赖）一开始就红了 4 条，全是真缺陷而不是 mock 不准：
+
+1. **`Service.dismiss` 漏了 `Config.enabled()` 闸门** —— 另外三个改状态命令都有，只有它没有，
+   沙盒关掉模组后玩家仍能解雇（行为不一致）。
+2. **周期重下指令把 `quiet=true` 丢了** —— `Maintain` → `Service.applyMode` → `Alife.orderFollow`
+   这一串没透传，于是每 8 秒重下一次 follow 都会重放 follow 动画与 `ORDER_ACK` 语音；
+   而 `Maintain.lua` 顶部的注释写的正是"用 quiet 模式"。**注释与实现不一致**是这类缺陷的典型信号。
+3. **退款不写流水** —— `Economy.refund` 只调 `AddCoins`，账单里只有扣钱没有退钱。
+4. **`hireSpawned` 不校验刚造出来的 uid 是否还在** —— 记录被当场回收时仍收钱、写契约，
+   要靠下一次 `Maintain.tick` 才把契约标 dead，钱不退。
+
+顺手修掉两个"可疑点"：`Contracts.sanitize` 改为**先剔除非法项再重建 order**（原来要跑两遍才干净）；
+requestId 去重队列改为**按时间裁剪**（原来按条数留 64 条，60 秒内连发 65 个不同 requestId
+就能把最早那条挤出窗口，重放它不再判 duplicate）。
+
+修完把测试里"如实记录现状"的四处期望翻成正确行为，并给两处可疑点补了回归断言，
+现在 `[test] 33/33 passed, 0 failed` → `ALL PASS`（exit 0）。
+**方法论收获**：mock 的价值不在"跑通"，而在**把上游的校验顺序与拒绝码抄准** ——
+抄准了它就能替游戏先发现我们自己骗自己的地方。
+
+### 六、对照 `bin2_ProjectALifeNPCs_extensions`：纠正"往 Compat.known 里写自己"
+
+用户追加"同时参考 bin2_ProjectALifeNPCs_extensions"。把那个项目还没读的 `roadmap.md` 与
+`integration-brainstorm.md` 过完，抓到本模组的一个**真实错误**：
+
+我们（以及给建议的子代理）把"往 `ProjectALife.ModCompat.known` 注册自己的 verdict"当成了加分项。
+读 A-Life 源码定案：`Compat.report()`（`ALifeModCompat.lua:314-330`）会遍历 `known`，把启用中的条目
+按 `entry.verdict` 打印成 `[A-Life] compat: <name> (<id>) -> adapted: <note>` ——
+**第三方写进去 = 借 A-Life 的口替自己背书**，而那个 verdict 不是它给的。
+那个项目的 `integration-brainstorm.md` §1 已写明"不是注册 API"，本轮把它落成了代码约束。
+
+改法：`registerCompat`（写）→ `reportCompat`（只读），跑 A-Life 自己的 `Compat.foreignCopies(active)`，
+点名"自带 A-Life Lua 副本"的模组 —— 这恰好是本模组最需要的排障信息，因为那类模组会让每次 NPC 水合失败，
+而生成 NPC 正是我们的主路径。另外采纳了它的 `Grant.makeAllied` 里的"复核并打日志"习惯：
+`addGroup` 之后读 `groupPoints`，为进游戏验证"非管理员转居民"（T15/M2）留下判据。
+
+测试同步 3 处（mock 补 ModCompat、用例 1 加两条只读断言、用例 24 删掉"写 known"的断言），
+改完仍 `33/33 passed`。文档互挂：新项目 README §3、旧项目 README §5.7 + roadmap 阶段 1-D。
+
+**方法论**：跨项目对照的价值不在复用代码，而在**拿别人的既有结论审计自己新写的代码** ——
+这处错误在"推荐做法"的外衣下活到了测试通过之后，只有回到上游源码读 `Compat.report()` 才翻出来。
+
+### 七、再采纳两条工程约定（防 Reset Lua 重入 + 可观测）
+
+对照它的 `roadmap.md` 阶段 4「通用工程约定」后补的两处：
+
+1. **§4 防 `Reset Lua` 重入**：把三个注册 `Events` 的文件的守卫从布尔量改成 **`Events` 表的身份**判据 ——
+   同一张表说明是同一次会话（跳过，防重复注册），换了一张表说明引擎重置过 Lua（必须重新注册）。
+   布尔守卫的毛病在后者：重置后它会永久拦住重新注册，功能静默失效。
+2. **§3 可观测**：新增 `Bootstrap.capabilities()`，把 10 个半公开入口逐个探一遍，
+   启动打印 `hooks active=N inactive=M` 并在缺项时 WARN 列出名字。
+   为验证它真管用，做了一次失败实验：mock 里把 `DecisionLoop.setOrder` 置 nil（模拟上游改名），
+   日志立刻变成 `hooks active=9 inactive=1` + `inactive hooks (1): alife.orders -- an upstream rename looks like this`；
+   恢复后回到 `33/33 passed`。
+
+用例 24 因此扩了 6 条断言，把"可观测链路"也纳入回归。
+
+### 八、v0.1.1：玩家实测反馈的两处版面错位
+
+用户把游戏截图发过来：功能是通的（首页入口在、招募面板开得起来、经济流水里有
+两笔 `FlowHire NPC -1500.00`，说明中介派遣成功跑过两次），但有两处重叠：
+
+1. **右侧说明文字压住模式按钮行**。根因是我们自己写的固定坐标：模式按钮钉在 `listTop + 118`，
+   而文本从上往下不限行数地画。窗口一矮，两者必然相遇。
+   改成**自下而上**排版（先从底部预留模式行 + 主按钮 + 次按钮三块固定高度，文本区夹在中间），
+   并加 `drawLines()` 只画得下的行；次按钮位永远预留，切页签时按钮不再跳。
+2. **首页入口按钮压住对方的「卡片」按钮**，两个标题叠成了「NPC 招募: 卡片」。
+   根因是锚点只有一个：`communityCenterButton` 在社区中心功能关闭时不存在，于是回退到"贴右边缘"，
+   正好落在右侧那排视图切换按钮上。改成收集三个锚点取最左，贴在它左侧；都没有就贴左边缘。
+
+**最有价值的不是这两处修复，而是补上的回归**：把版面几何当契约测 —— 三种窗口尺寸下断言
+文本区止于模式行上方、按钮两两不重叠、全部在页面内、小窗口 `render()` 不抛错；
+并做了失败实验（把文本裁剪改回旧行为 → 三条断言立刻红）。
+
+**教训**：布局是**状态函数的输出**（尺寸 × 页签 × 选中项 × 依赖可用性四个变量），
+不能靠"看起来排好了"交付。把它写成可断言的几何契约只要十几行，却能挡住这类
+"必然在某个窗口尺寸下出现"的问题 —— 这一条已回填到 `docs/design.md` §8.2。

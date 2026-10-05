@@ -33,6 +33,15 @@
 - [手柄按钮映射](./project-zomboid-controller-buttons.md)
 - [控制器循环导航](./controller-cycle-navigation.md)
 
+### 第三方模组扩展点（写联动模组之前先读这两份）
+- [橙子社区经济：对外开放的扩展点](../bin2_npc_extension/docs/research/economy-integration-hooks.md)
+  - 页面注册表 `OrangeTradingMod.UIPageRegistry.Register`（公开 API）、首页入口包装的官方先例、
+    货币 `OrangeTradingModServer.Pay` / `AddCoins`、单机下 `OnClientCommand` 不触发的处理方式
+- [Project A-Life / Jeem：招募与生成链路](../bin2_npc_extension/docs/research/jeem-recruit-api.md)
+  - `ActorRegistry.create` + `SpawnService.request` + `DecisionLoop.setOrder`（A-Life **没有**原生雇佣机制）、
+    `Residents.recruit` / `leaveOne`、防人口回收必须**同时**写 `memory.persistent` 与 `memory.admin.persistent`
+- 取证来源（本机只读）：`~/Library/Application Support/Steam/steamapps/workshop/content/108600/{3777900792,3803984183,3806944055}`
+
 ---
 
 ## 参考模组

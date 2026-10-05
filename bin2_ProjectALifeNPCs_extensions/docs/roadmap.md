@@ -75,6 +75,29 @@
 | 发布准备（workshop.txt / preview.png / changelog.txt / staging 软链） | ✅ 完成，探针 `validatePreviewImage=OK` |
 | 首次上传工坊 | ⬜ 待做（建议先 `visibility=private` 私测，再改 public） |
 
+## 阶段 1-D：橙子社区经济 × NPC 招募（**已开工**，`bin2_npc_extension` v0.1.0，在隔壁目录）
+
+起因：用户直接提出的第二个功能需求 —— "npc 扩展模组 bin2_npc_extension，兼容 Jeem Extension，
+在橙子社区经济模组（3777900792）中增加 npc 招募功能"。
+
+它与 1-C 的区别：1-C 是"开局白送"，1-D 是"**花钱雇**"，且把付钱这一侧接到了第三个模组的账本上。
+
+| 步骤 | 状态 |
+| --- | --- |
+| 逆转橙子经济的扩展点（UI 注册表 / 协议 / 货币 / 翻译 / 单机分支） | ✅ `../bin2_npc_extension/docs/research/economy-integration-hooks.md` |
+| 复核 Jeem `R.recruit` 全链路（含"收编整支 crew"、服务端无距离校验、不收费） | ✅ `../bin2_npc_extension/docs/research/jeem-recruit-api.md` |
+| 写代码（14 个 Lua + 4 份翻译 + 14 个沙盒选项 + 海报/预览） | ✅ 完成，Lua 语法 14/14 |
+| 离线逻辑测试（mock 三依赖，33 条断言） | ✅ `33/33 passed`，并抓出 4 个真缺陷（见下） |
+| 工坊校验 | ✅ 探针 `validatePreviewImage=OK`、仓库级 `ALL CHECKS PASSED (18 item(s))` |
+| **进游戏验证 T1~T18** | ⬜ 待做（`../bin2_npc_extension/docs/test-plan.md`） |
+| 首次上传工坊 | ⬜ 待做（`visibility=private` 私测后再改 public） |
+
+**本项目因此被纠正的一处**：`ProjectALife.ModCompat.known` **不能写**。
+`Compat.report()`（`42.20/media/lua/shared/ProjectALife/Compat/ALifeModCompat.lua:314-330`）会遍历 `known`，
+对启用中的条目按 `entry.verdict` 打印成 `[A-Life] compat: <name> (<id>) -> <verdict>: <note>` ——
+第三方往里写等于借 A-Life 的口替自己背书。这与本文档 §1 的既有结论一致（"不是注册 API"），
+本次把它从"结论"落成了"代码约束"：新模组只读 `foreignCopies(active)`，绝不写 `known`。
+
 ## 阶段 2：兼容/冲突守护（**模板已存在，可直接接手**）
 
 > 补录（2026-10-04）：[ALifeStackCompat](extension-stackcompat-analysis.md)（3808789424，294 行）
@@ -139,4 +162,6 @@
 | 2026-10-04 | 首发候选收敛为"手柄支持"与"装备 provider 包" | 见阶段 0 的三方对比 |
 | 2026-10-04 | 用户选定第三条线：**开局自带 NPC**（`ALifeStartWithNPC`） | 直接需求；且该功能在工坊**无竞品** |
 | 2026-10-04 | 该功能**不依赖 Jeem 也能工作**：造人走 A-Life，居民化只是可选增强 | `R.recruit` 不能凭空造人，且有多重门槛（base/床位/声望） |
+| 2026-10-05 | 用户选定第四条线：**橙子社区经济 × NPC 招募**（`bin2_npc_extension`，隔壁目录） | 直接需求；把"雇佣"接到第三方账本上，是本仓库第一个跨生态（经济 × A-Life）联动 |
+| 2026-10-05 | 落成代码约束：**第三方不得写 `ProjectALife.ModCompat.known`** | `ALifeModCompat.lua:314-330` 会按 `entry.verdict` 打印，写进去等于借 A-Life 的口背书；与 §1 结论一致 |
 | 待定 | 手柄支持 / provider 包是否继续 | 等开局 NPC 验证完再定 |

@@ -1,0 +1,44 @@
+{
+    "Sandbox_Bin2NPCExtension": "橙子社区经济: NPC 招募",
+    "Sandbox_Bin2NPCExtension_1General": "NPC 招募 - 通用",
+    "Sandbox_Bin2NPCExtension_2Recruit": "NPC 招募 - 收编",
+    "Sandbox_Bin2NPCExtension_3Wage": "NPC 招募 - 工资",
+    "Sandbox_Bin2NPCExtension_4Mode": "NPC 招募 - 岗位",
+    "Sandbox_Bin2NPCExtension_5Debug": "NPC 招募 - 调试",
+
+    "Sandbox_Bin2NPCExtension.Enabled": "启用 NPC 招募",
+    "Sandbox_Bin2NPCExtension.Enabled_tooltip": "总开关。关闭后招募面板的首页入口会消失，已雇佣的 NPC 不再续工资与重下指令（契约仍留在存档里，重新打开即恢复）。",
+    "Sandbox_Bin2NPCExtension.MaxContracts": "每名玩家的雇员上限",
+    "Sandbox_Bin2NPCExtension.MaxContracts_tooltip": "一名玩家最多能同时雇佣几名 NPC。阵亡与已解约的不占名额。注意每个雇员都是一个完整的 A-Life NPC，会吃 CPU 与 A-Life 的人口预算。",
+    "Sandbox_Bin2NPCExtension.SignPrice": "收编签约金",
+    "Sandbox_Bin2NPCExtension.SignPrice_tooltip": "把身边已有的 A-Life NPC 收编成雇员要花的社区货币。这一项直接扣橙子社区经济的余额；钱不够会直接失败，不会产生契约。",
+    "Sandbox_Bin2NPCExtension.SpawnPrice": "中介派遣费",
+    "Sandbox_Bin2NPCExtension.SpawnPrice_tooltip": "让 A-Life 现造一名新 NPC 交给你要花的社区货币。比收编贵，但生成出来的 NPC 一定是友好的。A-Life 人口上限满时会失败并自动全额退款。",
+
+    "Sandbox_Bin2NPCExtension.RecruitRadius": "收编距离（格）",
+    "Sandbox_Bin2NPCExtension.RecruitRadius_tooltip": "只能收编这个距离以内的 NPC。距离由服务端校验（Jeem 自己的招募是不校验距离的）。",
+    "Sandbox_Bin2NPCExtension.AllowHostile": "允许招募敌对 NPC",
+    "Sandbox_Bin2NPCExtension.AllowHostile_tooltip": "开启后，态度为 hostile 的 A-Life NPC 也会出现在收编列表里。默认关闭：把枪口对着你的人花钱雇下来并不合理。",
+    "Sandbox_Bin2NPCExtension.MakeAllied": "签约时把对方阵营拉到同盟",
+    "Sandbox_Bin2NPCExtension.MakeAllied_tooltip": "开启时，收编成功后会把「你 ↔ 该 NPC 所在小队/阵营」的 Jeem 声望垫到同盟档，这样非管理员玩家也能把它转成居民。注意：Jeem 的声望是按阵营记录的，所以变成同盟的是整个阵营，而不只是这一名 NPC。",
+    "Sandbox_Bin2NPCExtension.SpawnDistance": "派遣生成距离（格）",
+    "Sandbox_Bin2NPCExtension.SpawnDistance_tooltip": "中介派遣出来的 NPC 出现在离你多远处。太近会把你挤开，一般 2~3 格合适。",
+
+    "Sandbox_Bin2NPCExtension.WageEnabled": "启用日薪",
+    "Sandbox_Bin2NPCExtension.WageEnabled_tooltip": "关闭后雇佣是一次性付费，雇员永远不会因为欠薪离开。",
+    "Sandbox_Bin2NPCExtension.DailyWage": "每名雇员日薪",
+    "Sandbox_Bin2NPCExtension.DailyWage_tooltip": "每满 24 个游戏小时，从你的社区货币余额里为每名雇员扣一次。余额不足会进入欠薪状态。",
+    "Sandbox_Bin2NPCExtension.UnpaidGraceDays": "欠薪宽限天数",
+    "Sandbox_Bin2NPCExtension.UnpaidGraceDays_tooltip": "欠薪持续超过这么多游戏日，雇员会自动解约（居民会退出 Jeem 的居民系统，恢复成普通 NPC）。设为 0 表示一欠薪立刻走人。",
+
+    "Sandbox_Bin2NPCExtension.DefaultMode": "默认岗位",
+    "Sandbox_Bin2NPCExtension.DefaultMode_tooltip": "打开招募面板时默认选中的岗位。跟随 = A-Life 原生 follow；守卫 = 让他在你指定位置站岗（hold）；居民 = 交给 Jeem Extension 的居民系统去守营地（需要 Jeem，且居民不会跟着你跑）。",
+    "Sandbox_Bin2NPCExtension.DefaultMode_option1": "跟随（默认）",
+    "Sandbox_Bin2NPCExtension.DefaultMode_option2": "守卫（原地站岗）",
+    "Sandbox_Bin2NPCExtension.DefaultMode_option3": "居民（需要 Jeem Extension）",
+    "Sandbox_Bin2NPCExtension.CreateCamp": "没有营地时自动建一个",
+    "Sandbox_Bin2NPCExtension.CreateCamp_tooltip": "把雇员转成 Jeem 居民需要基地。开启且你还没有基地时，会在你身边自动建一个小营地并补足床位——它会占用 Jeem 的一个基地名额。关闭后没有基地时会如实失败并降级为跟随。",
+
+    "Sandbox_Bin2NPCExtension.DebugLog": "详细日志",
+    "Sandbox_Bin2NPCExtension.DebugLog_tooltip": "打印招募流程的每一步（选阵营、生成、岗位指派、指令重下、工资结算、降级路径）。排查问题时打开，平时建议关闭。"
+}

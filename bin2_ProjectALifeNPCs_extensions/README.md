@@ -116,6 +116,25 @@ bash bin2_workshop_upload_fix/tools/pz_workshop_probe/run.sh "" ~/Zomboid/Worksh
 
 > `workshop.txt` 的 `visibility` 目前是 **private** —— 首次上传建议先私有验证，确认没问题再改 `public` 重传。
 
+## 5.7 第二个模组：`bin2_npc_extension`（橙子社区经济 × NPC 招募，**在隔壁目录**）
+
+> 2026-10-05 新增。它**不是**本目录的模组，但它是本项目研究成果的直接产物，故在此登记：
+> 路径 `../bin2_npc_extension/`，mod id `Bin2NPCExtension`。
+
+- **做什么**：为「橙子社区经济」（工坊 3777900792）加一个「NPC 招募」面板 ——
+  用社区货币**收编**身边已有的 A-Life NPC，或**中介派遣**（`ActorRegistry.create` + `SpawnService.request`）
+  现造一名友好 NPC；岗位有跟随（A-Life 原生 follow）/ 守卫（hold + 锚点）/ 居民（Jeem `Residents.recruit`）；
+  另有名册、日薪、欠薪解约、阵亡清理、名额上限。
+- **复用了本项目什么**：造人链路与 `operationId` 幂等写法（`ALifeStartWithNPC/Grant.lua`）、
+  友好阵营挑选（`Pick.lua`）、`tools/lua_syntax_check.mjs`、以及 `docs/` 里的稳定性评级与坑位清单。
+- **本项目被它纠正的一处**：我们一度把自己的条目写进 `ProjectALife.ModCompat.known`。
+  `Compat.report()`（`42.20/.../ALifeModCompat.lua:314-330`）会遍历它并按 `entry.verdict` 打印成
+  `[A-Life] compat: … -> adapted: …`，等于第三方借 A-Life 的口替自己背书 —— 与本项目
+  `docs/integration-brainstorm.md` §1 的结论一致（"不是注册 API"）。已改为**只读**自检：
+  跑 `Compat.foreignCopies(active)` 点名"自带 A-Life Lua 副本"的模组。
+- **它的文档**：`../bin2_npc_extension/docs/design.md`（设计）、`docs/research/`（两端扩展点逆向）、
+  `docs/test-plan.md`（T1~T18 进游戏清单）。
+
 ## 6. 下一步（待用户决策）
 
 按 `docs/roadmap.md` 的决策点执行；当前建议的首发候选：

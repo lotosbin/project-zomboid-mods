@@ -1,0 +1,8 @@
+{
+  "name": "bin2-npc-extension-offline-test",
+  "private": true,
+  "description": "Offline Lua integration test for Bin2NPCExtension (fengari). Run ./run_lua_test.sh",
+  "dependencies": {
+    "fengari": "^0.1.5"
+  }
+}
