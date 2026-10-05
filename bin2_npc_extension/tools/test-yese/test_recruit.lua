@@ -4,8 +4,8 @@
 --
 -- 环境由 run.js + mock_env.lua 准备好：
 --   * MOCK        —— 引擎桩 / 依赖 mock / 调用记录 / 时间推进 / 断言框架
---   * Bin2NPCExtensionYese / ProjectALife / ProjectALifeJimmy / YeseMarket*
---     —— 被测的 14 个文件跑完后的产物
+--   * Bin2NPCExtensionYese / Bin2NPCExtensionCore / ProjectALife / ProjectALifeJimmy / YeseMarket*
+--     —— 被测的 18 个文件（公共层 13 + 本口味 5）跑完后的产物
 --
 -- 返回失败条数（run.js 用它当退出码：0 = ALL PASS）。
 -- ===========================================================================
@@ -23,7 +23,7 @@ local Jimmy = Config.Jimmy
 local Net = Config.Net
 
 -- 用例总数：runTest 会把它当断言前缀用，新增用例时同步改这一个数字
-local TOTAL = 39
+local TOTAL = 40
 local failures = 0
 local passed = 0
 
@@ -125,8 +125,8 @@ local SOURCE_KEYS = Config.__sourceKeys or {}
 -- ===========================================================================
 -- 1. 加载
 -- ===========================================================================
-runTest(1, "loader: 14 files, expected globals only, require is idempotent", function()
-    M.assert_eq(Config.__loadedCount, 14, "loaded file count")
+runTest(1, "loader: 18 files (public layer 13 + flavour 5), expected globals only, require is idempotent", function()
+    M.assert_eq(Config.__loadedCount, 18, "loaded file count")
     M.assert_eq(Config.MODULE, "Bin2NPCExtensionYese", "Config.MODULE")
     M.assert_eq(Bin2NPCExtensionYese, Config, "Bin2NPCExtensionYese is the Config table")
     M.assert_truthy(type(Config.Text.get) == "function", "Config.Text.get")
@@ -135,6 +135,14 @@ runTest(1, "loader: 14 files, expected globals only, require is idempotent", fun
     M.assert_truthy(type(Config.ServerBootstrap) == "table", "server Bootstrap ran")
     M.assert_truthy(type(Config.ClientBootstrap) == "table", "client Bootstrap ran")
     M.assert_truthy(type(Config.RecruitPage) == "table", "client ui/Page ran")
+
+    -- 公共层把它自己按依赖顺序绑到了本口味的命名空间上（Namespace.bind）
+    for _, name in ipairs({ "Text", "Contracts", "Store", "Economy", "Alife", "Jimmy",
+        "Service", "Maintain", "Net", "ServerBootstrap", "ClientBootstrap" }) do
+        M.assert_truthy(type(Config[name]) == "table", "public-layer module bound: " .. name)
+    end
+    M.assert_truthy(type(Config.SPEC) == "table" and Config.SPEC.module == Config.MODULE,
+        "the namespace carries the spec that built it (for troubleshooting)")
 
     -- 兼容自检在**加载期**就跑过一次，而且是只读的：
     --   * 调用了 A-Life 自己的 foreignCopies（点名"自带 A-Life Lua 副本"的模组）
@@ -151,6 +159,7 @@ runTest(1, "loader: 14 files, expected globals only, require is idempotent", fun
     -- 只多出预期全局
     local allowed = {
         Bin2NPCExtensionYese = true,
+        Bin2NPCExtensionCore = true,          -- 公共层的注册表（Core.API / namespace / bind）
         ProjectALife = true,
         ProjectALifeJimmy = true,
         YeseMarket = true,
@@ -162,28 +171,25 @@ runTest(1, "loader: 14 files, expected globals only, require is idempotent", fun
     end
     M.assert_eq(#unexpected, 0, "unexpected new globals: " .. table.concat(unexpected, ", "))
 
-    -- require 同一文件两次不会重复执行（package.loaded 命中，第二次连 searcher 都不进）
-    local before = M.requireCounts["Bin2NPCExtensionYese/Contracts"] or 0
-    local again = require "Bin2NPCExtensionYese/Contracts"
-    M.assert_truthy(again == Contracts, "second require returns the cached module table")
-    local after = M.requireCounts["Bin2NPCExtensionYese/Contracts"] or 0
-    M.assert_eq(after, before, "the second require never re-ran the searcher (file not re-executed)")
-    -- 13 个模块（14 个文件里两个 Bootstrap 同名）都只被解析一次：
-    -- 第二次 require 直接命中 package.loaded，连 searcher 都不进。
-    M.assert_eq(#Config.__requireNames, 13, "13 distinct require names for 14 files")
-    M.assert_eq(Config.__loadedCount, 14, "run.js dofile'd all 14 files")
-    local duplicated = {}
+    -- require 拿到的是"已经被自动加载过的那一份"：引擎的 RunLuaInternal 按**绝对路径**缓存
+    -- （命中就返回 loadedReturn 里的值），测试驱动用 package.loaded 等价模拟。
+    local profile = require "Bin2NPCExtensionYese/Profile"
+    M.assert_truthy(profile == Config, "require Profile returns the very same namespace table")
+    local coreContracts = require "Bin2NPCExtensionCore/Contracts"
+    M.assert_truthy(type(coreContracts) == "function", "公共层模块导出的是工厂函数")
+    M.assert_truthy(require("Bin2NPCExtensionCore/Contracts") == coreContracts,
+        "a second require returns the very same factory (package.loaded hit)")
+    -- 17 个模块名 / 18 个文件（client 与 server 两个 Bootstrap 同名）
+    M.assert_eq(#Config.__requireNames, 17, "17 distinct require names for 18 files")
+    M.assert_eq(#Config.__coreModules, 13, "13 modules in the public layer")
+    -- 自动加载已经把 18 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
+    -- 这一条同时守住两件事：文件只执行一次（引擎的真实语义），以及没有写错的模块名。
+    local reloaded = {}
     for _, name in ipairs(Config.__requireNames) do
         local count = M.requireCounts[name] or 0
-        if count > 1 then duplicated[#duplicated + 1] = name .. "=" .. tostring(count) end
+        if count > 0 then reloaded[#reloaded + 1] = name .. "=" .. tostring(count) end
     end
-    M.assert_eq(#duplicated, 0, "modules resolved twice: " .. table.concat(duplicated, ", "))
-    -- Config 被 12 个文件依赖；每个依赖链都只解析一次
-    M.assert_eq(M.requireCounts["Bin2NPCExtensionYese/Config"], 1, "Config resolved once")
-    M.assert_eq(M.requireCounts["Bin2NPCExtensionYese/Contracts"], 1, "Contracts resolved once")
-    M.assert_eq(M.requireCounts["Bin2NPCExtensionYese/ui/Page"], 1, "ui/Page resolved once")
-    -- 两个 Bootstrap 是被引擎 LoadDirBase 直接执行的（没有任何文件 require 它们）
-    M.assert_falsy(M.requireCounts["Bin2NPCExtensionYese/Bootstrap"], "Bootstrap is engine-loaded, not required")
+    M.assert_eq(#reloaded, 0, "modules that had to be loaded again: " .. table.concat(reloaded, ", "))
     -- Page.lua 的 require "ISUI/ISPanel" / "ui/page_registry" 由 package.preload 提供（searcher 不进）
     M.assert_truthy(pageUsesISPanelStub(), "ui/Page used the ISPanel stub")
 end)
@@ -1832,6 +1838,9 @@ runTest(34, "extra: an NPC employed by the sibling flavour cannot be hired again
     -- 兄弟模组的名字取自 Config（变体里会被生成器翻成对方的 id），这里塞一个最小替身
     local siblingId = Config.SIBLING_MODULE
     M.assert_truthy(type(siblingId) == "string" and siblingId ~= "", "Config.SIBLING_MODULE is set")
+    -- 回归：生成器曾经把变体的 sibling 写成**它自己**（PRE_SUBS 的"翻 id"被随后的全局替换吃掉）。
+    -- 自指会让 takenBySibling 读自己的存档，把"重招被解雇/阵亡的自己人"误报成"被别人雇走"。
+    M.assert_truthy(siblingId ~= Config.MODULE, "sibling must be the OTHER flavour, never itself")
     local previous = _G[siblingId]
     _G[siblingId] = {
         Contracts = { owner = function() return "someone-else" end },
@@ -1992,6 +2001,36 @@ runTest(39, "resident: a real refusal still degrades, with a translated reason",
         { uid = uid, mode = "resident", requestId = U("r39c") })), "mode", "the retry succeeds")
     M.assert_eq(contract.mode, "resident", "contract is resident now")
     M.assert_eq(contract.note, nil, "the old degrade note is cleared")
+end)
+
+-- ===========================================================================
+-- 40. 公共层接口版本校验（"只更新了一半的工坊物品"必须被明确挡住）
+-- ===========================================================================
+runTest(40, "public layer: namespace() refuses a coreApi mismatch / missing module", function()
+    local Core = Bin2NPCExtensionCore
+    M.assert_truthy(type(Core) == "table", "公共层注册表存在")
+    M.assert_eq(Core.API, 1, "Core.API")
+    M.assert_truthy(type(Core.namespace) == "function" and type(Core.bind) == "function",
+        "公共层导出 namespace / bind")
+
+    -- 老口味的 Profile 配新公共层（或反过来）时必须拿到 nil 并打日志，
+    -- 而不是建出一张字段缺失的半成品表 —— 那种表会在游戏里把存档写进错的键。
+    M.assert_eq(Core.namespace({ module = "SomeOldFlavour", coreApi = 999 }), nil,
+        "coreApi mismatch -> refuse to build a namespace")
+    M.assert_eq(Core.namespace({}), nil, "missing module -> refuse to build a namespace")
+    M.assert_eq(Core.namespace({ module = "Probe", coreApi = 999 }), nil,
+        "missing coreApi -> refuse to build a namespace")
+
+    -- 合法 spec 建出的字段就是公共层与口味之间的全部接口
+    local ns = Core.namespace({ module = "Probe", coreApi = 1 })
+    M.assert_truthy(type(ns) == "table", "a valid spec builds a namespace")
+    M.assert_eq(ns.MODULE, "Probe", "MODULE")
+    M.assert_eq(ns.TAG, "Probe.Contracts.v1", "TAG has a default")
+    M.assert_eq(ns.TABLE, "Probe", "TABLE has a default")
+    M.assert_eq(ns.TEXT_PREFIX, "IGUI_Probe_", "TEXT_PREFIX has a default")
+    M.assert_eq(ns.PLAYER_PREFIX, "ProbePlayer_", "PLAYER_PREFIX has a default")
+    M.assert_eq(ns.FLOW_ITEM, "Probe.contract", "FLOW_ITEM has a default")
+    M.assert_eq(ns.SIBLING_MODULE, nil, "no sibling -> nil (the cross-check degrades)")
 end)
 
 -- ===========================================================================

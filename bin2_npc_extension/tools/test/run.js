@@ -6,13 +6,14 @@
 // 做什么：
 //   1. 用 fengari（Lua 5.3 的 JS 实现）开一个全新的 Lua state，装上 Project Zomboid
 //      的最小引擎桩 + 三个依赖的 mock（mock_env.lua 负责）；
-//   2. 实现 **PZ 语义的 require**：media/lua/{client,shared,server} 作为搜索根，
-//      "Bin2NPCExtension/Config" -> media/lua/<root>/Bin2NPCExtension/Config.lua；
-//      同一文件只执行一次（package.loaded 缓存），并用 package.searchers 计数器证明；
-//   3. 按引擎真实加载顺序（与任务书一致）dofile 被测的 14 个 Lua 文件；
+//   2. 实现 **PZ 语义的 require**：两个被测模组的 media/lua/{client,shared,server} 都是搜索根，
+//      "Bin2NPCExtensionCore/Config" -> <模组>/media/lua/<层>/Bin2NPCExtensionCore/Config.lua；
+//      同一文件只执行一次（引擎按绝对路径缓存，这里用 package.loaded 等价模拟），
+//      并用 package.searchers 计数器证明"没有任何文件需要被 require 二次加载"；
+//   3. 按引擎真实加载顺序执行被测的 18 个 Lua 文件（公共层 13 + 本口味 5）；
 //   4. 做一次**静态翻译检查**（不进 Lua VM）：扫源码里的 T("...") / Text.get("...")
 //      字面量，断言 CN/EN 的 IG_UI.json 里都有对应键且键集合一致；
-//   5. 执行 test_recruit.lua 的 30 条断言，用它的返回值当进程退出码。
+//   5. 执行 test_recruit.lua 的 40 条断言，用它的返回值当进程退出码。
 //
 // 用法：node run.js            （通常由 run_lua_test.sh 调起）
 //      node run.js --verbose  （把每个被测文件的实际路径也打出来）
@@ -24,7 +25,10 @@ const { createRequire } = require('module');
 
 // ------------------------------------------------------------------ 路径
 const TEST_DIR = __dirname;
+// 两个模组：公共层 Bin2NPCExtensionBase + 本口味。口味的 mod.info 里声明了 require=公共层，
+// 所以引擎会把公共层的文件排在前面（引擎如何保证见下面「加载顺序」的字节码证据）。
 const MOD_VERSION_DIR = path.resolve(TEST_DIR, '..', '..', 'Contents', 'mods', 'Bin2NPCExtension', '42.21');
+const BASE_VERSION_DIR = path.resolve(TEST_DIR, '..', '..', 'Contents', 'mods', 'Bin2NPCExtensionBase', '42.21');
 const MEDIA_LUA_DIR = path.join(MOD_VERSION_DIR, 'media', 'lua');
 const TRANSLATE_DIR = path.join(MEDIA_LUA_DIR, 'shared', 'Translate');
 
@@ -61,56 +65,57 @@ const SHARED = 'media/lua/shared';
 const SERVER = 'media/lua/server';
 const CLIENT = 'media/lua/client';
 
-const MOD_FILES = [
-    `${SHARED}/Bin2NPCExtension/Config.lua`,
-    `${SHARED}/Bin2NPCExtension/Text.lua`,
-    `${SHARED}/Bin2NPCExtension/Contracts.lua`,
-    `${SERVER}/Bin2NPCExtension/Store.lua`,
-    `${SERVER}/Bin2NPCExtension/Alife.lua`,
-    `${SERVER}/Bin2NPCExtension/Jimmy.lua`,
-    `${SERVER}/Bin2NPCExtension/Economy.lua`,
-    `${SERVER}/Bin2NPCExtension/Service.lua`,
-    `${SERVER}/Bin2NPCExtension/Maintain.lua`,
-    `${SERVER}/Bin2NPCExtension/Bootstrap.lua`,
-    `${CLIENT}/Bin2NPCExtension/Net.lua`,
-    `${CLIENT}/Bin2NPCExtension/ui/Page.lua`,
-    `${CLIENT}/Bin2NPCExtension/ui/Entry.lua`,
-    `${CLIENT}/Bin2NPCExtension/Bootstrap.lua`,
+// 公共层的 13 个文件（按 Namespace.bind 的依赖顺序）——它们全是 shared 层的不纯函数式工厂，
+// 加载时只定义工厂、不产生副作用，所以放 shared 是安全的（多人客户端也会加载，但什么也不做）。
+const CORE_MODULES = [
+    'Namespace', 'Config', 'Text', 'Contracts', 'Store', 'Economy', 'Alife', 'Jimmy',
+    'Service', 'Maintain', 'Net', 'ServerBootstrap', 'ClientBootstrap',
 ];
 
-// 每个被测文件在 require 世界里对应的模块名（两个 Bootstrap 在不同根目录下，名字相同，
-// 所以这里显式列出而不是从路径推导）。
-const REQUIRE_NAMES = [
-    'Bin2NPCExtension/Config',
-    'Bin2NPCExtension/Text',
-    'Bin2NPCExtension/Contracts',
-    'Bin2NPCExtension/Store',
-    'Bin2NPCExtension/Alife',
-    'Bin2NPCExtension/Jimmy',
-    'Bin2NPCExtension/Economy',
-    'Bin2NPCExtension/Service',
-    'Bin2NPCExtension/Maintain',
-    'Bin2NPCExtension/Bootstrap',
-    'Bin2NPCExtension/Net',
-    'Bin2NPCExtension/ui/Page',
-    'Bin2NPCExtension/ui/Entry',
+// 本口味自己的 5 个 Lua 文件。加载顺序 = 引擎真实的层顺序：
+//   shared（所有模组）-> client（所有模组）-> server（所有模组）
+// 依据（javap 读 projectzomboid.jar）：
+//   * LuaManager.LoadDirBase() 依次调 LoadDirBase("shared") 与 LoadDirBase("client")；
+//     GameServer 走 LoadDirBase("shared")/("client",true)/("server")。
+//   * LoadDirBase 按 ZomboidFileSystem.getModIDs() 的顺序遍历模组，对每个模组的
+//     <media>/lua/<层> 调 searchFolders；收集完 loadList 后逐个 RunLua。
+// 所以"公共层的 shared 一定早于口味的 client/server"是引擎保证的，不依赖模组顺序。
+const FLAVOUR_MODULES = [
+    [SHARED, 'Bin2NPCExtension/Profile'],
+    [CLIENT, 'Bin2NPCExtension/ui/Page'],
+    [CLIENT, 'Bin2NPCExtension/ui/Entry'],
+    [CLIENT, 'Bin2NPCExtension/Bootstrap'],
+    [SERVER, 'Bin2NPCExtension/Bootstrap'],
 ];
+
+/** 被测文件：root 是绝对目录，module 是它在 require 世界里的名字。 */
+const MOD_FILES = [
+    ...CORE_MODULES.map((name) => ({
+        root: BASE_VERSION_DIR,
+        rel: `${SHARED}/Bin2NPCExtensionCore/${name}.lua`,
+        module: `Bin2NPCExtensionCore/${name}`,
+    })),
+    ...FLAVOUR_MODULES.map(([tier, module]) => ({
+        root: MOD_VERSION_DIR,
+        rel: `${tier}/${module}.lua`,
+        module,
+    })),
+];
+
+// 去重后的模块名（本口味里 client/Bootstrap 与 server/Bootstrap 同名，共 17 个名字 18 个文件）
+const REQUIRE_NAMES = [...new Set(MOD_FILES.map((file) => file.module))];
 
 // 语言包
 const LANGUAGES = ['CN', 'EN'];
 const TRANSLATION_FILE = 'IG_UI.json';
 
-// 静态翻译检查扫这些文件（这是任务书点名的清单）
+// 静态翻译检查扫这些文件：公共层里所有会取翻译的模块 + 口味的两个 UI 文件。
+// 翻译键前缀与 JSON 都在**口味**这边（公共层零身份），所以两边都要扫。
 const TRANSLATION_SOURCES = [
-    `${CLIENT}/Bin2NPCExtension/ui/Page.lua`,
-    `${SHARED}/Bin2NPCExtension/Text.lua`,
-    `${CLIENT}/Bin2NPCExtension/ui/Entry.lua`,
-    `${CLIENT}/Bin2NPCExtension/Net.lua`,
-    `${SERVER}/Bin2NPCExtension/Jimmy.lua`,
-    `${SERVER}/Bin2NPCExtension/Economy.lua`,
-    `${SERVER}/Bin2NPCExtension/Service.lua`,
-    `${SERVER}/Bin2NPCExtension/Maintain.lua`,
-    `${SERVER}/Bin2NPCExtension/Alife.lua`,
+    { root: MOD_VERSION_DIR, rel: `${CLIENT}/Bin2NPCExtension/ui/Page.lua` },
+    { root: MOD_VERSION_DIR, rel: `${CLIENT}/Bin2NPCExtension/ui/Entry.lua` },
+    ...['Text', 'Net', 'Jimmy', 'Economy', 'Service', 'Maintain', 'Alife', 'ClientBootstrap']
+        .map((name) => ({ root: BASE_VERSION_DIR, rel: `${SHARED}/Bin2NPCExtensionCore/${name}.lua` })),
 ];
 
 // ------------------------------------------------------------------ 小工具
@@ -151,13 +156,31 @@ function installPrint(L) {
     lua.lua_setglobal(L, to_luastring('print'));
 }
 
-function loadAndRun(L, file, label) {
+/**
+ * 执行一个模组文件，并把它登记进 package.loaded —— 这是**引擎语义的忠实模拟**。
+ *
+ * 引擎的 LuaManager.RunLuaInternal 按**绝对路径**缓存（loaded / loadedReturn），
+ * 命中就把上次的返回值直接还给你，所以一个文件每次 Lua 会话只执行一次；
+ * 显式 require 拿到的就是这一份。不登记的话，模组内部的 require 会把同一个文件再跑一遍 ——
+ * 旧的测试驱动正是这样（当时靠模组自己的幂等守卫兜住），于是"测试比引擎更严"成了假象：
+ * 引擎里根本不会发生的双重执行，在测试里却天天发生。现在按引擎来。
+ */
+function loadAndRun(L, file, label, moduleName) {
     if (lauxlib.luaL_loadfile(L, file) !== lua.LUA_OK) {
         throw new Error(`load ${label} (${file}): ${readLuaError(L)}`);
     }
-    if (lua.lua_pcall(L, 0, 0, 0) !== lua.LUA_OK) {
+    if (lua.lua_pcall(L, 0, 1, 0) !== lua.LUA_OK) {
         throw new Error(`run ${label} (${file}): ${readLuaError(L)}`);
     }
+    if (moduleName) {
+        lua.lua_getglobal(L, to_luastring('__dshSetLoaded'));
+        lua.lua_pushstring(L, to_luastring(moduleName));
+        lua.lua_pushvalue(L, -3);                       // chunk 的返回值
+        if (lua.lua_pcall(L, 2, 0, 0) !== lua.LUA_OK) {
+            throw new Error(`package.loaded[${moduleName}]: ${readLuaError(L)}`);
+        }
+    }
+    lua.lua_pop(L, 1);                                  // 丢掉（已登记的）返回值
 }
 
 // ------------------------------------------------------------------ PZ 风格 require
@@ -166,14 +189,21 @@ function loadAndRun(L, file, label) {
  * 同一文件只执行一次由 package.loaded 保证（Lua 标准行为）。
  */
 function installRequire(L) {
-    const roots = [CLIENT, SHARED, SERVER];   // 客户端优先：ui/page_registry 这类通用名归客户端
+    // 两个模组的 lua 根都要能搜到（引擎的 LuaManager.paths 就是"所有启用模组的 media/lua"）。
+    // 公共层放前面，与 require= 造成的模组顺序一致；实际两边模块名不重叠，顺序不影响结果。
+    const roots = [];
+    for (const versionDir of [BASE_VERSION_DIR, MOD_VERSION_DIR]) {
+        for (const tier of [CLIENT, SHARED, SERVER]) {
+            roots.push(path.join(versionDir, 'media', 'lua', tier));
+        }
+    }
     const setup = `
 local MOCK = MOCK
 local roots = { ${roots.map((r) => `"${r}"`).join(', ')} }
 local function missing(name)
     local tried = {}
     for _, root in ipairs(roots) do
-        local file = "${MOD_VERSION_DIR}/" .. root .. "/" .. name .. ".lua"
+        local file = root .. "/" .. name .. ".lua"
         tried[#tried + 1] = file
         local chunk, err = loadfile(file)
         if chunk ~= nil then return chunk end
@@ -187,6 +217,8 @@ local function missing(name)
     end
     return nil, "module '" .. tostring(name) .. "' not found (tried " .. table.concat(tried, ", ") .. ")"
 end
+-- 供 run.js 把"自动加载过的文件"登记进 package.loaded（等价于引擎按绝对路径缓存 loadedReturn）
+function __dshSetLoaded(name, value) package.loaded[name] = value end
 local baseSearcher = package.searchers[2]
 local customSearcher = function(name)
     MOCK.requireCounts[name] = (MOCK.requireCounts[name] or 0) + 1
@@ -302,10 +334,10 @@ function extractLiteralKeys(relativeFiles) {
     };
 
     // <ident> = "ReasonXxx" 这种映射表只在 Text.lua 里有；其它文件的 `x = "follow"` 是数据不是翻译键。
-    const MAPPING_TABLE_FILE = `${SHARED}/Bin2NPCExtension/Text.lua`;
+    const MAPPING_TABLE_FILE = `${SHARED}/Bin2NPCExtensionCore/Text.lua`;
 
-    for (const relative of relativeFiles) {
-        const absolute = path.join(MOD_VERSION_DIR, relative);
+    for (const source of relativeFiles) {
+        const absolute = path.join(source.root, source.rel);
         const raw = fs.readFileSync(absolute, 'utf8');
         const code = stripComments(raw);
         const keys = [];
@@ -317,7 +349,7 @@ function extractLiteralKeys(relativeFiles) {
             // labelKey = "FlowHire"：Economy.record 通过 labelKey 传键
             { re: /labelKey\s*=\s*/g, kind: 'mapping' },
         ];
-        if (relative === MAPPING_TABLE_FILE) {
+        if (source.rel === MAPPING_TABLE_FILE) {
             markers.push({ re: /(?:^|[\s,{])\w+\s*=\s*/gm, kind: 'mapping' });
         }
         for (const { re, kind } of markers) {
@@ -335,7 +367,7 @@ function extractLiteralKeys(relativeFiles) {
                 keys.push(value);
             }
         }
-        perFile[relative] = keys;
+        perFile[source.rel] = keys;
     }
 
     return { callKeys, mappingKeys, perFile };
@@ -390,6 +422,7 @@ Bin2NPCExtension.__cnText = ${luaMap(textsByLanguage.CN)}
 Bin2NPCExtension.__enText = ${luaMap(textsByLanguage.EN)}
 Bin2NPCExtension.__loadedCount = ${MOD_FILES.length}
 Bin2NPCExtension.__requireNames = ${luaArray(REQUIRE_NAMES)}
+Bin2NPCExtension.__coreModules = ${luaArray(CORE_MODULES.map((n) => `Bin2NPCExtensionCore/${n}`))}
 Bin2NPCExtension.__moduleFileCount = ${MOD_FILES.length}
 `;
     if (lauxlib.luaL_loadstring(L, to_luastring(code)) !== lua.LUA_OK || lua.lua_pcall(L, 0, 0, 0) !== lua.LUA_OK) {
@@ -431,8 +464,8 @@ function main() {
     process.stdout.write(`mock            : ${verbose ? MOCK_FILE : path.basename(MOCK_FILE)}\n`);
     process.stdout.write(`assertions      : ${verbose ? TEST_FILE : path.basename(TEST_FILE)}\n`);
     process.stdout.write('load order      :\n');
-    for (const relative of MOD_FILES) {
-        process.stdout.write(`  - ${verbose ? path.join(MOD_VERSION_DIR, relative) : relative}\n`);
+    for (const file of MOD_FILES) {
+        process.stdout.write(`  - ${verbose ? path.join(file.root, file.rel) : file.rel}\n`);
     }
     process.stdout.write('\n');
 
@@ -443,14 +476,15 @@ function main() {
     try {
         installPreloads(L);
         loadAndRun(L, MOCK_FILE, 'mock_env.lua');
-        // 加载被测文件之前的全局快照（断言 1 用）
+        installRequire(L);
+        // 加载被测文件之前的全局快照（断言 1 用）。放在 installRequire 之后：
+        // 断言统计的是"模组文件多出来的全局"，不该把测试驱动自己的 helper 算进去。
         if (lauxlib.luaL_loadstring(L, to_luastring('MOCK.captureGlobals()')) !== lua.LUA_OK
                 || lua.lua_pcall(L, 0, 0, 0) !== lua.LUA_OK) {
             throw new Error(`captureGlobals: ${readLuaError(L)}`);
         }
-        installRequire(L);
-        for (const relative of MOD_FILES) {
-            loadAndRun(L, path.join(MOD_VERSION_DIR, relative), relative);
+        for (const file of MOD_FILES) {
+            loadAndRun(L, path.join(file.root, file.rel), file.rel, file.module);
         }
         // 静态翻译检查（不进 Lua VM 的业务，只把结果塞进 Config）
         const statics = installStaticKeys(L);

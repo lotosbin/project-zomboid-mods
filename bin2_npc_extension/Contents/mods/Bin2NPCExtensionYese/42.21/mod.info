@@ -1,11 +1,11 @@
 name=YeseMarket NPC 招募 (bin2_npc_extension)(A-Life/Jeem)
 id=Bin2NPCExtensionYese
 author=bin2
-modversion=0.2.3
+modversion=0.3.0
 versionMin=42.20.0
 description=在「YeseMarket / 夜市市场」里开一家佣兵中介：用金币收编身边的 A-Life NPC，或直接下单由 A-Life 派一名新人过来。
 description=<LINE>雇员可以跟随你、守点，或者交给 Jeem Extension 的居民系统去守营地；日薪、名额、价格都可以在沙盒里调。
-description=<LINE>三个依赖全部软挂接：没有 Jeem 也能跟随，没有 A-Life 就只显示提示，缺任何一个都不会报错。
-require=\YeseMarket,\ProjectALifeJimmy
-loadModAfter=YeseMarket,ProjectALifeNPCs,ProjectALifeJimmy
+description=<LINE>需要同物品里的公共层 Bin2NPCExtensionBase（启用本模组时游戏会自动一并启用它）；三个上游依赖全部软挂接：没有 Jeem 也能跟随，没有 A-Life 就只显示提示，缺任何一个都不会报错。
+require=\Bin2NPCExtensionBase,\YeseMarket,\ProjectALifeJimmy
+loadModAfter=Bin2NPCExtensionBase,YeseMarket,ProjectALifeNPCs,ProjectALifeJimmy
 poster=poster.png

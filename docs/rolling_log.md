@@ -2720,3 +2720,107 @@ Jeem 的拒绝码，落到了 `ReasonUpstream` 兜底。最糟的是降级**写�
 > 另外两条：**幂等不是可选项**（UI 上任何"应用当前设置"的按钮都会重发同一个请求，客户端还要去重）；
 > **不可观测 = 不可诊断**（降级原来只在沙盒 DebugLog 打开时才打日志，线上只能猜 ——
 > 现在降级一律 `Config.always`，拒绝码全部有中文文案）。
+
+---
+
+## 2026-10-05 · 抽出公共模组 Bin2NPCExtensionBase：12 个中性文件从"复制两份"变成"依赖一层"
+
+**需求**：两个口味（橙子社区经济版 / YeseMarket 版）一直共享 12 个中性文件，靠生成器复制两份、
+再靠 `--check` 守漂移。本轮把这 12 个文件抽成**同一工坊物品里的第三个模组**
+`bin2_npc_extension/Contents/mods/Bin2NPCExtensionBase`，口味从"各存一份拷贝"改成"依赖公共层"。
+
+**先证后改：用 javap 读引擎字节码**（既不猜，也不靠社区文档）
+
+工具 `javap` = `~/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/javap`，
+目标 `~/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/projectzomboid.jar`
+（字节码版本 Java 25）。四条结论全部落到具体方法：
+
+| 结论 | 证据（字节码） |
+| --- | --- |
+| `require` 会把 **chunk 的返回值**交给 Lua | `zombie/Lua/LuaManager$GlobalObject.require(String)`：遍历 `LuaManager.paths`（= 所有启用模组的 `media/lua` 根）→ `ZomboidFileSystem.getAbsolutePath(path + name + ".lua")` 找到就 `LuaManager.RunLua`，返回值直接返回；找不到则 `DebugType.Lua.warn` + 返回 null |
+| 一个文件每次 Lua 会话**只执行一次** | `LuaManager.RunLuaInternal(String, boolean)` 开头 `if (loaded.contains(path)) return loadedReturn.get(path);` —— 按**绝对路径**缓存；执行后 `loaded.add(path)`，返回值非空则 `loadedReturn.put(path, value)` |
+| 所有模组的 **shared 一定早于任何 client/server** | `LuaManager.LoadDirBase()` 依次 `LoadDirBase("shared")` / `LoadDirBase("client")`；`GameServer` 走 `("shared")/("client",true)/("server")`；`LoadDirBase(String,boolean)` 按 `ZomboidFileSystem.getModIDs()` 顺序遍历，对每个模组的 `<commonDir|versionDir>/media/lua/<层>` 调 `searchFolders`，最后逐个 `RunLua` |
+| **勾选模组会自动拉起它的 `require`** | `media/lua/client/OptionScreens/ModSelector/ModSelectorModel.lua:398 forceActivateMods`：递归启用 `modInfo:getRequire()` 里的依赖；取消勾选顺着 `neededFor` 反向级联关闭。`:138 correctAndSaveModOrder` 把被依赖者排在依赖者之前 |
+
+⇒ 公共层放 `media/lua/shared/`、用 `require` 的返回值当模块句柄，是引擎**原生支持**的写法；
+`mod.info` 的 `require=` 会让玩家勾选口味时自动带上公共层，不必让玩家自己去找第三个模组。
+
+**迁移证据（机械搬移，不靠人眼）**：`python3 tools/extract_base.py --from-git 33f24e3`
+→ 12 个公共层文件与"机械搬移"的结果逐字节一致，**合计改动行 274**
+（全部是脚本里显式列出的字面量替换 + 3 处 `install()` 接线搬家：`Net.install()`、
+`ServerBootstrap.install()`、`ClientBootstrap.install()`）。
+
+**抽取边界**：中性文件 12 个（`Config` / `Text` / `Contracts` / `Store` / `Economy` / `Alife` / `Jimmy` /
+`Service` / `Maintain` / `Net` / `ServerBootstrap` / `ClientBootstrap`）搬到
+`media/lua/shared/Bin2NPCExtensionCore/`，全部改成**工厂函数**（`return function(NS) ... end`），
+加载时零副作用；手写一个 `Namespace.lua` 提供 `Core.API = 1` / `Core.namespace(spec)` / `Core.bind(NS)`，
+按依赖顺序实例化这 12 个模块。口味侧只剩 **5 个 Lua 文件**（`Profile` + `client/Bootstrap` +
+`client/ui/Entry` + `client/ui/Page` + `server/Bootstrap`），目录 21 → **12 个文件**。
+
+**接口守卫**：口味 spec 里的 `coreApi` 必须等于 `Core.API`，不等就打印
+`[ERROR] public layer mismatch: this mod needs Bin2NPCExtensionBase … Update the whole workshop item
+(all three mods ship in the same item) and restart.`（`Namespace.lua:58`）并**停用自己**（不抛异常）——
+防的是"玩家只更新了三个模组里的一个"这种半更新状态，它不该炸在深水里。
+
+**顺手抓出的真 bug（生成器把字面量二次切开）**：`tools/fork_variant.py` 的 `PRE_SUBS_PATCHES`
+先把橙子版的 `sibling = "Bin2NPCExtensionYese"` 改成 `"Bin2NPCExtension"`，紧接着 `GLOBAL_SUBS`
+又把 `Bin2NPCExtension` → `Bin2NPCExtensionYese` —— 净效果是 **Yese 变体的 sibling 指向它自己**。
+复核（文件已搬走，用 git 看改前）：`git show 33f24e3:…/Bin2NPCExtensionYese/…/Config.lua | sed -n '31p'`
+→ `Config.SIBLING_MODULE = "Bin2NPCExtensionYese"`。后果：`Service.lua` 的 `takenBySibling`
+（改前 `:312`，抽取后 `Bin2NPCExtensionCore/Service.lua:319`；调用点 `:370`）读的是**自己的存档表**，
+于是"重招一个被解雇/阵亡过的自己人"会被误报 `taken_by_other`（面板写「已被其他玩家雇佣」）。
+修法：`transform()` 里先换哨兵（`\x00BASE\x00` / `\x00CORE\x00` / `\x00SIBLING\x00`，
+见 `PROTECT_BEFORE` / `PROTECT_AFTER`），全局替换之后再还原；并把"sibling 不能指向自己"
+写成 `tools/check_base.py` 里的断言 —— 不变量写进文档没人跑，写成断言才会自己喊。
+
+**测试保真度修正（旧 mock 比引擎宽松，藏了好几轮）**：旧 `run.js` 用 `dofile` 加载被测文件，
+**不登记 `package.loaded`**，而模组内部又 `require` 同名文件 ⇒ 同一个文件在测试里被**跑两遍**；
+真实引擎按绝对路径只跑一遍（上面第二条字节码证据）。模组里那些
+`if Config.NetEvents == Events and Config.Net ~= nil then return Config.Net end` 守卫，
+正是为了在测试里兜住这个假象 —— 也就是说，**测试环境一直在制造一个游戏里不存在的行为**。
+现在 `loadAndRun` 用 `lua_pcall(L, 0, 1, 0)` 取回 chunk 返回值并 `package.loaded[moduleName] = value`
+（Lua 侧 helper `__dshSetLoaded`），并断言"18 个文件全部被自动加载过，所以没有任何 `require`
+需要再进 searcher 读盘"（`M.requireCounts[name] == 0`）。
+
+**真实输出**（本轮现跑，只读）：
+
+```
+$ python3 tools/fork_variant.py --check
+变体与生成器一致（mod 12 文件 / test 5 文件）
+
+$ python3 tools/check_base.py
+== 公共层隔离检查（Core.API = 1）==
+公共层零身份 + 2 个口味互不撞车：OK
+
+$ node tools/lua_syntax_check.mjs --quiet Contents/mods/Bin2NPCExtensionBase \
+      Contents/mods/Bin2NPCExtension Contents/mods/Bin2NPCExtensionYese
+lua syntax: files=23 failed=0
+
+$ tools/test/run_lua_test.sh --quick          # test-yese 同一条命令、同结果
+[test] 40/40 passed, 0 failed
+ALL PASS
+
+$ bash bin2_workshop_upload_fix/tools/pz_workshop_probe/check_all.sh
+ALL CHECKS PASSED (18 item(s))
+```
+
+测试条目：两套各 **40/40**（原 39 条 + 新增第 40 条"公共层接口版本校验"）；
+第 34 条加了 `siblingId ~= Config.MODULE` 的回归断言（就是上面那个自指 bug 的守卫）；
+第 1 条重写为 18 文件 / 17 模块名 + 公共层绑定完整 + require 缓存身份。
+
+**新文件**：`Contents/mods/Bin2NPCExtensionBase/**`（`42.21/mod.info`、`42.21/poster.png`、
+13 个 Lua = 12 个模块 + `Namespace.lua`）、`tools/extract_base.py`、`tools/check_base.py`；
+本机软链 `~/Zomboid/mods/Bin2NPCExtensionBase` 已建。
+
+**工坊简介字节预算**：Steam `submitDescription` 上限 8000，本轮为塞进预算压缩了更新记录与几行文案
+（完整历史在 `changelog.txt`）。两种口径都 < 8000：**探针口径 7979/8000**；
+我另按 `description=` 各行以 `\n` 拼接量到 **7954 字节**（口径差异 = 探针会算上 Steam 侧的提交包装）。
+
+**未做**：游戏内**未验证**（T1~T20 / M1~M4 / Y1~Y13 仍未跑）；工坊**未重新上传**（线上还是 v0.2.3、两个模组）；
+Base 的 `poster.png` 与橙子版是同一张图。
+
+> 结论 / 沉淀（四条）：
+> ① **先证后改** —— 拆模组前先用 javap 把 `require` 的返回值语义与加载顺序证明掉，否则整套设计只是猜；
+> ② **mock 若比引擎宽松，bug 就藏在宽松处** —— 这次藏的是"同一个文件被跑两遍"，整整存在了好几轮；
+> ③ **生成器里的"翻字面量"必须用哨兵** —— 否则会被随后的全局替换二次切开，本轮真切开了一个 bug（sibling 自指）；
+> ④ **把不变量写成可执行断言**（`tools/check_base.py`）比写在文档里有用：sibling 自指就是被它抓出来的。

@@ -466,3 +466,116 @@ follow   → Alife.orderFollow(player, uid, quiet)
 >    判定"失败"之前先问一句"这是不是幂等的成功"。
 > 2. 幂等不是可选项：UI 上任何一个"应用当前设置"的按钮，都会把同一个请求重复发出去。
 > 3. 不可观测 = 不可诊断：降级必须留下始终可见的日志，拒绝码必须有本地化文案。
+
+---
+
+## 12. 公共层抽取（v0.3.0：`Bin2NPCExtensionBase`）
+
+### 12.1 为什么要抽
+
+同一个工坊物品里两个口味（§11）的 A-Life / Jeem 适配、契约模型、维护循环、命令路由
+**完全同源**，靠 `tools/fork_variant.py` 复制一份。代价是"上游一改就得改两处"，
+而最容易改的恰恰是 A-Life 适配层 —— 生成器的 `--check` 只能防"有人手改变体"，
+防不了"两份都在、但改的时候漏了一处"。v0.3.0 把这一层变成**只有一份代码**。
+
+### 12.2 边界：什么进公共层、什么留口味
+
+| 进公共层（`Bin2NPCExtensionBase/media/lua/shared/Bin2NPCExtensionCore/`） | 留口味 |
+| --- | --- |
+| `Config` `Text` `Contracts` `Store` `Economy` `Alife` `Jimmy` `Service` `Maintain` `Net` `ServerBootstrap` `ClientBootstrap` | `Profile`（身份 spec） |
+| 手写的 `Namespace`（`Core.API` / `namespace(spec)` / `bind(NS)`） | `ui/Entry` + `ui/Page`（UI 容器：两家原语不同） |
+| —— | `mod.info` / `Translate/*.json` / `sandbox-options.txt` / `poster.png` |
+
+判断标准只有一条：**这段代码里有没有出现"口味身份"**。身份 = mod id、ModData 表名、
+沙盒表名、翻译前缀、玩家键前缀、账单条目、经济模组的全局名/显示名/货币叫法。
+`Economy.lua` 与 `Store.lua` 一行都不用改就进了公共层 —— 它们本来就只通过
+`Config.economyServer()` 和 `Config.TAG` 取东西，这两个字段现在由 spec 注入。
+
+### 12.3 机制：一张 spec + 工厂函数（运行时实例化，不是复制）
+
+公共层的每个模块都是 `return function(NS) ... end` —— **加载时只定义工厂，零副作用**。
+口味侧只有 5 个 Lua 文件，`Profile.lua` 是全部差异：
+
+```lua
+local Core = require "Bin2NPCExtensionCore/Namespace"
+local NS = Core.namespace({ module = "Bin2NPCExtension", coreApi = 1, tag = "…",
+    economyGlobal = "OrangeTradingMod", … })
+Core.bind(NS)            -- 按依赖顺序把 12 个模块实例化成 NS 上的字段
+Bin2NPCExtension = NS
+```
+
+* `Core.bind` 的顺序（Config → Text → Contracts → Store → Economy → Alife → Jimmy →
+  Service → Maintain → Net → ServerBootstrap → ClientBootstrap）是**有意义的**：
+  `Jimmy` 在实例化时就 `local Alife = Config.Alife` 抓住了兄弟模块的引用。
+  顺序只有一处真相（`Namespace.lua`），口味不用重复声明。
+* 事件注册（`Events.OnClientCommand` / `OnServerCommand` / `OnTick` / `OnKeyPressed`）
+  不在文件体里做，而是 `install()`。原因：公共层文件在 `shared` 层，
+  **多人客户端也会加载**；"服务端事件只在服务端注册"这条语义必须由一个
+  server 层文件来表达 —— 所以口味那边留了两个各 5 行的 `Bootstrap.lua`。
+* `Core.API` 与 spec 里的 `coreApi` 必须相等，否则口味打一行
+  `public layer mismatch: … Update the whole workshop item (all three mods ship in the same item)`
+  并**停用自己**（返回 nil，不抛异常）。这是"同一个物品拆成三个模组"最典型的坏法：只更新了一半。
+
+### 12.4 引擎依据（先证后改：全部来自 `projectzomboid.jar` 的字节码）
+
+设计能不能成立，取决于三件事；三件都已经用 `javap` 从游戏自己的类里读出来：
+
+| 问题 | 证据 | 结论 |
+| --- | --- | --- |
+| `require` 能不能拿到另一个模组的文件、并拿到返回值？ | `zombie/Lua/LuaManager$GlobalObject.require(String)`：`name` 不以 `.lua` 结尾就补上；然后遍历 `LuaManager.paths`，`ZomboidFileSystem.getAbsolutePath(path + name)` 命中就跑 `RunLua` 并 **return 它的返回值**；找不到才 `DebugType.Lua.warn` + `null` | 可以。所以 `require("Bin2NPCExtensionCore/Config")(NS)` 是合法且跨模组的 |
+| ↑ 那个 `paths` 里到底是哪一级目录？（决定 require 的名字要不要带 `shared/` 前缀） | `LuaManager.LoadDirBase(String,boolean)` 用 `invokedynamic` 拼出字符串后 `paths.add(...)`；从 `javap -v` 的 `BootstrapMethods` 配方常量读到 **`#1111 = media/lua/\u0001/`**（一个占位符 = `dir` 参数），即 `media/lua/<层>/`。同一方法的 `#1113 = lua\u0001\u0001` 拼出的则是要遍历的 `lua/<层>` 目录 | `paths` 的每一项是 **`media/lua/<层>/`**（`shared/`、`client/`、`server/` 各一条），**不是**模组根。所以 require 的名字**不带**层前缀：`require "Bin2NPCExtensionCore/Config"` → `<某模组>/media/lua/shared/Bin2NPCExtensionCore/Config.lua` |
+| 同一个文件会不会被执行两次（自动加载 + require）？ | `LuaManager.RunLuaInternal(String,boolean)` 开头就是 `if (loaded.contains(path)) return loadedReturn.get(path);`，执行后 `loaded.add(path)`、返回值非空则 `loadedReturn.put(path, value)` | **不会**。按绝对路径缓存，每次 Lua 会话最多执行一次 |
+| 公共层的 `shared` 一定早于口味的 `client/server` 吗？ | `LuaManager.LoadDirBase()` 依次 `LoadDirBase("shared")` → `LoadDirBase("client")`；`GameServer` 走 `("shared")/("client",true)/("server")`。`LoadDirBase(String,boolean)` 按 `ZomboidFileSystem.getModIDs()` 遍历模组，对每个模组的 `<dir>/media/lua/<层>` 调 `searchFolders`，最后逐个 `RunLua` | 一定。所有模组的 shared 都先加载完，才轮到任何 client/server |
+| 玩家勾口味时公共层会不会自动启用？ | `media/lua/client/OptionScreens/ModSelector/ModSelectorModel.lua:398 forceActivateMods`：勾选会**递归启用** `modInfo:getRequire()` 的依赖；取消勾选会顺着 `neededFor` 反向级联关闭。`:138 correctAndSaveModOrder` 把依赖排在依赖者之前 | 会。所以 `mod.info` 写 `require=\Bin2NPCExtensionBase` 就够，用户不用手勾 |
+
+最后一条也解释了为什么**不能**反过来（公共层不能 require 口味）：依赖链是单向的。
+
+### 12.5 守卫：把不变量写成断言
+
+| 工具 | 守什么 |
+| --- | --- |
+| `tools/check_base.py` | ① 公共层里不出现任何口味身份字面量（身份值从各口味 Profile 的 spec 里**反推**出来，含工坊 id 与中文片段）；② `coreApi` 与 `Core.API` 相等、`module` 与 `mod.info` 的 id 一致、`modversion` 与 spec 的 `version` 一致；③ 两个口味的 `module/tag/sandboxTable/textPrefix/playerPrefix/flowItem` **两两不同**（撞车=写同一张表/抢同一套选项/互相盖翻译键）；④ `sibling` 必须指向**另一个**口味，不能是自己 |
+| `tools/extract_base.py --from-git <抽取前的提交>` | 抽取那次机械搬移的**可复现差异报告**（本次：12 个文件一致、274 行改动）。Base 之后被手改过它当然会报差异 —— 那是预期的，之后事实来源就是 Base |
+| `tools/fork_variant.py --check` | YeseMarket 口味 + 它的测试套件仍是生成物，没有被手改 |
+| 两套离线测试（各 40 条） | 行为没变 —— 这才是"抽取没改坏东西"的**持续**保证，文本 diff 只是迁移那一次的快照 |
+
+`fork_variant.py` 里新增了**哨兵**机制：`Bin2NPCExtensionBase` 与 `Bin2NPCExtensionCore`
+在全局替换（`Bin2NPCExtension` → `Bin2NPCExtensionYese`）期间被换成控制字符
+`\x00BASE\x00` / `\x00CORE\x00`，替换完再还原。不这样做的话公共层的模组 id 与命名空间
+会被切坏成 `Bin2NPCExtensionYeseBase` / `Bin2NPCExtensionYeseCore`。
+
+### 12.6 顺手修掉的真 bug：YeseMarket 版的 `sibling` 指向了它自己
+
+抽取时枚举"中性文件里的身份字面量"，才看清生成器那条 `PRE_SUBS_PATCHES` 是**假动作**：
+
+```
+橙子版  sibling = "Bin2NPCExtensionYese"
+  → PRE_SUBS 改成 "Bin2NPCExtension"
+  → GLOBAL_SUBS 又把它换成 "Bin2NPCExtensionYese"     ← 净效果 = 它自己
+```
+
+后果在 `Service.lua:312 takenBySibling`：它 `rawget(_G, Config.SIBLING_MODULE)` 拿到的是
+**自己**的命名空间，于是去读自己的存档表，把"你雇过这个人"读成"别人雇了他"。
+触发条件是"重招一名被解雇过或阵亡过的自己人"（契约还在，但 `status ~= "active"`，
+所以前面两道 `already_hired` / `taken_by_other` 都放行了）—— 玩家会看到
+**「已被其他玩家雇佣」，而那个人一直归他**。v0.2.0 上线以来一直存在，只在 YeseMarket 版触发。
+
+修法：`sibling` 换成哨兵（`\x00SIBLING\x00`，替换后还原成 `"Bin2NPCExtension"`），
+并把"sibling 不能指向自己"写成 `check_base.py` 的断言 + 离线用例 34 的回归断言。
+**这个 bug 是被新写的断言抓出来的，不是被读代码读出来的。**
+
+### 12.7 沉淀的判断
+
+1. **拆模组之前先把 `require` 的语义从引擎字节码里读出来**。`require` 返回 chunk 的返回值、
+   按绝对路径缓存、跨模组搜索 —— 这三条只要有一条不成立，整套设计就得换写法。
+   先证后改的成本是几条 `javap`，收益是不用在游戏里试错。
+2. **mock 比引擎宽松的地方，就是 bug 藏身的地方。** 离线驱动用 `dofile` 加载却不登记
+   `package.loaded`，而模组内部又 `require` 同名文件 ⇒ 同一个文件在测试里跑两遍。
+   引擎不会这样。结果：模组里那些"防重复注册"的守卫一直在替**测试**兜底，
+   而测试本该发现的是"守卫失效了会怎样"。这次把驱动改成按引擎语义执行，
+   并新增断言"18 个文件全部自动加载过，所以没有任何 require 需要再读盘"。
+3. **生成器里"翻字面量"必须用哨兵**，否则会被随后的全局替换二次切开。
+   切开的那一下正好制造了一个只在变体里出现的 bug，而且极难从现象反推。
+4. **不变量要写成可执行断言，不要只写在文档里。** `check_base.py` 的四条断言里有一条
+   直接抓出了一个上线了好几轮的真 bug。
+

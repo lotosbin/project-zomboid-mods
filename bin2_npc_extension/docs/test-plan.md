@@ -77,4 +77,5 @@ T7：结果=通过/失败；console 关键行=<粘贴 5~10 行>；截图=<文件
 | Y 岗位 | Y13 拒绝原因的文案 | 所有岗位失败都显示中文原因（如「床位不够」「他们对你信任不足（需要同盟关系）」），**不出现**「（上游返回）」 | `Text.lua` 的 REASONS 是否穷举了 Jeem 的拒绝码；未知码才走兜底 |
 | Y 共存 | Y7 两个口味同时启用 | 两个界面各自可开；**同一个 NPC 只能被一边雇走**（另一边报「已被其他玩家雇佣」） | `Service.takenBySibling` 互查 |
 | Y 界面 | Y8 看导航那一行的按钮文字 | 显示「NPC 招募」，**不是** `IGUI_YeseMarket_EntryButton` 这种原始键 | 标题必须取自本模组自己的翻译表（对方 `Text()` 会强制加它自己的前缀） |
+| Y 公共 | Y14 公共层缺失 / 版本不符 | 勾了口味但没勾公共层（或只更新了一半）时：控制台一行 `[Bin2NPCExtension][ERROR] Bin2NPCExtensionBase is missing or not enabled…` 或 `public layer mismatch: … coreApi …`，功能不生效但**不报错、不崩** | 两个模组都要启用；`mod.info` 的 `require=\Bin2NPCExtensionBase` 正常会自动勾上公共层 |
 | Y 界面 | Y9 招募页里的雇员/候选列表 | 每行是四行信息的卡片样式，点击能选中（高亮），滚动正常 | 列表用 `CreateList` + `doDrawItem`；若报 `call nil`，说明又用了橙子独有的 `CreateCardGrid` |

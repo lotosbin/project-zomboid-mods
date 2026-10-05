@@ -104,11 +104,11 @@ if type(require) == "function" then
     pcall(require, "ISUI/ISPanel")
     pcall(require, "ui/page_registry")
 end
-require "Bin2NPCExtensionYese/Config"
-require "Bin2NPCExtensionYese/Text"
-require "Bin2NPCExtensionYese/Net"
+-- 公共层（Bin2NPCExtensionBase）在 shared 层已经实例化好了命名空间；这里 require 是
+-- **显式的顺序声明**：本文件要用 Config.Net / Config.Text，Profile 负责把它们建出来。
+local Config = require "Bin2NPCExtensionYese/Profile"
+if Config == nil then return nil end      -- 公共层缺失或版本不符：Profile 已经打过日志
 
-local Config = Bin2NPCExtensionYese
 local Net = Config.Net
 
 local Page = {}
@@ -619,11 +619,13 @@ return Page
       * 兜底：**Ctrl+Alt+N 永远可用**。万一上游把导航字段改名，按钮会静默消失，但热键照开。
 ]]
 
-require "Bin2NPCExtensionYese/Config"
-require "Bin2NPCExtensionYese/Text"
+-- 公共层（Bin2NPCExtensionBase）在 shared 层已经实例化好了命名空间；这里 require 是
+-- **显式的顺序声明**：本文件要用 Config.Text，Profile 负责把它建出来。
+local Config = require "Bin2NPCExtensionYese/Profile"
+if Config == nil then return nil end      -- 公共层缺失或版本不符：Profile 已经打过日志
+
 require "Bin2NPCExtensionYese/ui/Page"
 
-local Config = Bin2NPCExtensionYese
 local T = Config.Text.get
 
 local Entry = {}
@@ -806,11 +808,33 @@ def apply_regions(rel_path, text):
 # 必须在全局替换**之前**做的替换（用于把"兄弟模组的 id"翻过来：
 # 全局替换会把 Bin2NPCExtension → Bin2NPCExtensionYese，直接改会在字面量上叠加）
 PRE_SUBS_PATCHES = {
-    "media/lua/shared/Bin2NPCExtension/Config.lua": [
-        ('Config.SIBLING_MODULE = "Bin2NPCExtensionYese"',
-         'Config.SIBLING_MODULE = "Bin2NPCExtension"'),
+    # 兄弟模组的 id 要写成"**另一个**口味"。这里不能直接写字面量：
+    # GLOBAL_SUBS 随后会把 Bin2NPCExtension 再切一次，于是 sibling 变成自己 ——
+    # 这正是历史上真实发生过的 bug（YeseMarket 版把 sibling 写成了
+    # "Bin2NPCExtensionYese"，导致重招被解雇/阵亡的 NPC 误报"已被其他玩家雇走"）。
+    # 所以先换成哨兵"\x00SIBLING\x00"，全局替换之后在 PROTECT_AFTER 里还原成
+    # "Bin2NPCExtension"。tools/check_base.py 会把"sibling 不能指向自己"当断言守着。
+    "media/lua/shared/Bin2NPCExtension/Profile.lua": [
+        ('sibling = "Bin2NPCExtensionYese"', 'sibling = "\x00SIBLING\x00"'),
     ],
 }
+
+# ---------------------------------------------------------------------------
+# 全局替换的"幸存者"
+# ---------------------------------------------------------------------------
+# GLOBAL_SUBS 把 Bin2NPCExtension 换成 Bin2NPCExtensionYese，会连带切坏公共层的字面量：
+#     Bin2NPCExtensionBase -> Bin2NPCExtensionYeseBase   （公共层模组 id，mod.info 的 require=）
+#     Bin2NPCExtensionCore -> Bin2NPCExtensionYeseCore   （公共层命名空间，require 路径）
+# 替换期间先换成控制字符哨兵，替换完再还原。哨兵不可能出现在源码里。
+PROTECT_BEFORE = [
+    ("Bin2NPCExtensionBase", "\x00BASE\x00"),
+    ("Bin2NPCExtensionCore", "\x00CORE\x00"),
+]
+PROTECT_AFTER = [
+    ("\x00BASE\x00", "Bin2NPCExtensionBase"),
+    ("\x00CORE\x00", "Bin2NPCExtensionCore"),
+    ("\x00SIBLING\x00", "Bin2NPCExtension"),
+]
 
 
 def transform(rel_path, text):
@@ -818,7 +842,11 @@ def transform(rel_path, text):
         return FILE_OVERRIDES[rel_path]
     for old, new in PRE_SUBS_PATCHES.get(rel_path, []):
         text = text.replace(old, new)
+    for old, new in PROTECT_BEFORE:
+        text = text.replace(old, new)
     for old, new in GLOBAL_SUBS:
+        text = text.replace(old, new)
+    for old, new in PROTECT_AFTER:
         text = text.replace(old, new)
     for old, new in FILE_PATCHES.get(rel_path, []):
         text = text.replace(old, new)

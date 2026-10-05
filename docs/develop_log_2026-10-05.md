@@ -462,3 +462,145 @@ description=[hr][/hr]  →  description=[h2]链接  →  [ ALERT_CONFIG ]（老�
   客户端还要负责去重（这里同一份 payload 走了两条路，一次操作刷了 5 条通知）。
 * **不可观测 = 不可诊断**：降级路径原来只在沙盒 `DebugLog` 打开时才打日志，线上只能靠猜；
   现在降级一律用 `Config.always`，拒绝码全部有中文文案，只有未知的上游码才落兜底。
+
+### 十四、抽公共层：12 个中性文件从"复制两份"变成"依赖一层"（Bin2NPCExtensionBase）
+
+**背景**
+
+橙子社区经济版与 YeseMarket 版共享 12 个中性文件（`Config` / `Text` / `Contracts` / `Store` /
+`Economy` / `Alife` / `Jimmy` / `Service` / `Maintain` / `Net` / `ServerBootstrap` / `ClientBootstrap`）。
+此前的工作方式是：公共代码只写一份，由 `tools/fork_variant.py` 做字面量替换**复制**出 Yese 变体，
+再用 `--check` 守漂移。代价是三重的：改一处必须重新生成；"变体目录是生成物、不许手改"这条纪律
+要靠人记；两个口味实际上仍是两份拷贝（玩家要装两个模组才能同时用两个界面，且公共代码在存档里
+各留一份状态）。本轮决定把它抽成**同一工坊物品里的第三个模组** `Bin2NPCExtensionBase`，
+让"共享"变成引擎层面的真实依赖。
+
+**决策**
+
+1. **公共层放 `media/lua/shared/`，用 `require` 的返回值当模块句柄** —— 前提是引擎真的这么用，
+   所以先证后改（见下"证据"第 1 组），而不是照着社区习惯写。
+2. **公共层必须是"工厂"而不是"单例"**：12 个文件全部改成 `return function(NS) ... end`，
+   加载时零副作用；由手写的 `Namespace.lua`（`Core.API = 1`）按依赖顺序实例化。
+   理由：口味要能各自持有自己的命名空间/存档表，公共层不能有身份（`check_base.py` 把"零身份"变成断言）。
+3. **版本不匹配要"停用自己"而不是抛异常**：三个模组同装一个工坊物品，但玩家可能只更新其中一个。
+   口味 spec 的 `coreApi` 与 `Core.API` 不等时打一条明确 ERROR 并停用自己
+   （`Namespace.lua:58`），让玩家能看懂，而不是炸在深处。
+4. **依赖声明交给 `mod.info` 的 `require=`**：勾选口味时引擎会自动拉起公共层
+   （`ModSelectorModel.forceActivateMods` 递归启用 `getRequire()`），玩家不需要知道有第三个模组。
+5. 口味侧只保留"有身份"的东西：`Profile` + `client/Bootstrap` + `client/ui/Entry` +
+   `client/ui/Page` + `server/Bootstrap`（5 个 Lua 文件），目录从 21 个文件瘦到 12 个。
+
+**实施**
+
+* 新增 `Contents/mods/Bin2NPCExtensionBase/42.21/`：`mod.info`、`poster.png`、
+  `media/lua/shared/Bin2NPCExtensionCore/`（12 个工厂模块 + `Namespace.lua`，共 13 个 Lua）。
+* 新增 `tools/extract_base.py`：**机械搬移**脚本，从 git 历史里取旧文件、按显式列出的字面量
+  替换 + 3 处 `install()` 接线搬家（`Net.install()` / `ServerBootstrap.install()` /
+  `ClientBootstrap.install()`）生成公共层，并且**能报告哪些行被改动**（便于审阅）。
+* 新增 `tools/check_base.py`：公共层隔离检查（零身份 + 两个口味互不撞车 + sibling 不得自指）。
+* `tools/fork_variant.py` 增加哨兵：`transform()` 先把 `Bin2NPCExtensionBase` /
+  `Bin2NPCExtensionCore` 换成 `\x00BASE\x00` / `\x00CORE\x00`、把橙子版的 sibling 换成
+  `\x00SIBLING\x00`（`PROTECT_BEFORE`），全局字面量替换之后再还原（`PROTECT_AFTER`）。
+* 本机软链：`~/Zomboid/mods/Bin2NPCExtensionBase` → 仓库新模组目录。
+
+**证据**
+
+*第 1 组：引擎语义（javap 读字节码，字节码版本 Java 25）*
+
+工具：`~/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home/bin/javap`；
+目标：`~/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/projectzomboid.jar`。
+
+| # | 结论 | 字节码证据 |
+| --- | --- | --- |
+| 1 | `require` 返回 **chunk 的返回值** | `zombie/Lua/LuaManager$GlobalObject.require(String)`：遍历 `LuaManager.paths`（= 启用模组的 `media/lua` 根）→ `ZomboidFileSystem.getAbsolutePath(path + name + ".lua")`，找到即 `LuaManager.RunLua` 并返回其返回值；找不到 `DebugType.Lua.warn` + 返回 null |
+| 2 | 同一文件每次 Lua 会话**只跑一次** | `LuaManager.RunLuaInternal(String, boolean)` 开头 `if (loaded.contains(path)) return loadedReturn.get(path);`，按**绝对路径**缓存；执行后 `loaded.add(path)`，返回值非空则 `loadedReturn.put(path, value)` |
+| 3 | 所有模组的 **shared 早于任何 client/server** | `LoadDirBase()` 依次 `LoadDirBase("shared")` / `LoadDirBase("client")`；`GameServer` 走 `("shared")/("client",true)/("server")`；`LoadDirBase(String,boolean)` 按 `ZomboidFileSystem.getModIDs()` 顺序遍历模组，对 `<commonDir|versionDir>/media/lua/<层>` 调 `searchFolders` 后逐个 `RunLua` |
+| 4 | 勾选模组会**自动启用它的 require** | `media/lua/client/OptionScreens/ModSelector/ModSelectorModel.lua:398 forceActivateMods` 递归启用 `modInfo:getRequire()`；取消勾选按 `neededFor` 反向级联；`:138 correctAndSaveModOrder` 把被依赖者排在依赖者之前 |
+
+结论 3 决定了公共层放 `shared`（口味的两层都能 require 到它）；结论 1 决定了 `require` 能当句柄用；
+结论 4 决定了玩家不需要手动启用公共层。
+
+*第 2 组：迁移是机械的*
+
+`python3 tools/extract_base.py --from-git 33f24e3` → 12 个公共层文件与"机械搬移"的结果一致，
+**合计改动行 274**（全部是脚本里显式列出的字面量替换 + 上面 3 处 `install()` 接线搬家）。
+"改动行数"这个数字是刻意留的：它让"抽取有没有夹带逻辑改动"变成可复核的数字，而不是靠 review 感觉。
+
+*第 3 组：顺手抓出一个真 bug（生成器二次切割）*
+
+`tools/fork_variant.py` 里 `PRE_SUBS_PATCHES` 把橙子版的 `sibling = "Bin2NPCExtensionYese"`
+改成 `"Bin2NPCExtension"`，紧接着 `GLOBAL_SUBS` 又把 `Bin2NPCExtension` → `Bin2NPCExtensionYese`，
+净效果 = **Yese 变体的 sibling 指向自己**。复核（公共层搬走后只能看 git）：
+
+```
+$ git show 33f24e3:bin2_npc_extension/Contents/mods/Bin2NPCExtensionYese/42.21/media/lua/shared/Bin2NPCExtensionYese/Config.lua | sed -n '31p'
+Config.SIBLING_MODULE = "Bin2NPCExtensionYese"
+```
+
+后果：`Service.lua` 的 `takenBySibling`（改前 `:312` = `local function takenBySibling(uid)`，
+抽取后 `Bin2NPCExtensionCore/Service.lua:319`，调用点 `:370`）会读**自己的**存档表，
+于是"重招一个被解雇/阵亡过的自己人"被误报 `taken_by_other`（面板写「已被其他玩家雇佣」）。
+这属于"生成器的字面量替换把另一个替换的输入改掉了"这一类缺陷，用哨兵可以根治。
+
+*第 4 组：mock 比引擎宽松（藏了好几轮）*
+
+旧 `run.js` 用 `dofile` 加载被测文件，**不登记 `package.loaded`**，而模组内部又 `require` 同名文件
+⇒ 同一个文件在测试里被**跑两遍**（真实引擎按绝对路径只跑一遍，见证据第 2 条）。
+模组里那些 `if Config.NetEvents == Events and Config.Net ~= nil then return Config.Net end`
+守卫，正是为了在测试里兜住这个假象 —— **测试环境一直在制造游戏里不存在的行为**。
+现在 `loadAndRun` 用 `lua_pcall(L, 0, 1, 0)` 取回 chunk 返回值并
+`package.loaded[moduleName] = value`（Lua 侧 helper `__dshSetLoaded`），并断言
+"18 个文件全部被自动加载过，所以没有任何 `require` 需要再进 searcher 读盘"
+（`M.requireCounts[name] == 0`）。
+
+**验证**
+
+真实输出（本轮现跑，全部只读）：
+
+```
+$ python3 tools/fork_variant.py --check
+变体与生成器一致（mod 12 文件 / test 5 文件）
+
+$ python3 tools/check_base.py
+== 公共层隔离检查（Core.API = 1）==
+公共层零身份 + 2 个口味互不撞车：OK
+
+$ node tools/lua_syntax_check.mjs --quiet Contents/mods/Bin2NPCExtensionBase \
+      Contents/mods/Bin2NPCExtension Contents/mods/Bin2NPCExtensionYese
+lua syntax: files=23 failed=0
+
+$ tools/test/run_lua_test.sh --quick          # test-yese 同一条命令、同结果
+[test] 40/40 passed, 0 failed
+ALL PASS
+
+$ bash bin2_workshop_upload_fix/tools/pz_workshop_probe/check_all.sh
+ALL CHECKS PASSED (18 item(s))
+```
+
+用例层面的变化：两套各 **40/40**（原 39 条 + 新增第 40 条"公共层接口版本校验"）；
+第 34 条加 `siblingId ~= Config.MODULE` 的回归断言（那个自指 bug 的守卫）；
+第 1 条重写为 18 文件 / 17 模块名 + 公共层绑定完整 + require 缓存身份。
+
+工坊简介字节预算：Steam `submitDescription` 上限 8000，为塞进预算压缩了更新记录与几行文案
+（完整历史留在 `changelog.txt`）。两种口径都 < 8000：**探针口径 7979/8000**；
+另按 `description=` 各行以 `\n` 拼接独立量到 **7954 字节**（差异来自探针会算上 Steam 侧的提交包装）。
+
+**遗留**
+
+* **游戏内未验证**：T1~T20 / M1~M4 / Y1~Y13 仍未跑（三个模组同装、勾选口味自动带出公共层、
+  半更新时那条 `public layer mismatch` 提示，都只有静态证据）。
+* **工坊未重新上传**：线上还是 v0.2.3、两个模组；本轮的第三个模组还没有对外发布过。
+* `Bin2NPCExtensionBase/42.21/poster.png` 与橙子版是同一张图，需要一张自己的。
+* 公共层与口味的接口版本目前是手写的 `Core.API = 1`；没有做"编译期"校验，只在运行时比对。
+
+**教训（四条，与 rolling_log 同步）**
+
+1. **先证后改**：拆模组之前先用 javap 把 `require` 的返回值语义与加载顺序证明掉。
+   这次证到的两条（返回 chunk 值、按绝对路径只跑一次）直接决定了整个公共层的形态；
+   没证的话，整套设计只是猜。
+2. **mock 若比引擎宽松，bug 就藏在宽松处**：这次藏的是"同一个文件被跑两遍"，
+   而且存在了好几轮（还逼出了模组里两个没必要的重入守卫）。
+3. **生成器里"翻字面量"必须用哨兵**：否则会被随后的全局替换二次切开 —— 本轮真切开了一个 bug
+   （Yese 的 sibling 自指 → 误报 `taken_by_other`）。
+4. **把不变量写成可执行断言**（`tools/check_base.py`）比写在文档里有用：
+   "公共层零身份""sibling 不得自指"这两条，写在文档里没人会跑；写成断言，它自己会喊。

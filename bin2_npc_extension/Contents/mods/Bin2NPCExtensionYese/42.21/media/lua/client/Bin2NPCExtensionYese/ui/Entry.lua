@@ -19,11 +19,13 @@
       * 兜底：**Ctrl+Alt+N 永远可用**。万一上游把导航字段改名，按钮会静默消失，但热键照开。
 ]]
 
-require "Bin2NPCExtensionYese/Config"
-require "Bin2NPCExtensionYese/Text"
+-- 公共层（Bin2NPCExtensionBase）在 shared 层已经实例化好了命名空间；这里 require 是
+-- **显式的顺序声明**：本文件要用 Config.Text，Profile 负责把它建出来。
+local Config = require "Bin2NPCExtensionYese/Profile"
+if Config == nil then return nil end      -- 公共层缺失或版本不符：Profile 已经打过日志
+
 require "Bin2NPCExtensionYese/ui/Page"
 
-local Config = Bin2NPCExtensionYese
 local T = Config.Text.get
 
 local Entry = {}
