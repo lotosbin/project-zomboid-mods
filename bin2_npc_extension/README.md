@@ -138,6 +138,7 @@ bin2_npc_extension/
 | 公共层隔离守卫 | `公共层零身份 + 2 个口味互不撞车：OK` |
 | 变体与生成器一致性 | `变体与生成器一致（mod 12 文件 / test 5 文件）` |
 | 抽取等价性复核 | `公共层 12 个文件与机械搬移结果一致`（274 行改动，全部逐条列出） |
+| mod.info（游戏自己的解析器） | 三个模组 `ALL MOD.INFO PARSED`，两条 `require=Bin2NPCExtensionBase[ok]` |
 | 工坊探针（游戏自己的解析器） | `readWorkshopTxt=true`、tags 全在白名单、`validatePreviewImage=OK`、简介 7954 字节 / 提交 7979 字节（上限 8000） |
 | 仓库级 `check_all.sh` | `ALL CHECKS PASSED (18 item(s))` |
 
@@ -157,6 +158,8 @@ tools/test-yese/run_lua_test.sh
 # 公共层不变量 + 与口味的一致性
 tools/check_base.py
 python3 tools/fork_variant.py --check
+# 用游戏自己的解析器读 mod.info（尤其确认 require=Bin2NPCExtensionBase 能被认出来）
+tools/modinfo_probe/run.sh
 # 抽取等价性复核（把公共层与抽取前那份代码逐字比对）
 python3 tools/extract_base.py --from-git 33f24e3
 
