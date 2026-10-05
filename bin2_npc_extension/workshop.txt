@@ -1,39 +1,44 @@
 version=1
 id=3813914438
-title=Project A-Life NPC 招募扩展 (bin2_npc_extension ) - A-Life / Jeem (Build 42)
-description=[h1]用社区货币雇佣 A-Life NPC[/h1]
-description=给[b]经济模组[/b]加开一家佣兵中介：花社区货币把身边的 A-Life NPC 收编成雇员，
+title=NPC 招募扩展 (bin2_npc_extension) - 橙子社区经济 / YeseMarket · A-Life / Jeem (Build 42)
+description=[h1]用经济模组的钱雇佣 A-Life NPC[/h1]
+description=给你正在用的[b]社区经济模组[/b]加开一家佣兵中介：花钱把身边的 A-Life NPC 收编成雇员，
 description=或者直接下单让 A-Life 现造一名新人交给你。雇员可以跟随你、在你指定的位置站岗，
 description=或者交给 Jeem Extension 的居民系统去守营地。
-description=（v0.2.1，Build 42.20+）
 description=
-description=[h2]这个物品里有两个模组，按你的经济模组选一个启用[/h2]
+description=本物品包含[b]两个模组[/b]，按你装的经济模组选一个启用（也可以两个都启）：
 description=[list]
-description=[*][b]Bin2NPCExtension[/b] —— 配[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777900792]橙子社区经济[/url]（必需）
-description=[*][b]Bin2NPCExtensionYese[/b] —— 配[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567]YeseMarket[/url]（必需）
+description=[*][b]Bin2NPCExtension[/b] —— 配[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777900792]橙子社区经济[/url]
+description=[*][b]Bin2NPCExtensionYese[/b] —— 配[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567]YeseMarket[/url]
 description=[/list]
-description=两个可以同时启用：它们共用同一套 A-Life / Jeem 招募内核，界面各自挂在自己的经济模组里；
-description=同一个 NPC 不会被两边同时雇走（各自的名册会互查）。
+description=两者共用同一套 A-Life / Jeem 招募内核，现金各自走自己那个经济模组的服务端账本；
+description=它们各有一份名册，但会互相查重 —— 同一个 NPC 不会被两边同时雇走。
+description=（v0.2.1，Build 42.20+）
 description=
 description=[h2]这是什么，不是什么[/h2]
 description=[list]
-description=[*][b]是[/b]：一个独立扩展模组，往橙子社区经济的界面里加一个「NPC 招募」页面 + 一个热键入口。
-description=[*][b]不是[/b]：不修改橙子社区经济 / A-Life / Jeem 的任何文件，不复制它们的 Lua，也不占用它们的网络命令通道。
-description=[*][b]钱[/b]只走橙子社区经济的服务端账本：余额不足就是招不了，价格由服务端按沙盒选项重算，客户端改不动。
+description=[*][b]是[/b]：一个独立扩展模组，往经济模组的界面里加一个「NPC 招募」页面 + 一个热键入口。
+description=[*][b]不是[/b]：不修改经济模组 / A-Life / Jeem 的任何文件，不复制它们的 Lua，也不占用它们的网络命令通道。
+description=[*][b]钱[/b]只走经济模组的服务端账本（Pay / AddCoins）：余额不足就是招不了，
+description=  价格由服务端按沙盒选项重算，客户端改不动；退款也会在账单里留一行。
 description=[/list]
 description=
 description=[h2]依赖（点开即订阅）[/h2]
 description=[list]
-description=[*][b]必需（橙子版）[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777900792]橙子社区经济[/url]（mod id [b]OrangeCommunityEconomy[/b]）
-description=[*][b]必需（YeseMarket 版）[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567]YeseMarket[/url]（mod id [b]YeseMarket[/b]）
+description=[*][b]必需[/b] —— 你选的那个经济模组：
+description=  [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3777900792]橙子社区经济[/url]（mod id [b]OrangeCommunityEconomy[/b]）
+description=  或 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567]YeseMarket[/url]（mod id [b]YeseMarket[/b]）
 description=[*][b]必需[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3806944055]Project A-Life - Jeem Extension[/url]（mod id [b]ProjectALifeJimmy[/b]）
 description=[*][b]需要[/b] [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3803984183]Project A-Life [ALIFE NPCS][/url]（mod id [b]ProjectALifeNPCs[/b]）—— Jeem Extension 会把它一起装上
 description=[/list]
-description=前两项写在 mod.info 的 require 里，缺了游戏不会让你启用。代码本身对三者都是[b]软挂接[/b]：上游改名或缺失只会降级并在控制台打日志，不报错、不写坏存档。
+description=经济模组与 Jeem 写在 mod.info 的 require 里，缺了游戏不会让你启用。代码对三者都是[b]软挂接[/b]：
+description=上游改名或缺失只会降级并在控制台打日志，不报错、不写坏存档。
 description=
 description=[h2]怎么用[/h2]
 description=[list]
-description=[*]打开橙子社区经济主界面 → 首页多了个「NPC 招募」按钮；也可以直接按 [b]Ctrl+Alt+N[/b]
+description=[*][b]橙子社区经济版[/b]：打开经济主界面 → 首页多一个「NPC 招募」按钮
+description=[*][b]YeseMarket 版[/b]：它的左侧导航栏最后多出一行「NPC 招募」
+description=[*][b]两个版本都能用[/b]：[b]Ctrl+Alt+N[/b] 直接从任意时刻打开招募面板（上游改了导航字段时这条是兜底）
 description=[*][b]收编（附近）[/b]：列出你身边可招募的 A-Life NPC → 选一个 → 付签约金 → 他归你
 description=[*][b]中介派遣[/b]：直接花钱让 A-Life 在你身边生成一名新的友好 NPC（更贵，但一定是友好的）
 description=[*][b]我的雇员[/b]：改名册，随时切换岗位、解雇；阵亡会自动释放名额
@@ -47,7 +52,8 @@ description=[*][b]居民[/b]：交给 Jeem Extension 的居民系统 —— 有�
 description=  注意居民是[b]守基地[/b]的，不会跟着你跑；没有基地时可在沙盒里允许自动建一个小营地
 description=[/list]
 description=
-description=[h2]沙盒选项（Bin2NPCExtension.*）[/h2]
+description=[h2]沙盒选项[/h2]
+description=两个模组各有一张自己的沙盒表，互不影响：[b]Bin2NPCExtension.*[/b] 与 [b]Bin2NPCExtensionYese.*[/b]
 description=[list]
 description=[*]Enabled —— 总开关；MaxContracts —— 每名玩家的雇员上限（1~10）
 description=[*]SignPrice / SpawnPrice —— 收编签约金 / 中介派遣费
@@ -59,15 +65,29 @@ description=[/list]
 description=
 description=[h2]兼容与降级（都写进日志）[/h2]
 description=[list]
-description=[*]A-Life 升级导致接口变动时：相关能力自动禁用并打日志，不会抛错、不会把存档写坏
+description=[*]A-Life / Jeem / 经济模组 任一升级导致接口变动时：相关能力自动禁用并打日志（启动时会打印
+description=  [b]hooks active=N inactive=M[/b] 并列出缺了哪些），不会抛错、不会把存档写坏
 description=[*]Jeem 缺失 / 居民被拒（床位不足、声望不够）：契约[b]降级为跟随[/b]，钱不退但人还在，面板上写明原因
 description=[*]A-Life 人口上限导致生成失败：自动全额退款，不会出现「花了钱没人」
 description=[*]多人：服务端权威。距离、名额、价格、归属都在服务端校验，同一名 NPC 不会被两名玩家同时雇走
+description=[*]同时开两个口味：名册互查，同一个 NPC 只会被一边雇走
+description=[/list]
+description=
+description=[h2]更新记录[/h2]
+description=[list]
+description=[*]v0.2.1 —— 修复 YeseMarket 版的「页面暂时不可用」（它没有橙子经济的那两个 UI 原语）
+description=  与导航按钮名显示成原始翻译键的问题
+description=[*]v0.2.0 —— 新增 YeseMarket 版（同一物品里的第二个模组）
+description=[*]v0.1.1 —— 修复招募面板文字压住按钮、首页入口按钮与「卡片」按钮重叠
+description=[*]v0.1.0 —— 首个版本（橙子社区经济版）
 description=[/list]
 description=
 description=[h2]已知限制（诚实声明）[/h2]
 description=[list]
-description=[*]v0.2.1：两个版本都已进游戏跑过招募/界面基础流程；[b]完整清单（T1~T24 + Y1~Y8）未跑完[/b]，请当作试验版
+description=[*]两个版本都只跑过[b]基础流程[/b]（开局、打开面板、收编/派遣、界面），
+description=  完整测试清单（T1~T24 + Y1~Y9：工资结算、欠薪解约、读档恢复、多人非管理员路径等）[b]尚未跑完[/b]，请当作试验版
+description=[*]YeseMarket 版的导航入口依赖它自己的界面内部字段；万一上游改名，那一行会消失
+description=  （不影响功能，控制台会留一行日志，[b]Ctrl+Alt+N[/b] 照常可用）
 description=[*]Jeem 的居民招募是「按小队」的：把一个人转成居民时，他在 A-Life 眼里的小队可能一起进营地
 description=[*]A-Life 的 follow 命令是内存态，读档后由本模组自动重下（每秒级同步），首次进档可能有几秒延迟
 description=[*]与其它 NPC 模组（Bandits2 等）的共存未测试
@@ -80,5 +100,5 @@ description=[*][b]GitHub[/b] —— 源码、更新日志与问题反馈：[url=
 description=[*][b]Ko-Fi[/b] —— 请作者喝杯咖啡：[url=https://ko-fi.com/lotosbin]ko-fi.com/lotosbin[/url]
 description=[*][b]爱发电[/b] —— 支持后续更新：[url=https://afdian.com/a/bin_2]afdian.com/a/bin_2[/url]
 description=[/list]
-tags=Build 42;Misc;Multiplayer;QoL;WIP
+tags=Build 42;Interface;Misc;Multiplayer;QoL;WIP
 visibility=public

@@ -2602,3 +2602,29 @@ description=[/list]
 
 **数字**：Lua 语法 28 文件 0 失败；两套离线测试各 34/34；`--check` 一致；
 工坊探针 `ALL CHECKS PASSED (18 item(s))`（本物品简介 5441 字节）。版本 0.2.0 → 0.2.1。
+
+---
+
+## 2026-10-05 · `bin2_npc_extension` 的工坊简介按"两个口味"重写
+
+加进第二个模组后，`workshop.txt` 的简介还停留在"只有橙子社区经济"的写法：标题里有个笔误空格
+`(bin2_npc_extension )`、也没提 YeseMarket；「这是什么」「怎么用」两节全按橙子版写；沙盒表名只写了
+`Bin2NPCExtension.*`。按实际功能重写：
+
+- **标题**：`NPC 招募扩展 (bin2_npc_extension) - 橙子社区经济 / YeseMarket · A-Life / Jeem (Build 42)`
+- **开头**先说清"本物品含两个模组、按你在用的经济模组选一个"（附两个经济模组的可点击工坊链接）
+- **怎么用**分别给两个口味的入口：橙子版=首页按钮；YeseMarket 版=左侧导航栏最后一行「NPC 招募」；
+  两者都能用 Ctrl+Alt+N（也说明了它是上游改字段时的兜底）
+- **沙盒选项**：两张表 `Bin2NPCExtension.*` 与 `Bin2NPCExtensionYese.*` 互不影响
+- **兼容与降级**：补了启动日志 `hooks active=N inactive=M` 的说法（用户遇到问题可以先看这一行、
+  两个口味的名册互查
+- **新增「更新记录」小节**：0.1.0 → 0.2.1 逐版本一句话
+- **已知限制**：写清只跑过基础流程、完整清单（T1~T24 + Y1~Y9）未跑完；YeseMarket 版导航入口依赖
+  对方界面内部字段，改名时那一行会消失（不影响功能，热键仍可用）
+- **tags**：加 `Interface`（本模组主要是界面扩展），`Build 42;Interface;Misc;Multiplayer;QoL;WIP`
+
+校验（游戏自己的解析器，`bin2_workshop_upload_fix/tools/pz_workshop_probe/`）：
+`readWorkshopTxt=true`、`title` 解析正确、`visibility=0`(public)、
+`tags=[Build 42, Interface, Misc, Multiplayer, QoL, WIP]`、`submitDescription=3822 chars`（上限 8000）、
+`contentFolder exists=true`、`validatePreviewImage=OK`、`n_Set*` 全 true（不调 Submit）；
+`check_all.sh` → `ALL CHECKS PASSED (18 item(s))`（本物品 6762 字节，接近但仍在上限内）。
