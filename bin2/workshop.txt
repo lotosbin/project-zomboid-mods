@@ -1,12 +1,33 @@
 version=1
 id=3479213779
 title=bin2's mods
-description=bin2's mods
+description=[h1]bin2 的 Build 41 模组合集[/h1]
+description=两个和"死亡"打交道的经验值模组：死后能带着技能重生，也能从自己的尸体上把 XP 捡回来。
+description=
+description=[h2]包含模组[/h2]
+description=[list]
+description=[*][b]Keep XP When Respawn 2[/b]（Respawn2）—— 重生时按折减后的等级保留技能，不必从零开始
+description=[*][b]Death Is Not The End 2[/b]（NotTheEnd2）—— 从自己的尸体上取回 XP
+description=[/list]
+description=
+description=[h2]依赖[/h2]
+description=[list]
+description=[*]Keep XP When Respawn 2 需要 [b]modoptions[/b]（模组选项框架，[b]需另行订阅[/b]）
+description=[*]Death Is Not The End 2 没有额外依赖
+description=[/list]
+description=
+description=[h2]安装[/h2]
+description=[list]
+description=[*]订阅本物品 + 上面的依赖 → 主菜单 [b]Mods[/b] 里勾选 → 开新档或读档
+description=[/list]
+description=
+description=[h2]版本[/h2]
+description=面向 Build 41。Build 42 请用 [b]bin2's B42 mods[/b]（另一个工坊物品）。
 description=
 description=[ ALERT_CONFIG ]
 description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
 description=[ ------ ]
-tags=Build 41
+tags=Build 41;QoL;Misc
 visibility=public

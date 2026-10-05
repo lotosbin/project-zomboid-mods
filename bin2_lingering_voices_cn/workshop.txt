@@ -1,12 +1,33 @@
 version=1
 id=3654950612
 title=Lingering Voices CN
-description=Lingering Voices 僵尸台词中文化补丁。翻译所有僵尸台词为中文，包括扑击、踉跄、假死、敲门和攻击时的台词。
+description=[h1]Lingering Voices 僵尸台词中文化[/h1]
+description=把 [b]Lingering Voices[/b] 的僵尸台词全部翻译成中文（v1.1.0，versionMin 42.13.1）。
+description=
+description=[h2]翻译范围[/h2]
+description=[list]
+description=[*]扑击时的嘶吼
+description=[*]踉跄与蹒跚时的嘟囔
+description=[*]假死（装死后爬起来）时的台词
+description=[*]敲门 / 拍门时的动静
+description=[*]攻击命中时的叫喊
+description=[/list]
+description=
+description=[h2]依赖[/h2]
+description=[list]
+description=[*][b]Lingering Voices[/b] —— 原模组，必须自行订阅
+description=[/list]
+description=
+description=[h2]安装[/h2]
+description=[list]
+description=[*]订阅原模组 + 本补丁 → 主菜单 [b]Mods[/b] 里把两者都启用 → 读档生效
+description=[*]只含翻译文件与一个 Lua 台词补丁，不含原模组资源
+description=[/list]
 description=
 description=[ ALERT_CONFIG ]
 description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
 description=[ ------ ]
-tags=Build 42;Language/Translation
+tags=Build 42;Language/Translation;Misc
 visibility=public

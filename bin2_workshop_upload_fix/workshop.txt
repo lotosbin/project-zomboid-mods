@@ -1,38 +1,48 @@
 version=1
 id=3812298878
 title=ZB Workshop Upload Fix - 修复 macOS/Linux 上传创意工坊失败 (Build 42)
-description=修复在 macOS / Linux 上上传模组到创意工坊时报 "error requesting Steam to update the item" 的问题（Windows 不受影响）。
+description=[h1]修复 macOS / Linux 上传创意工坊失败[/h1]
+description=修掉在 macOS / Linux 上把模组上传到创意工坊时的 [b]"error requesting Steam to update the item"[/b]
+description=—— Windows 不受影响。
 description=
-description=症状：工坊物品能创建并拿到 ID，但内容永远上传不上去（0.000 B）；游戏内上传向导的日志只有
+description=[h2]症状[/h2]
+description=工坊物品能创建并拿到 ID，但内容永远上传不上去（体积一直是 0.000 B）。游戏内上传向导的日志只有：
 description=  start update of existing item ID=xxxx
 description=  error requesting Steam to update the item
 description=  finished
 description=Steam 客户端 logs/workshop_log.txt 里也只有 "Create new workshop item ... (OK)"，没有任何 update 记录。
 description=
-description=原因：游戏在提交前会弹一个 LWJGL tinyfd 原生确认框，并要求它返回 1 才继续：
+description=[h2]原因[/h2]
+description=游戏在提交前会弹一个 LWJGL tinyfd 原生确认框，并要求它返回 1 才继续：
 description=  boolean ok = RenderThread.invokeQueryOnRenderContext(this::confirmBox);
 description=  return ok && SteamWorkshop.instance.SubmitWorkshopItem(this);
 description=tinyfd 在 macOS 上用 AppleScript 实现，脚本把 dialog 的 button returned 和写死的英文 "Yes"/"OK"/"No" 比较；
 description=非英文系统的默认按钮是本地化的（中文系统是"好"），匹配失败就返回 0，于是 submitUpdate() 直接返回 false，
-description=ISteamUGC::SubmitItemUpdate 从未被调用 —— 物品自然一直是空的。Linux 上 tinyfd 找不到 zenity/kdialog 时返回 -1，同样 != 1。
-description=Windows 走 Win32 MessageBoxA（IDOK=1，与语言无关），所以只有 macOS/Linux 会中招。
+description=ISteamUGC::SubmitItemUpdate 从未被调用 —— 物品自然一直是空的。
+description=Linux 上 tinyfd 找不到 zenity / kdialog 时返回 -1，同样 != 1。
+description=Windows 走 Win32 MessageBoxA（IDOK = 1，与语言无关），所以只有 macOS / Linux 会中招。
 description=
-description=本模组用 ZombieBuddy 做运行时补丁：在 submitUpdate() 返回 false 且当前不是 Windows 时，
+description=[h2]本模组怎么做[/h2]
+description=用 ZombieBuddy 做运行时补丁：在 submitUpdate() 返回 false 且当前不是 Windows 时，
 description=补一次 SteamWorkshop.instance.SubmitWorkshopItem(item)，把真实结果交回给游戏。
-description=* 不跳过原方法：确认框照旧弹出，只是它不再能拦住上传
-description=* 英文系统 / Windows：返回值本来就是 1，本模组什么都不做，行为与原来完全一致
-description=* 不修改游戏任何文件，也不会被游戏更新 / "验证文件完整性" 覆盖
-description=* 没有去改 TinyFileDialogs.tinyfd_messageBox —— 那是 ZombieBuddy 自己审批 Java mod 用的同一个方法，
+description=[list]
+description=[*][b]不跳过原方法[/b]：确认框照旧弹出，只是它不再能拦住上传
+description=[*][b]英文系统 / Windows[/b]：返回值本来就是 1，本模组什么都不做，行为与原来完全一致
+description=[*][b]不修改游戏任何文件[/b]，也不会被游戏更新 / "验证文件完整性" 覆盖
+description=[*]没有去改 TinyFileDialogs.tinyfd_messageBox —— 那是 ZombieBuddy 自己审批 Java mod 用的同一个方法，
 description=  全局改成返回 1 会让所有 Java mod 静默通过审批（安全问题）
+description=[/list]
 description=
-description=依赖：ZombieBuddy（Java agent，必须已生效）。本模组是未签名 Java mod，首次加载时请在 ZombieBuddy 的
+description=[h2]依赖[/h2]
+description=[b]ZombieBuddy[/b]（Java agent，必须已生效）。本模组是未签名 Java mod，首次加载时请在 ZombieBuddy 的
 description="Allow Java mod to load?" 弹窗里选 Yes。
 description=
-description=生效标志（Zomboid/console.txt）：
+description=[h2]生效标志（Zomboid/console.txt）[/h2]
 description=  [ZB] patching zombie.core.znet.SteamWorkshopItem.submitUpdate with 1 advice(s)
 description=  [ZBWorkshopUploadFix] confirm box did not report OK (localized button / no tinyfd backend) -> SubmitWorkshopItem(item id=...) = true
 description=
-description=源码 / 完整分析 / 离线自测 / 等价的"直接改 projectzomboid.jar"方案：
+description=[h2]源码与完整分析[/h2]
+description=仓库、离线自测、以及等价的"直接改 projectzomboid.jar"方案：
 description=https://github.com/lotosbin/project-zomboid-mods/tree/main/bin2_workshop_upload_fix
 description=
 description=[ ALERT_CONFIG ]

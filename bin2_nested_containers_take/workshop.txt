@@ -1,19 +1,49 @@
 version=1
 id=3812291983
 title=嵌套容器 · 物品拿取 (Nested Containers - Take Items)
-description=联机下从"嵌在板条箱/衣柜/货架/尸体里的包"中拿取物品：可以只拿一件，也可以多选 / 全拿（一次服务端往返）。
+description=[h1]嵌套容器 · 物品拿取[/h1]
+description=联机下从"嵌在板条箱 / 衣柜 / 货架 / 尸体里的包"中拿取物品：可以只拿一件，也可以多选 / 全拿
+description=（一次服务端往返）。[b]包留在原处[/b]，不必先整包拿走（v1.0.1，Build 42.20+）。
 description=
+description=[h2]解决什么[/h2]
+description=原版联机从这类包里拿单品会静默失败：容器"地址"表达不了嵌套包，服务端解析不到，事务直接被拒，
+description=物品不动、也没有任何提示。本模组绕开那条有问题的路径，改走引擎自带的[b]网络定时动作通道[/b]：
+description=动作放在 shared/ 并定义 complete()，客户端发请求、[b]服务端权威执行[/b]，参数只带物品 id 与容器引用，
+description=两端各自按 id 还原路径 —— 完全不依赖容器地址。
 description=
-description=要求与限制
-description=* 客户端与服务端都要安装本模组（搬运在服务端执行）
-description=* 只覆盖"包直接位于可寻址容器里"：板条箱 / 衣柜 / 货架 / 冰箱 / 尸体 / 载具部件 / 地面 / 玩家背包；更深的嵌套（包里再套包）不会生效，需先把外层包取到背包
-description=* 单机不介入（单机本来就能直接开包拿单品）
-description=* 建议与界面模组 "Nested Containers - Complete" 配合使用（嵌套容器按钮由它提供）
+description=[h2]特性[/h2]
+description=[list]
+description=[*]只拿一件也行，或[b]多选 / 全拿[/b]：同源同目标的多件物品合成一次动作，只花一次服务端往返
+description=[*]拿完会把整只包重发一次，并把正打开的面板重新指向刷新后的容器（解决"包内容显示没更新"）
+description=[*]不新增自定义网络包，复用引擎的 NetTimedActionPacket
+description=[*]不修改游戏文件、不依赖 Java agent
+description=[/list]
+description=
+description=[h2]要求[/h2]
+description=[list]
+description=[*][b]客户端与服务端都要启用本模组[/b]（客户端靠它发请求，服务端靠它执行搬运）
+description=[*]专用服务器：把本模组放进服务器的 Workshop，并在 servertest.ini 的 Mods= 里加上 NestedContainersTake
+description=[*][b]单机不介入[/b]（单机本来就能直接开包拿单品，装上也没有任何影响）
+description=[/list]
+description=
+description=[h2]覆盖范围与已知限制[/h2]
+description=[list]
+description=[*]只覆盖"包[b]直接[/b]位于可寻址容器里"这一层：板条箱 / 衣柜 / 货架 / 冰箱 / 尸体 / 载具部件 / 地面 / 玩家背包
+description=[*]更深的嵌套（包里再套包）不生效：需先用其它方案把外层包提到背包
+description=[*]只做"取出"，不支持把物品[b]放进[/b]仍留在容器里的包
+description=[*]服务端没装时[b]没有回退[/b]：那次取物表现为"什么都没发生"（不崩、不复制、不卡动作）
+description=[*]未复刻服务器选项 ItemNumbersLimitPerContainer（每容器物品数上限）
+description=[*]本模组[b]尚未在真实联机会话里实测[/b]：结论来自引擎字节码核对与离线 API 契约自检，请当作待验证方案
+description=[/list]
+description=
+description=[h2]搭配[/h2]
+description=建议与界面模组 [b]Nested Containers - Complete[/b]（工坊 3801776436）一起使用 —— 嵌套容器的按钮由它提供，
+description=本模组只换掉那条坏掉的取物路径，不替换任何 UI。
 description=
 description=[ ALERT_CONFIG ]
 description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
 description=[ ------ ]
-tags=Build 42;Misc
+tags=Build 42;Multiplayer;Misc
 visibility=public

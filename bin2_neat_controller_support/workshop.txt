@@ -1,12 +1,45 @@
 version=1
 id=3644159457
 title=bin2's  Neat_Controller_Support - Neat Crafting & Building 手柄支持
-description=- Neat_Controller_Support - Neat Crafting & Building 手柄支持
+description=[h1]Neat Crafting & Building 手柄支持[/h1]
+description=让 [b]Neat Crafting[/b] 与 [b]Neat Building[/b] 的界面可以用手柄操作：配方列表、分类切换、
+description=列表/网格视图、合成数量、开始建造 —— 全部映射到按钮与摇杆上（v1.3.1，Build 42.13+）。
+description=
+description=[h2]Neat Crafting 手柄控制[/h2]
+description=[list]
+description=[*]方向键 —— 上下切换配方，左右在网格视图里移动
+description=[*][b]A[/b] —— 执行合成
+description=[*][b]B[/b] —— 关闭界面
+description=[*][b]X[/b] —— 切换"只显示可制作"
+description=[*][b]Y[/b] —— 切换列表 / 网格视图
+description=[*][b]L1 / R1[/b] —— 循环切换分类
+description=[*][b]右摇杆[/b] —— 调整合成数量（左右 +/-，上 = 最大，下 = 最小）
+description=[/list]
+description=
+description=[h2]Neat Building 手柄控制[/h2]
+description=[list]
+description=[*]方向键 —— 导航配方列表
+description=[*][b]A[/b] —— 开始建造
+description=[*][b]B[/b] —— 关闭界面 / 取消建造
+description=[*][b]X[/b] —— 循环切换排序方式
+description=[*][b]Y[/b] —— 切换列表 / 网格视图
+description=[*][b]L1 / R1[/b] —— 循环切换分类
+description=[/list]
+description=
+description=[h2]B42 建造模式的限制[/h2]
+description=B42 里 [b]ISBuildIsoEntity[/b] 是 Java 类、没有暴露 Lua API，所以建筑的[b]放置 / 旋转 / 移动仍然要用鼠标[/b]；
+description=手柄负责配方选择和界面导航。
+description=
+description=[h2]依赖[/h2]
+description=[list]
+description=[*][b]Neat Crafting Addon XP[/b]（Neat_Crafting_AddonXP）与 [b]Neat Building Addon XP[/b]（Neat_Building_AddonXP）—— 需自行订阅
+description=[*]本物品内含三个模组（总入口 Neat_Controller_Support + Crafting / Building 两个子模组），全部启用即可
+description=[/list]
 description=
 description=[ ALERT_CONFIG ]
 description=link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 description=link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 description=link3 = 爱发电 = https://steamcommunity.com/linkfilter/?u=https://afdian.com/a/bin_2,
 description=[ ------ ]
-tags=Build 42;Misc
+tags=Build 42;Interface;QoL
 visibility=public

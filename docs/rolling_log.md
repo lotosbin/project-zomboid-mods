@@ -2142,3 +2142,90 @@ KillCount `addToKillCount` + `OnZombieDead`、Zombie Dismemberment `ZD_Network.i
 并回填到生态地图（补录 + 检索盲区）、`README`、头脑风暴（新增 C+ 类）、`roadmap`（阶段 2 改为"模板已存在，可直接接手"）。
 方法论补记：`searchtext=Project+A-Life` 会漏掉标题不含 "Project" 的生态模组（本模组就是），
 应改跑 `Project+A-Life`/`A-Life`/`ALife` 三种检索取并集，或用本机 `mod.info` 的 `require/loadModAfter` 反查。
+
+---
+
+## 2026-10-05 · workshop.txt 的"富文本格式"到底是哪一套
+
+**问题**：工坊简介要排版（标题/加粗/列表/缩进），`workshop.txt` 里的 `description=` 支持什么富文本？
+和游戏里那些 `<LINE>` / `<RGB:0.7,0.7,0.7>` 是不是一回事？
+
+**结论：两套方言，别混。**
+
+| 显示位置 | 读的文件 | 方言 | 渲染者 |
+| --- | --- | --- | --- |
+| Steam 工坊物品页 | 物品根 `workshop.txt` 的 `description=` | **Steam BBCode** | Steam 网页/客户端 |
+| 游戏内 Mods 列表 | `<版本目录>/mod.info` 的 `description=` | `<LINE>` / `<RGB:…>` / `<SIZE:…>` | 游戏 `ISRichTextPanel`（`ModInfoPanelDesc.lua:33`） |
+| 上传向导输入框 | 同上那份 `workshop.txt` | 纯文本，**不预览 BBCode** | —— |
+
+**证据链**（全部可复现）：
+
+1. `javap -p -c zombie/core/znet/SteamWorkshopItem.class` → `readWorkshopTxt()`：每行先 `trim()`、
+   `#` 与 `//` 开头整行跳过、空行 `isEmpty()` 跳过；`description` 用 **单个 `\n`** 累加
+   （BootstrapMethods 里 `\u0001\n` + `\u0001\u0001`）；值里 `replace("description=", "")` **删掉所有出现**。
+2. 同 class `getSubmitDescription()`：描述非空时追加 `\n\n` 再拼 `Workshop ID: <id>` / `Mod ID: <modid>`；
+   `SteamWorkshop.SubmitWorkshopItem()` 把它原样喂给 `n_SetItemDescription` —— **不转义、不剥离**。
+3. **新写的探针实测**（`bin2_workshop_upload_fix/tools/pz_workshop_probe/WorkshopTxtProbe.java`，
+   只初始化 `ZomboidFileSystem`，**不需要 Steam、不加载 native 库**）：喂一份含
+   `[h1]/[b]/[i]/[url]`、空 `description=`、`description=  ← 缩进`、`#`/`//` 注释的 workshop.txt，
+   输出逐行 `|…|` 完全保留标记与空行，注释行消失；且实测到 `在 description= 之后` 被删成 `在  之后`。
+4. `ISRichTextPanel.lua` 的 `processCommand()` 是游戏内方言的**完整标签表**
+   （LINE/BR/H1/H2/TEXT/CENTRE/LEFT/RIGHT/RGB/PUSHRGB/POPRGB/GHC/BHC/RED/ORANGE/GREEN/SIZE/
+   IMAGE/IMAGECENTRE/VIDEOCENTRE/INDENT/JOYPAD/SETX/SPACE，转义 `&lt;` `&gt;`）。
+5. `getVisibilityInteger()` 反汇编订正：合法值是 `public`/`friendsOnly`/`private`/`unlisted`，
+   **其它任何值都静默返回 0 = public**（旧文档写的 `friends` 是错的）。
+
+**长度上限**：Steamworks `k_cchPublishedDocumentDescriptionMax = 8000`（**UTF-8 字节**，汉字 3 字节/字）。
+本仓库 17 份 `workshop.txt` 实测最大 **3015 字节**（`bin2_companion_alpaca`），余量充足 —— 但 BBCode
+标记与游戏追加的 ID 行都算在这个额度里，且**未闭合的标签会把追加的 ID 行吞进列表/引用块**。
+
+**产出**：
+- `bin2_workshop_upload_fix/tools/pz_workshop_probe/WorkshopTxtProbe.java`（新探针，不带 Steam 也能跑）
+- `workshop_create.sop.md` 新增 §3.5（两侧方言对照表 + 6 条硬规则 + BBCode 表 + 游戏内标签表）、
+  §9 补 5 条症状、§10 补探针用法与清单、参考资料补 Steamworks 与社区排版文档
+- `guides/workshop-txt-guide.md` **重写**：改正 5 处字段错误（tags 分隔符、visibility 取值、
+  preview 尺寸、`changelog=`/`preview_image=` 不存在、文件位置），补"富文本与排版"整节，
+  标注 2026-10-05 订正
+- skill `pz-workshop-item-publishing`：§2.1 新增 description 解析细节与富文本规则，§7 补新探针，§8 补踩坑
+
+**未做**：没有真实上传一次去核对工坊页面的渲染结果（`web_fetch` 在本机对所有域名都返回
+"resolves to a non-public IP"，Steam 文档与社区排版页都抓不到，只能引 URL）；BBCode 标签表来自
+Steam 平台文档与既有实践，未逐条截图验证。
+
+---
+
+## 2026-10-05 · 统一优化仓库全部 workshop.txt（17 份 + 删掉 1 份历史遗留）
+
+**目标**：把"优化所有模组的 workshop.txt"落地 —— 用上一条刚验完的富文本能力、修掉过时与非法内容、
+并做一次机器可复查的校验。
+
+**做了什么**
+
+| 类别 | 动作 |
+| --- | --- |
+| 排版 | 17 份全部改成统一结构：`[h1]` 大标题 → 一句话 → `[h2]` 小节（功能 / 包含模组 / 依赖 / 安装 / 已知限制）→ `[list]`+`[*]` 列表 → 保留结尾 `[ ALERT_CONFIG ]` 块 |
+| 内容纠错 | viewpoint：**快捷键早已从 F9/F10 改成 Ctrl+Alt+D 控制面板**、版本 1.x → 2.2.0、补上 P1 相机/3D 与 P3.1 体素模型包；A-Life：日志版本 `v0.1.0` → `v0.1.5`（`Config.VERSION` 实测）；tikitown：条目数 214 → **223**、84 → **172**（按 JSON 键实点） |
+| 补全空壳 | `bin2`、ERS / EHR / EPR / Xantji / Lingering Voices / Neat 手柄支持原本只有一两行：按各自 `mod.info` 补上翻译范围（ItemName / Tooltip / Sandbox / Recipe / UI / ContextMenu）、依赖 mod id、安装步骤；Neat 手柄支持把 `mod.info` 里的完整按键映射搬到工坊页面 |
+| 字段卫生 | tags 全部对齐 `media/WorkshopTags.txt` 白名单（新增 `Interface` / `Multiplayer` / `WIP` 等贴切标签，`bin2_b42` 从 10 个收敛到 5 个）；`id=` / `visibility=` 一律按原值保留（private 的不擅自公开） |
+| 删除 | `bin2/Contents/mods/Respawn2/workshop.txt` —— 游戏只在物品根读 `workshop.txt`，这份在 `Contents/` 里的只会被当模组内容上传，且 `tags=` 是空的（本仓库 SOP §9 早已列为历史遗留）；已 `git rm`，可恢复 |
+
+**新工具（可复查）**
+
+* `bin2_workshop_upload_fix/tools/pz_workshop_probe/WorkshopTxtProbe.java` 增加 `--check` 批量模式：
+  用游戏自己的 `readWorkshopTxt` + `getAllowedTags()` 逐个校验，并对照原始文本查
+  非法键、字面量 `description=`、BBCode 配平、8000 字节上限；有问题退出码 1。
+* `bin2_workshop_upload_fix/tools/pz_workshop_probe/check_all.sh`：扫描仓库所有 `workshop.txt`，
+  逐份复制进 `~/Zomboid/Workshop/__wtchk_*`（`validatePrefix` 只认白名单路径）再校验，跑完清理。
+
+**结果**：`ALL CHECKS PASSED (17 item(s))`；`submitDescription` 最大 **3351 字节**
+（`bin2_ProjectALifeNPCs_extensions`），距 Steam 上限 8000 还有一半余量。
+
+**这次工具真的抓到了自己的错**：Xantji 那份有一行续行忘了写 `description=` 前缀，check 直接报
+`非法的键: L6 没有 '='` —— 没有这步，那一行会静默消失在工坊页面上。
+
+**顺带发现（未改，等确认）**：`bin2_title_cover` 两个模组的 `mod.info` 里
+`incompatible=\ZomboidTitleCover,\ZomboidTitleCoverWide` 把**自己**也列进了互斥名单，
+疑似复制粘贴笔误（16:9 版会声明 16:9 版互斥）。
+
+**未做**：没有真实上传核对工坊页面渲染；`blocky/companion alpaca`、`title_cover`、`viewpoint`
+仍是 `visibility=private`（发布与否是作者决定，本次不动）。

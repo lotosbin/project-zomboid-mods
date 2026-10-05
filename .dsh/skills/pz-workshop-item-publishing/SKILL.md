@@ -47,21 +47,49 @@ whenToUse: The task is about workshop.txt, changelog.txt, preview.png / poster.p
 | `title` | 显示标题 | 会作为工坊物品标题提交（`n_SetItemTitle`） |
 | `description` | 多行 | 提交时游戏还会自动追加 `Workshop ID:` / `Mod ID:` 行（`getSubmitDescription()`） |
 | `tags` | `;` 分隔 | **必须**取自游戏 `media/WorkshopTags.txt`（如 `Build 42`、`QoL`、`Misc`、`Interface`、`Framework`、`Language/Translation`） |
-| `visibility` | `public` \| `private` | 解析成 `getVisibilityInteger()`：**`0` = public，`2` = private** |
+| `visibility` | `public` \| `friendsOnly` \| `private` \| `unlisted` | 解析成 `getVisibilityInteger()`：**`0` = public，`1` = friendsOnly，`2` = private，`3` = unlisted**；写错任何值都**静默变成 0 = public** |
 
-可直接抄的骨架：
+### 2.1 `description` 的解析细节与富文本（B42.21 实测 + 字节码）
+
+`readWorkshopTxt()` 只做四件事：**每行 `trim()` → 用单个 `\n` 拼接 → 追加 ID 行 → 原样交给
+`n_SetItemDescription`**。派生规则：
+
+- 空行：真正的空行会被 `isEmpty()` 跳过 ⇒ 想空一行就写一行**空的 `description=`**。
+- 缩进：行首空白被吃掉；要缩进就把空格写在 `description=` **之后**。
+- 正文里出现字面量 `description=` 会被 `replace("description=","")` **删掉**；行首 `#` / `//` 是注释。
+- `\n` 写在值里不会换行。
+- **富文本是 Steam 的方言，不是游戏的**：描述里的 `[b]` / `[h1]` / `[list]`（Steam BBCode）
+  会**原封不动**传到工坊页面被渲染；游戏内 `mod.info` 的 `description=` 用的是另一套
+  `<LINE>` / `<RGB:r,g,b>` / `<SIZE:…>` 标签（`ISRichTextPanel.processCommand`），只在游戏内生效。
+  游戏内上传向导的输入框是纯文本，**看不到 BBCode 渲染结果**。
+- **未闭合的 BBCode 会吞掉追加的 `Workshop ID:` / `Mod ID:` 行**（它们被接在描述末尾）。
+- 上限 **8000 字节**（Steamworks `k_cchPublishedDocumentDescriptionMax`，UTF-8 字节；汉字 3 字节/字），
+  额度含 BBCode 标记与追加的 ID 行。
+
+清单与探针命令见仓库 `workshop_create.sop.md` §3.5 / §10（`WorkshopTxtProbe` 不需要 Steam）。
+
+可直接抄的骨架（本仓库统一排版：`[h1]` 大标题 + `[h2]` 小节 + `[list]/[*]` 列表）：
 
 ```ini
 version=1
 title=<标题（中英双语，含 Build 42）>
-description=<一句话：这个模组解决什么问题>
+description=[h1]<一句话标题>[/h1]
+description=<它解决什么问题>
 description=
-description=依赖 / 安装 / 生效标志 / 已知限制……
+description=[h2]<小节名：功能 / 依赖 / 安装 / 已知限制 …>[/h2]
+description=[list]
+description=[*]<要点一>
+description=[*]<要点二，续行也要写 description= 前缀>
+description=[/list]
 description=
 description=源码与完整分析：<仓库链接>
 tags=Build 42;QoL;Misc
 visibility=public
 ```
+
+`[b]` / `[h2]` / `[list]` 必须成对闭合（漏闭合会吞掉追加的 ID 行）；Markdown 无效（`#` 开头整行会被当注释丢掉）。
+改完一次校验仓库里所有物品：`bin2_workshop_upload_fix/tools/pz_workshop_probe/check_all.sh`
+（检查标签白名单 / 非法键 / 字面量 `description=` / BBCode 配平 / 8000 字节，全通过打印 `ALL CHECKS PASSED`）。
 
 实测（探针打印，说明格式被游戏接受）：
 
@@ -171,6 +199,10 @@ tools/pz_workshop_probe/run.sh "" ~/Zomboid/Workshop/<name>
 `n_StartItemUpdate / n_SetItemTitle / n_SetItemDescription / n_SetItemVisibility / n_SetItemTags /
 n_SetItemContent / n_SetItemPreview`（**唯独不调 `n_SubmitItemUpdate`**），证明上传前的 native 链路是好的。
 
+只看 `workshop.txt` 解析结果（排版 / 富文本 / 空行 / 缩进 / UTF-8 字节数）用同目录的
+`WorkshopTxtProbe.java`：**不需要 Steam、不加载 native 库**，逐行用 `|…|` 打印 `getDescription()` 与
+`getSubmitDescription()`；编译运行命令见 `workshop_create.sop.md` §10。
+
 ## 8. 踩坑清单（每条都真实踩过）
 
 - **绝不能把仓库路径直接喂给 `SteamWorkshopItem`**：`validatePrefix()` 只认白名单前缀
@@ -180,6 +212,11 @@ n_SetItemContent / n_SetItemPreview`（**唯独不调 `n_SubmitItemUpdate`**）�
 - `workshop.txt` 里**没有 `id=`** 时，自己写工具要判空（本仓库探针一开始就在
   `isValidSteamID(null)` 上 NPE 过）。
 - 多行描述只能靠多行 `description=`；写 `\n` 会原样显示。
+- 描述里的**空行只能写成空的 `description=`**（真空行被跳过）；行首缩进被 `trim()` 吃掉，
+  缩进要写在 `description=` 之后；正文里的字面量 `description=` / 行首 `#` `//` 会被吃掉。
+- 想给工坊页面排版只能用 **Steam BBCode**（`[b]`/`[h1]`/`[list]`…），Markdown 无效；
+  忘了闭合会连游戏追加的 `Workshop ID:` / `Mod ID:` 行一起吞进列表。游戏内渲染的是 mod.info 那套
+  `<LINE>` / `<RGB:…>`，两套别混。
 - `tags` 乱写不在白名单里不会报错，但会被 Steam 忽略 → 从 `media/WorkshopTags.txt` 里挑。
 - 物品内**只打包 `Contents/`**：想让某个文件进工坊就必须放在 `Contents` 下；
   物品根的 `preview.png`/`changelog.txt` 是工坊元数据，不是模组内容。
