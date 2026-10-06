@@ -777,6 +777,8 @@ ALL PATHS RESOLVED
 
 ⇒ **放在版本目录里的贴图能被找到**（10 个路径全部由 `media.version` 解析）。
 尺寸由 `tools/make_icons.py` 生成并自检（`--check`：48x36 / 64x48 / 80x60 / 96x72 / 128x96，RGBA）。
+同一档的两态与原版图标摆在一起的对照图：`docs/assets/sidebar-icons.png`
+（每行 = 48 / 96 / 128 三档，左边两个是 Off/On，最右边是原版的背包图标）。
 
 > **未证实**：这是"引擎的 media 目录解析"这一层的证据，**不等于**实机 `getTexture` 一定拿到图
 > （纹理走的是 texture pack 那条链，见 `vanilla-sidebar-entry.md` §3.5）。验证方法：进游戏后看
