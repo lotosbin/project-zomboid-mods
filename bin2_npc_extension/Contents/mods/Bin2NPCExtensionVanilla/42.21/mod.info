@@ -1,0 +1,12 @@
+name=Project A-Life NPC招募 (bin2_npc_extension)(原版钞票/无经济模组)
+id=Bin2NPCExtensionVanilla
+author=bin2
+modversion=0.4.0
+versionMin=42.20.0
+description=纯原版口味：不装任何经济模组，直接用原版钞票（Base.Money）雇下身边的 A-Life NPC，或让 A-Life 派一名新人过来。
+description=<LINE>入口在屏幕左侧原版图标栏（心/背包/建造那一列）最下面的 NPC 图标，点一下打开招募面板；快捷键 Ctrl+Alt+N 也能开。一捆钞票（Base.MoneyBundle）按 100 张算，钱在钱包和背包里都算在身上。
+description=<LINE>需要同物品里的公共层 Bin2NPCExtensionBase（启用本模组时游戏会自动一并启用它）；A-Life 与 Jeem Extension 全部软挂接：没有 Jeem 也能跟随与守卫，没有 A-Life 就只显示提示，缺任何一个都不会报错。
+description=<LINE>同一个物品里的另外两个口味（橙子社区经济版 / YeseMarket 版）用各自的货币，存档与沙盒选项互相独立；三者可以同时启用，但同一个 NPC 只会被其中一个雇走。
+require=\Bin2NPCExtensionBase,\ProjectALifeJimmy
+loadModAfter=Bin2NPCExtensionBase,ProjectALifeNPCs,ProjectALifeJimmy
+poster=poster.png

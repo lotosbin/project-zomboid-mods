@@ -1,7 +1,7 @@
 name=Project A-Life NPC招募 公共层 (bin2_npc_extension)
 id=Bin2NPCExtensionBase
 author=bin2
-modversion=0.3.0
+modversion=0.4.0
 versionMin=42.20.0
 description=「Project A-Life NPC 招募」系列的**公共层**：A-Life/Jeem 适配、契约模型、维护循环、命令路由。
 description=<LINE>它自己不是给玩家用的模组 —— 请启用具体口味（橙子社区经济版 / YeseMarket 版），游戏会自动一并启用本模组。

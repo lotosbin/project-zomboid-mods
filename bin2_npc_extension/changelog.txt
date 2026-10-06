@@ -1,3 +1,68 @@
+版本 0.4.0 (2026-10-06)
+- 新增：第四个模组 **Bin2NPCExtensionVanilla** —— 不需要任何经济模组的**纯原版口味**
+  * 钱：原版钞票物品 `Base.Money`（`Base.MoneyBundle` 一捆按 100 张算）
+  * 入口：**原版左侧竖排图标栏**（心/背包/建造那一列）最下面一个 NPC 图标，点一下开关面板；
+    Ctrl+Alt+N 与两个经济口味一致
+  * 界面：自己用原版 ISUI 画的 `ISCollapsableWindowJoypad` 窗口（三个页签：名册/收编/中介），
+    不再挂在别人的窗口里
+  * 存档表 `Bin2NPCExtensionVanilla.*`、沙盒表 `Bin2NPCExtensionVanilla`、翻译前缀各一套，
+    与另外两个口味互不串档；三个口味可以同时启用，但**同一个 NPC 只会被一边雇走**
+- 公共层：把"钱"从写死的经济模组调用改成**可换的实现**
+  * `Core.MONEY_PROVIDERS = { upstream = "Economy", cash = "Cash" }`；口味在 Profile 里写
+    `money = "cash"` 选中原版钞票（不写 = `upstream`，即原来的经济模组服务端账本）
+  * 新文件 `Bin2NPCExtensionCore/Cash.lua`（手写，和 Namespace.lua 一样不由生成器产出），
+    与 `Economy.lua` 给出同一组方法：`available / balance / pay / refund / flow / wage`
+  * 三条引擎事实决定了 `Cash` 的形状（证据见 `docs/research/vanilla-money-integration.md`）：
+    1. `Base.Money` 一件 = 1 个单位、`Base.MoneyBundle` 一捆 = **100** 张
+       （依据是游戏自己的配方 `craftRecipe UnbundleMoney` 的 `outputs item 100 Base.Money`）
+    2. **B42 没有"堆叠数量"**：`InventoryItem.CanStack()` 在字节码里恒为 false，count 恒 1，
+       不进存档也不进 `SyncItemFieldsPacket`，全游戏 Lua 零处 `:setCount(`
+       ⇒ 没有"部分扣除/找零"的引擎原语；`pay` 的策略是"先花散钞，不够就破一捆、多出来的新发找零"
+    3. **穿戴中的容器会被 `setWornItem` 从主背包里摘掉**，所以 `getCountTypeRecurse` 数不到
+       背着的背包/腰包里的钱 —— `balance/pay` 必须另外遍历 Human 身体部位上的容器；
+       改完背包必须显式 `sendRemoveItemsFromContainer` / `sendAddItemsToContainer`
+       （`setDrawDirty` 只是本地 UI 脏标记，不是同步）
+  * `Core.API` 从 1 升到 **2**：加字段也算接口变更 —— 新版口味配旧版公共层时，
+    最坏的情况是"静默变成没有经济模组"，必须被 coreApi 守卫拦下来并让玩家更新整个物品
+  * 新增 spec 字段 `uiHint`：入口装不上时打给人看的那句话由口味自己给
+    （旧代码把它写死成"is <经济模组 id> enabled?"，对原版口味毫无意义）
+  * `spec.sibling` 从"一个字符串"变成"字符串或字符串表"（三个口味要两两互查），
+    归一化成 `NS.SIBLING_MODULES`；指向自己的项会被丢掉并记一条日志
+- 修复：**专用服务器上的误报**（自 v0.1.1 起存在）
+  * 现象：自检日志在每个专用服务器上都喊"经济模组没装，招募页面不显示"
+  * 根因：判据用的是经济模组的**客户端**全局（专用服务器只加载 shared/server 层，永远不会加载它）
+  * 修法：自检改成看**收钱实现**自己（`NS.Economy.available()`），日志从
+    `economy=false(server=false)` 改成 `money=true(cash)`；上游口味只在**服务端**表缺失时告警
+- 工具与守卫（每条都是"能失败"的检查，不是摆设）
+  * `tools/check_base.py`：支持任意数量口味；新增"sibling 必须列全其它所有口味"与
+    "money 必须是公共层支持的收钱方式"两条断言；`currencyName` 不再算身份字面量
+    （钞票/金币这种"钱叫什么"的显示词不是身份，公共层的 Cash.lua 必须能说清楚这件事）
+  * `tools/fork_variant.py`：每一条外科手术式替换现在**要求恰好命中一次**，否则拒绝生成 ——
+    这次就抓到一个真实的静默失配（`sibling = "X"` 改成 `sibling = { "X", "Y" }` 之后老替换表失配，
+    结果 YeseMarket 版的 sibling 变成了 `Bin2NPCExtensionYeseYese`，也就是 v0.3.0 修过的那个
+    "重招自己人反而被拒"的 bug 换个方式复发）
+  * `tools/make_icons.py`（新）：生成侧边栏图标 5 档 x 2 态，尺寸按原版实测
+    （48x36 / 64x48 / 80x60 / 96x72 / 128x96，即 W x 0.75W；正方形贴图会被 `ISButton:render`
+    等比缩到 0.75W 而糊掉）
+  * `tools/modinfo_probe/TextureProbe.java`（新）：用游戏自己的 `ChooseGameInfo$Mod` 证明
+    **带版本目录的模组，media 解析的是 `<mod>/42.21/media`**（`media.version`），
+    所以放在版本目录里的贴图能被 `getTexture` 找到（10/10 通过）
+  * `tools/make_images.py`：海报改成**每个口味一张**（各自的强调色/依赖/入口说明），
+    顺带修掉了"公共层的海报是橙子口味那张的复制品"这个遗留问题
+- 测试：橙子套件与 YeseMarket 套件各 **40/40**；新增第三个套件 `tools/test-vanilla`（**50/50**）
+- 顺手修掉三个「只有忠实测试或实机才看得见」的老结构问题（都是新口味暴露出来的）：
+  * 原版口味的两个 UI 类名忘了写 `local`，漏进了全局命名空间（可能被第三方模组撞名）
+  * `Bootstrap.install()` 自身不幂等：幂等判据只写在工厂里，引擎 "Reset Lua" 重跑文件后会再装一次，
+    于是 OnTick 注册两遍（维护循环每帧跑两次）、Ctrl+Alt+N 会「开了又关」
+  * 原版口味的沙盒默认值（50/200/5）与公共层兜底值（500/1500/20）不一致 —— 沙盒表整个读不到时
+    会显示/收取 10 倍价格；现在口味可以用 `spec.defaults` 覆盖兜底值，两边一致
+- 已知限制：
+  * 游戏内清单（T/M/Y/V 系列，见 `docs/test-plan.md`）仍需实机跑一遍，尤其是左侧图标的位置与
+    手柄体验
+  * **手柄目前只能靠热键/鼠标打开面板**：原版侧边栏本身没有手柄导航（`onJoypad` 零命中），
+    要加手柄入口可以后续挂 `ISDPadWheels.onDisplayRight` 往圆盘菜单里加一格
+- 未修改任何第三方文件；不带任何 A-Life / Jeem 的 Lua 副本；不占用它们的网络 module
+
 版本 0.3.0 (2026-10-05)
 - 重构：把两个口味**共用的逻辑抽成公共层模组** `Bin2NPCExtensionBase`（行为不变）
   * 背景：同一个工坊物品里放了两个口味（橙子社区经济版 / YeseMarket 版），它们的

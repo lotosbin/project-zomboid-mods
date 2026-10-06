@@ -1,14 +1,20 @@
-# Bin2NPCExtension 进游戏测试清单（T1~T20 / M1~M4 / Y1~Y12）
+# Bin2NPCExtension 进游戏测试清单（T1~T20 / M1~M4 / Y1~Y14 / V1~V12）
 
-> 前提：装了 `OrangeCommunityEconomy` + `ProjectALifeNPCs` (+ 可选 `ProjectALifeJimmy`)，
-> 本仓库 `bin2_npc_extension` 已软链到 `~/Zomboid/mods/Bin2NPCExtension` 并在游戏 Mods 里启用。
+> 前提：本物品有 **1 个公共层 + 3 个口味**（橙子社区经济 / YeseMarket / 原版钞票）。
+> 下面 T / M 两组以**橙子口味**为准；Y 组是 YeseMarket 口味；V 组是原版钞票口味。
+> 每个口味都要求公共层 `Bin2NPCExtensionBase` 一起启用（`mod.info` 的 `require=` 会自动带上它）。
+> 本仓库 `bin2_npc_extension` 的各模组已软链到 `~/Zomboid/mods/` 并在游戏 Mods 里启用。
 > 建议先把沙盒 `Bin2NPCExtension.DebugLog` 设为 **true**，测完再关。
 > 判定日志统一前缀：`[Bin2NPCExtension]`。日志文件：`~/Zomboid/console.txt`。
 
 ## 准备
 
-```
-ln -sfn "$PWD/bin2_npc_extension/Contents/mods/Bin2NPCExtension" ~/Zomboid/mods/Bin2NPCExtension
+```bash
+# 公共层 + 你要测的那个口味（四个都要时才全都链）
+ln -sfn "$PWD/bin2_npc_extension/Contents/mods/Bin2NPCExtensionBase"    ~/Zomboid/mods/Bin2NPCExtensionBase
+ln -sfn "$PWD/bin2_npc_extension/Contents/mods/Bin2NPCExtension"        ~/Zomboid/mods/Bin2NPCExtension
+ln -sfn "$PWD/bin2_npc_extension/Contents/mods/Bin2NPCExtensionYese"    ~/Zomboid/mods/Bin2NPCExtensionYese
+ln -sfn "$PWD/bin2_npc_extension/Contents/mods/Bin2NPCExtensionVanilla" ~/Zomboid/mods/Bin2NPCExtensionVanilla
 ```
 
 | 组 | 用例 | 期望 | 失败时先看 |
@@ -60,7 +66,7 @@ T7：结果=通过/失败；console 关键行=<粘贴 5~10 行>；截图=<文件
 
 ## YeseMarket 版（`Bin2NPCExtensionYese`）补充用例
 
-同一物品里的另一个口味配 [YeseMarket](https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567)。
+同一物品里的 YeseMarket 口味配 [YeseMarket](https://steamcommunity.com/sharedfiles/filedetails/?id=3735641567)。
 它的入口不是首页按钮，而是**导航栏新插的一行**，所以下面这几条必须单独跑一遍：
 
 | 组 | 用例 | 期望 | 失败时先看 |
@@ -75,7 +81,78 @@ T7：结果=通过/失败；console 关键行=<粘贴 5~10 行>；截图=<文件
 | Y 队友 | Y11 把沙盒 `MakeAllied` 关掉再雇 | 雇得成，但转居民会被拒（`not_allied`）—— 这是选项的预期行为 | 这时需要玩家自己刷 Jeem 声望 |
 | Y 岗位 | Y12 「应用岗位」的两步流程 | 点「跟随/守卫/居民」只高亮选中、**不发命令**；再点「应用岗位」才生效；岗位没变时按钮是灰的（不重发 = 不再触发 `resident` 拒绝） | 这轮线上 bug 的根因就在"按钮点一下立刻发 + 应用又发当前岗位" |
 | Y 岗位 | Y13 拒绝原因的文案 | 所有岗位失败都显示中文原因（如「床位不够」「他们对你信任不足（需要同盟关系）」），**不出现**「（上游返回）」 | `Text.lua` 的 REASONS 是否穷举了 Jeem 的拒绝码；未知码才走兜底 |
-| Y 共存 | Y7 两个口味同时启用 | 两个界面各自可开；**同一个 NPC 只能被一边雇走**（另一边报「已被其他玩家雇佣」） | `Service.takenBySibling` 互查 |
+| Y 共存 | Y7 三个口味同时启用 | 三个界面各自可开；**同一个 NPC 只能被一边雇走**（另两边报「已被其他玩家雇佣」） | `Service.takenBySibling` 互查 |
 | Y 界面 | Y8 看导航那一行的按钮文字 | 显示「NPC 招募」，**不是** `IGUI_YeseMarket_EntryButton` 这种原始键 | 标题必须取自本模组自己的翻译表（对方 `Text()` 会强制加它自己的前缀） |
-| Y 公共 | Y14 公共层缺失 / 版本不符 | 勾了口味但没勾公共层（或只更新了一半）时：控制台一行 `[Bin2NPCExtension][ERROR] Bin2NPCExtensionBase is missing or not enabled…` 或 `public layer mismatch: … coreApi …`，功能不生效但**不报错、不崩** | 两个模组都要启用；`mod.info` 的 `require=\Bin2NPCExtensionBase` 正常会自动勾上公共层 |
+| Y 公共 | Y14 公共层缺失 / 版本不符 | 勾了口味但没勾公共层（或只更新了一半）时：控制台一行 `[Bin2NPCExtension][ERROR] Bin2NPCExtensionBase is missing or not enabled…` 或 `public layer mismatch: … coreApi …`，功能不生效但**不报错、不崩** | 公共层与该口味都要启用；`mod.info` 的 `require=\Bin2NPCExtensionBase` 正常会自动勾上公共层 |
 | Y 界面 | Y9 招募页里的雇员/候选列表 | 每行是四行信息的卡片样式，点击能选中（高亮），滚动正常 | 列表用 `CreateList` + `doDrawItem`；若报 `call nil`，说明又用了橙子独有的 `CreateCardGrid` |
+
+## 原版钞票口味（`Bin2NPCExtensionVanilla`）补充用例
+
+第三个口味（`docs/design.md` §13）**不依赖任何经济模组**：钱用原版物品 `Base.Money` / `Base.MoneyBundle`，
+入口是原版左侧竖排图标栏（`ISEquippedItem`）最下面的一个 NPC 图标，招募窗口是自己画的 `ISUI`。
+所以它的失败面与前两个口味完全不同（钱算术、原版 HUD 挂接），必须单独跑。
+
+### 离线（不启动游戏）
+
+```bash
+# 新口味的离线套件（tools/test-vanilla/，与其它两个同构）
+tools/test-vanilla/run_lua_test.sh --quick
+
+# 侧边栏图标资产：5 档 x 2 态的尺寸/模式/大小
+python3 tools/make_icons.py --check
+
+# mod.info + 贴图路径（用游戏自己的解析器；四个模组都要在 ~/Zomboid/mods/ 下有软链）
+tools/modinfo_probe/run.sh
+
+# 公共层不变量（零身份 / coreApi / 口味字段不撞车 / sibling 不自指且列全 / money 合法）
+python3 tools/check_base.py
+
+# 变体目录仍与生成器一致（防有人手改生成物）
+python3 tools/fork_variant.py --check
+
+# 抽取等价性复核（把公共层与抽取前那份代码逐字比对）
+python3 tools/extract_base.py --from-git 33f24e3
+
+# Lua 语法（四个模组）
+NODE=/Users/liubinbin/.dsh/dsh-runtimes/dsh-primary-runtime/dependencies/node/bin
+PATH="$NODE:$PATH" node tools/lua_syntax_check.mjs Contents/mods/Bin2NPCExtensionBase \
+    Contents/mods/Bin2NPCExtension Contents/mods/Bin2NPCExtensionYese \
+    Contents/mods/Bin2NPCExtensionVanilla
+```
+
+| 检查 | 覆盖什么 | 期望 |
+| --- | --- | --- |
+| `tools/test-vanilla/run_lua_test.sh --quick` | **钱的算术**（`Cash.balance` 含子容器与穿戴容器、散钞优先、破捆找零、余额不足不动物品、退款新发钞票、`flow()` 返回 false、端到端 `Service.dispatch` 扣的正好是 `SignPrice`）与**侧边栏挂接**（`Icon.attach` 幂等、只服务 player 0、尺寸从原版按钮量、面板重建后重新 attach、热键兜底）与**窗口命令**（三页签各发什么、岗位没变什么都不发、revision 变了才重建、`close()` 清单例） | `50/50 passed, 0 failed` / `ALL PASS` |
+| `tools/make_icons.py --check` | 10 张图在不在、尺寸对不对 | `图标齐全且尺寸正确（5 档 x 2 态）` |
+| `tools/modinfo_probe/run.sh` | 四个 mod.info 能否被游戏解析；`require=` 依赖的名字对不对；10 张贴图能否从 `media.version`（`<mod>/42.21/media`）解析到 | `ALL MOD.INFO PARSED` + `ALL PATHS RESOLVED`（10/10） |
+| `python3 tools/check_base.py` | 见 `docs/design.md` §12.5 / §13.6 | `公共层零身份 + 3 个口味互不撞车：OK` |
+| `python3 tools/fork_variant.py --check` | YeseMarket 变体仍是生成物 | `变体与生成器一致（mod N 文件 / test 5 文件）` |
+| `python3 tools/extract_base.py --from-git 33f24e3` | 公共层仍等价于抽取前那份代码 + 逐条列出的替换 | `公共层 12 个文件与机械搬移结果一致。` |
+
+> 离线检查**证明不了**的事（不要去 `console.txt` 之外找证据）：实机 `getTexture` 是否真拿到图、
+> 128 档侧边栏下图标会不会超出屏幕底部、钞票在世界里的实际掉落率。
+
+### 游戏内（V1~V12）
+
+准备：`~/Zomboid/mods/` 下软链 `Bin2NPCExtensionBase` + `Bin2NPCExtensionVanilla`（见 README §5），
+游戏里启用这两个；**不要**启用任何经济模组（这一组就是要证明它不需要）。
+建议先把沙盒 `Bin2NPCExtensionVanilla.DebugLog` 设为 true，测完再关。
+日志前缀 `[Bin2NPCExtensionVanilla]`，文件 `~/Zomboid/console.txt`。
+
+| 组 | 用例 | 怎么验 | 期望看到什么 | 失败时先看 |
+| --- | --- | --- | --- | --- |
+| V 入口 | V1 左侧竖排栏最下方出现 NPC 图标 | 进游戏后看屏幕左侧那一列（心/背包/建造/家具/地图） | 最下方多出一个 NPC 图标，与原版按钮同宽、间距一致；鼠标悬停显示「NPC 招募：用原版钞票雇人。快捷键 Ctrl+Alt+N。」 | 控制台 `sidebar icon hooked into ISEquippedItem (left column, below the vanilla buttons)`；`client ready … ui=true` |
+| V 入口 | V2 点这个图标开关面板 | 点一次 → 再点一次 | 面板打开；再点关闭。图标在面板开着时是 `On` 态、关着时是 `Off` 态 | `Config.RecruitPanel.toggle` 是否被调到；两态贴图路径 |
+| V 入口 | V3 Ctrl+Alt+N（**没装任何经济模组**） | 关掉面板后按热键 | 面板打开/关闭；控制台无「经济模组没装」之类的告警 | 热键这条路不经过侧边栏图标，是入口的兜底 |
+| V 钱 | V4 余额算上钱包 / 背包 / **背着的背包** | 分别把钞票放进：身上（主背包）、背包里的钱包、**穿在身上的背包**，看面板上的余额 | 三种位置都计入余额；把背包穿上/脱下余额不变 | 穿戴容器不在 `getInventory()` 里（`docs/design.md` §13.3c）——数漏了就是这里 |
+| V 钱 | V5 破捆找零 | 身上只放 **1 捆**钞票（=100 张），收编一个 `SignPrice=30` 的 NPC | 捆少 1 个、钞票多 70 张（净值 -30）；余额显示 70 | `Cash.pay` 的"先散钞、不够破捆、多余新发"三步；控制台不应有 `cash payment short by` |
+| V 钱 | V6 余额不足时明确失败且**不掉钱** | 清空身上的钞票（保留别的物品），再点收编 | 提示「钞票不足」；背包物品一个不少；名册没有新契约 | `ReasonNoFunds`；`Cash.pay` 在余额不足时**先 return**，不动物品 |
+| V 钱 | V7 退款到账 | 把 A-Life 人口上限调到最小后点「中介派遣」（造人必然失败） | 提示造人失败；控制台 `refunded <n> Base.Money to <player>`；钞票张数与付款前一致 | `Cash.refund` → `addNotes` → `sendAddItemsToContainer`；联机下另一台客户端也要看到钱回来了 |
+| V 钱 | V8 日薪按沙盒扣 | 沙盒 `DailyWage=5`，雇一名雇员，等跨过一个 24 世界小时 | 每满 24 小时少 5 张钞票；`WageEnabled=false` 时不扣；欠薪超 `UnpaidGraceDays` 后雇员走人 | `Maintain.settleWages`；日志里 `wage` 的数字 |
+| V 共存 | V9 三个口味同时启用，同一个 NPC 只能被一边雇走 | 同时启用三个口味，在橙子口味界面雇一名 NPC，再到钞票口味界面点同一名 NPC 的「收编」 | 第二个界面报「已被其他玩家雇佣」；**钱一分不掉**、不写契约 | `Service.takenBySibling` 遍历 `Config.SIBLING_MODULES`（三个口味时必须列全，见 `docs/design.md` §13.6） |
+| V 界面 | V10 改「侧边栏尺寸」后图标跟着换、不重复 | 游戏选项里把侧边栏尺寸从 1 改到 5（48→128），每档看一眼 | 图标跟着换尺寸档；面板高度把图标算在内；**不出现第二个图标**、也不残留旧图标 | 原版改尺寸会**整体重建**面板（`ISEquippedItem.lua:1059-1068`）⇒ 引用必须挂在面板自己身上；另见 V1 的 hook 日志只有一条 |
+| V 界面 | V11 分屏时 player 1 没有图标 | 2 人分屏，看 2P 那半屏的左侧 | 2P 只有两只手（mainHand/offHand），没有按钮列、也没有我们的图标 —— **这是原版设计**，不是 bug | 原版按钮列整段包在 `if self.chr:getPlayerNum() == 0 then`；我们的 `attach` 对非 0 号玩家直接返回 true |
+| V 联机 | V12 专用服务器上日志正确 | 起专用服（或主机），看服务端日志那一行 | `loaded v0.4.0 \| money=true(cash) alife=… jeem=… \| hooks active=… inactive=…`；**没有**「<经济模组> is missing」这类误报 | 上游口味的缺失告警只在 `MONEY_KIND == "upstream"` 时发；`cash` 的 `available()` 恒 true |
+
+> V4/V5/V7 是这一组里**最值得先跑**的三条：它们覆盖的正是原版钞票最难的三件事
+> （穿戴容器、破捆找零、发包同步），而这三件事在单机下"错了也看不出来"。

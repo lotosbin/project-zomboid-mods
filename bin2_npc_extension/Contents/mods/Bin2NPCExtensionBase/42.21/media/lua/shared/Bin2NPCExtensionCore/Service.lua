@@ -310,15 +310,15 @@ local function factory(NS)
     end
 
     --[[
-        同一个物品里的"另一个口味"是否已经雇了这名 NPC（只读对方的存档表，拿不到就当没有）。
+        同一个物品里的"其它口味"是否已经雇了这名 NPC（只读对方的存档表，拿不到就当没有）。
 
-        两个模组各有一份 ModData，但**同一个 NPC 只能属于一个人**；没有这道互查，
+        每个口味各有一份 ModData，但**同一个 NPC 只能属于一个人**；没有这道互查，
         玩家可以在这个界面雇一次、在另一个界面再雇一次，两边名册同时认领同一个 actor，
         后续指令会互相顶掉（DecisionLoop.orders 一人一槽）。
+        Config.SIBLING_MODULES 是"其它口味"的数组（spec.sibling 给字符串或字符串表都归一化成它，
+        由 tools/check_base.py 断言"必须列全本物品里其它所有口味"）。
     ]]
-    local function takenBySibling(uid)
-        local siblingId = Config.SIBLING_MODULE
-        if type(siblingId) ~= "string" or siblingId == "" then return false end
+    local function siblingHolds(siblingId, uid)
         local sibling = rawget(_G, siblingId)
         if type(sibling) ~= "table" then return false end
         local contracts, store = sibling.Contracts, sibling.Store
@@ -329,6 +329,15 @@ local function factory(NS)
         local okOwner, ownerKey = pcall(contracts.owner, data, uid)
         if not okOwner then return false end
         return ownerKey ~= nil
+    end
+
+    local function takenBySibling(uid)
+        local siblings = Config.SIBLING_MODULES
+        if type(siblings) ~= "table" then return false end
+        for _, siblingId in ipairs(siblings) do
+            if siblingHolds(siblingId, uid) then return true end
+        end
+        return false
     end
 
     --[[

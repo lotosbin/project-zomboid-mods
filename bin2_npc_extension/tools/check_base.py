@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -45,13 +46,20 @@ TEXT_EXT = (".lua", ".json", ".txt", ".info", ".md")
 BASE_OWN_NAMES = (CORE, BASE_MOD, "Bin2NPCBase")
 
 PROFILE_KEYS = (
-    "module", "version", "coreApi", "tag", "sandboxTable", "sibling",
-    "textPrefix", "playerPrefix", "flowItem",
+    "module", "version", "coreApi", "tag", "sandboxTable",
+    "textPrefix", "playerPrefix", "flowItem", "money",
     "economyGlobal", "economyServerGlobal", "economyModId", "economyName", "currencyName",
 )
 
 # 跨口味必须唯一的字段（撞车 = 两边写同一张表 / 抢同一套选项 / 互相盖翻译键）
 UNIQUE_KEYS = ("module", "tag", "sandboxTable", "textPrefix", "playerPrefix", "flowItem")
+
+# 公共层里**允许**出现的"口味 spec 值"：
+#   currencyName 是"钱叫什么"的显示词（钞票 / 金币 / 社区货币）。它不是身份 —— 公共层的
+#   Cash.lua 必须能说清楚"原版钞票物品"这件事，而"钞票"正是原版口味的 currencyName。
+#   真正要防的身份是 module / tag / 表名 / 翻译前缀 / 上游全局名 / 上游 mod id：任何一个
+#   出现在公共层，都意味着某个口味会去写另一个口味的存档、余额或翻译键。
+#   所以下面的取值表里刻意**不含** currencyName。
 
 
 def read(path):
@@ -68,13 +76,25 @@ def walk_text_files(root):
 
 
 def parse_lua_spec(text):
-    """从 Profile.lua 的 spec 表里取出 `key = <字面量>`（字符串或数字）。"""
+    """从 Profile.lua 的 spec 表里取出 `key = <字面量>`（字符串或数字）。
+
+    sibling 有两种写法（见公共层 Namespace.lua）：两个口味时是字符串，三个以上口味时是
+    字符串表。两种都要能解析出来，否则"sibling 不能指向自己"这条断言会在最需要它的时候
+    静默失效（历史上真的漏过一次）。
+    """
     spec = {}
     for key in PROFILE_KEYS:
         match = re.search(r'^\s*%s\s*=\s*("(?:[^"\\]|\\.)*"|\d+)\s*,?\s*$' % key, text, re.M)
         if match:
             raw = match.group(1)
             spec[key] = raw[1:-1] if raw.startswith('"') else int(raw)
+    table_match = re.search(r"^\s*sibling\s*=\s*\{(.*?)\}\s*,?\s*$", text, re.M | re.S)
+    if table_match:
+        spec["sibling"] = re.findall(r'"((?:[^"\\]|\\.)*)"', table_match.group(1))
+    else:
+        match = re.search(r'^\s*sibling\s*=\s*("(?:[^"\\]|\\.)*")\s*,?\s*$', text, re.M)
+        if match:
+            spec["sibling"] = match.group(1)[1:-1]
     return spec
 
 
@@ -110,6 +130,15 @@ def core_api():
     return int(match.group(1))
 
 
+def money_providers():
+    """公共层支持哪些收钱方式：Namespace.lua 的 Core.MONEY_PROVIDERS 表的键。"""
+    path = os.path.join(MODS_DIR, BASE_MOD, VERSION_DIR, "media", "lua", "shared", CORE, "Namespace.lua")
+    match = re.search(r"Core\.MONEY_PROVIDERS\s*=\s*\{(.*?)\}", read(path), re.S)
+    if not match:
+        raise SystemExit("Namespace.lua 里找不到 Core.MONEY_PROVIDERS 声明")
+    return set(re.findall(r"^\s*(\w+)\s*=", match.group(1), re.M))
+
+
 def check_base_isolation(problems, verbose):
     """A. 公共层里不得出现任何口味的身份字面量。"""
     tokens = {}
@@ -117,7 +146,9 @@ def check_base_isolation(problems, verbose):
         spec = parse_lua_spec(read(profile))
         values = [name, spec.get("module", "")] + [spec.get(k, "") for k in
                   ("tag", "sandboxTable", "textPrefix", "playerPrefix", "flowItem",
-                   "economyGlobal", "economyServerGlobal", "economyModId", "economyName", "currencyName")]
+                   "economyGlobal", "economyServerGlobal", "economyModId", "economyName")]
+        if spec.get("sibling"):
+            values += spec["sibling"] if isinstance(spec["sibling"], list) else [spec["sibling"]]
         info = os.path.join(MODS_DIR, name, VERSION_DIR, "mod.info")
         if os.path.isfile(info):
             text = read(info)
@@ -179,7 +210,49 @@ def check_structure(problems):
         problems.append("公共层 mod.info 缺 modversion")
 
 
-def check_flavours(problems, api, verbose):
+def check_sandbox(problems, verbose):
+    """C. 每个口味的沙盒选项：`translation=` / `_tooltip=` / `page=` / enum 各档都要有翻译键。
+
+    这条守的是一类很显眼的线上缺陷：选项界面里显示成 `Bin2NPCExtensionVanilla.SignPrice`
+    这种生键名（沙盒选项不会因为我们少写一条翻译就报错，只会难看）。
+    """
+    for name, _ in sorted(discover_flavours().items()):
+        version = os.path.join(MODS_DIR, name, VERSION_DIR)
+        options_path = os.path.join(version, "media", "sandbox-options.txt")
+        if not os.path.isfile(options_path):
+            problems.append("%s: 缺 media/sandbox-options.txt" % name)
+            continue
+        text = read(options_path)
+        keys = set()
+        for pattern in (r"^\s*translation\s*=\s*([\w.]+)\s*,", r"^\s*_tooltip\s*=\s*([\w.]+)\s*,",
+                        r"^\s*page\s*=\s*([\w.]+)\s*,"):
+            keys.update("Sandbox_" + value for value in re.findall(pattern, text, re.M))
+        enum_count = re.search(r"numValues\s*=\s*(\d+)", text)
+        for value in re.findall(r"^\s*valueTranslation\s*=\s*([\w.]+)\s*,", text, re.M):
+            for index in range(1, int(enum_count.group(1)) + 1 if enum_count else 4):
+                keys.add("Sandbox_%s_option%d" % (value, index))
+
+        for language in ("CN", "EN"):
+            json_path = os.path.join(version, "media", "lua", "shared", "Translate",
+                                     language, "Sandbox.json")
+            if not os.path.isfile(json_path):
+                problems.append("%s: 缺 Translate/%s/Sandbox.json" % (name, language))
+                continue
+            try:
+                data = json.loads(read(json_path))
+            except ValueError as error:
+                problems.append("%s: Translate/%s/Sandbox.json 不是合法 JSON（%s）"
+                                % (name, language, error))
+                continue
+            missing = sorted(key for key in keys if key not in data)
+            if missing:
+                problems.append("%s: %s 的 Sandbox.json 缺 %d 个键（沙盒界面会显示生键名）：%s"
+                                % (name, language, len(missing), ", ".join(missing[:6])))
+        if verbose:
+            print("  %-26s 沙盒选项翻译键 %d 个（CN/EN 都有）" % (name, len(keys)))
+
+
+def check_flavours(problems, api, providers, verbose):
     """B. 每个口味：coreApi 一致、module 与 mod.info 的 id 相同、依赖公共层、字段两两不撞车。"""
     flavours = discover_flavours()
     if not flavours:
@@ -218,15 +291,31 @@ def check_flavours(problems, api, verbose):
                 seen[(key, value)] = name
 
         sibling = spec.get("sibling")
+        listed = []
         if sibling is not None:
-            if sibling == spec.get("module"):
-                problems.append("%s: sibling 指向自己（%r）—— 会让 takenBySibling 读自己的存档，"
-                                "把「重招自己人」误判成「被别人雇走」" % (name, sibling))
-            elif sibling not in flavours:
-                problems.append("%s: sibling=%r 不是本物品里的另一个口味" % (name, sibling))
+            listed = sibling if isinstance(sibling, list) else [sibling]
+            for one in listed:
+                if one == spec.get("module"):
+                    problems.append("%s: sibling 指向自己（%r）—— 会让 takenBySibling 读自己的存档，"
+                                    "把「重招自己人」误判成「被别人雇走」" % (name, one))
+                elif one not in flavours:
+                    problems.append("%s: sibling=%r 不是本物品里的另一个口味" % (name, one))
+        # 多个口味时，"只写一个兄弟"会留下一个可以被两边同时雇走的漏洞：
+        # 同一个 A-Life NPC 只能属于一个人，所以每个口味必须列全其它口味。
+        missing = sorted(other for other in flavours if other != name and other not in listed)
+        if missing and len(flavours) > 1:
+            problems.append("%s: sibling 没列全其它口味，漏了 %s —— 同一个 NPC 会被两边同时雇走"
+                            % (name, ", ".join(missing)))
+        if spec.get("money") not in (None,) and spec.get("money") not in providers:
+            problems.append("%s: Profile 的 money=%r 不是公共层支持的收钱方式（%s）"
+                            % (name, spec.get("money"), ", ".join(sorted(providers))))
         if verbose:
-            print("  %-22s module=%-22s coreApi=%s sibling=%s"
-                  % (name, spec.get("module"), spec.get("coreApi"), spec.get("sibling")))
+            shown = sibling
+            if isinstance(shown, list):
+                shown = "{" + ", ".join(shown) + "}"
+            print("  %-26s module=%-26s coreApi=%s money=%-8s sibling=%s"
+                  % (name, spec.get("module"), spec.get("coreApi"),
+                     spec.get("money", "upstream"), shown))
 
 
 def main():
@@ -236,10 +325,12 @@ def main():
 
     problems = []
     api = core_api()
-    print("== 公共层隔离检查（Core.API = %d）==" % api)
+    providers = money_providers()
+    print("== 公共层隔离检查（Core.API = %d，收钱方式：%s）==" % (api, ", ".join(sorted(providers))))
     check_structure(problems)
     check_base_isolation(problems, args.verbose)
-    check_flavours(problems, api, args.verbose)
+    check_flavours(problems, api, providers, args.verbose)
+    check_sandbox(problems, args.verbose)
 
     if problems:
         print("\n%d 处问题：" % len(problems))

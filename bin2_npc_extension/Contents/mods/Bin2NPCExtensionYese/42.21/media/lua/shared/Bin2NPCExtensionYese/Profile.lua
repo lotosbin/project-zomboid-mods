@@ -25,27 +25,32 @@ end
 
 local NS = Core.namespace({
     module = "Bin2NPCExtensionYese",
-    version = "0.3.0",
-    coreApi = 1,
+    version = "0.4.0",
+    coreApi = 2,
 
-    -- 存档与沙盒：两个口味各一套，互不串档、互不覆盖对方的选项
+    -- 存档与沙盒：三个口味各一套，互不串档、互不覆盖对方的选项
     tag = "Bin2NPCExtensionYese.Contracts.v1",
     sandboxTable = "Bin2NPCExtensionYese",
 
-    -- 同一个工坊物品里的另一个口味：只读它的存档，防止同一个 A-Life NPC 被两边同时雇走
-    sibling = "Bin2NPCExtension",
+    -- 同一个工坊物品里的另外两个口味：只读它们的存档，防止同一个 A-Life NPC 被两边同时雇走
+    -- （三个口味时必须是表；两个口味时可以写字符串，见公共层 Namespace.lua）
+    sibling = { "Bin2NPCExtension", "Bin2NPCExtensionVanilla" },
 
     -- 我们自己的命名空间（翻译键 / 玩家键 / 账单条目）
     textPrefix = "IGUI_Bin2NPCExtensionYese_",
     playerPrefix = "Bin2NPCExtensionYesePlayer_",
     flowItem = "Bin2NPCExtensionYese.contract",
 
+    -- 收钱方式：默认（不写 money）就是用上游经济模组的服务端 Pay/AddCoins
     -- 经济模组（YeseMarket 3735641567）：客户端全局 / 服务端全局 / 工坊 id / 显示名
     economyGlobal = "YeseMarket",
     economyServerGlobal = "YeseMarketServer",
     economyModId = "YeseMarket",
     economyName = "YeseMarket",
     currencyName = "金币",
+
+    -- 入口（经济窗口首页的按钮）装不上时打给人看的那句话
+    uiHint = "is YeseMarket enabled?",
 })
 
 if NS == nil then return nil end          -- coreApi 不符：Core.namespace 已经打过日志

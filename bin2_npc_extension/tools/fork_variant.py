@@ -815,7 +815,8 @@ PRE_SUBS_PATCHES = {
     # 所以先换成哨兵"\x00SIBLING\x00"，全局替换之后在 PROTECT_AFTER 里还原成
     # "Bin2NPCExtension"。tools/check_base.py 会把"sibling 不能指向自己"当断言守着。
     "media/lua/shared/Bin2NPCExtension/Profile.lua": [
-        ('sibling = "Bin2NPCExtensionYese"', 'sibling = "\x00SIBLING\x00"'),
+        ('sibling = { "Bin2NPCExtensionYese", "Bin2NPCExtensionVanilla" }',
+         'sibling = { "\x00SIBLING\x00", "\x00VANILLA\x00" }'),
     ],
 }
 
@@ -829,19 +830,40 @@ PRE_SUBS_PATCHES = {
 PROTECT_BEFORE = [
     ("Bin2NPCExtensionBase", "\x00BASE\x00"),
     ("Bin2NPCExtensionCore", "\x00CORE\x00"),
+    # 第三个口味（原版钞票版）也是"兄弟"：它会出现在 sibling 列表里，
+    # 不保护就会被 GLOBAL_SUBS 切成 Bin2NPCExtensionYeseVanilla
+    ("Bin2NPCExtensionVanilla", "\x00VANILLA\x00"),
 ]
 PROTECT_AFTER = [
     ("\x00BASE\x00", "Bin2NPCExtensionBase"),
     ("\x00CORE\x00", "Bin2NPCExtensionCore"),
     ("\x00SIBLING\x00", "Bin2NPCExtension"),
+    ("\x00VANILLA\x00", "Bin2NPCExtensionVanilla"),
 ]
+
+
+def sub_once(text, old, new, label):
+    """surgical 替换：必须**恰好命中一次**，否则拒绝生成。
+
+    为什么这么严：替换表是"手写的字面量"，源文件被改过（哪怕只是把
+    `sibling = "X"` 改成 `sibling = { "X", "Y" }`）就会静默失配 ——
+    生成物看上去正常，只有那一处悄悄没换。历史上真的发生过：YeseMarket 版的
+    sibling 变成了自己（`Bin2NPCExtensionYeseYese`），重招自己人反而被拒。
+    """
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(
+            "字面量替换未唯一命中（%s，命中 %d 次）：%r\n"
+            "  源文件大概改过了：先看原文，再同步修改 tools/fork_variant.py 的替换表。"
+            % (label, count, old[:120]))
+    return text.replace(old, new)
 
 
 def transform(rel_path, text):
     if rel_path in FILE_OVERRIDES:
         return FILE_OVERRIDES[rel_path]
     for old, new in PRE_SUBS_PATCHES.get(rel_path, []):
-        text = text.replace(old, new)
+        text = sub_once(text, old, new, rel_path + " / PRE_SUBS")
     for old, new in PROTECT_BEFORE:
         text = text.replace(old, new)
     for old, new in GLOBAL_SUBS:
@@ -849,11 +871,17 @@ def transform(rel_path, text):
     for old, new in PROTECT_AFTER:
         text = text.replace(old, new)
     for old, new in FILE_PATCHES.get(rel_path, []):
-        text = text.replace(old, new)
+        text = sub_once(text, old, new, rel_path + " / FILE_PATCHES")
     return apply_regions(rel_path, text)
 
 
 TEXT_EXT = (".lua", ".json", ".txt", ".info", ".md", ".js", ".sh")
+
+# 不由本生成器产出的文件（每个口味一份，内容不该是机械替换的结果）：
+#   poster.png —— 三个口味的海报各有强调色/依赖/入口文案，由 tools/make_images.py 生成。
+#   以前它是"从橙子版复制一份"，所以生成器顺手 copy 了它；现在海报是独立产物，
+#   再 copy 就会把 YeseMarket/原版那张覆盖掉，--check 也会永远报"内容不一致"。
+GENERATED_ELSEWHERE = ("poster.png",)
 
 # test 19 的入口断言按 flavour 不同（见文件末尾的 REGION_PATCHES 填充）
 
@@ -872,13 +900,15 @@ def generate_source_tree(dest_root):
     count = 0
     for dirpath, _, filenames in os.walk(src_version_root):
         for name in sorted(filenames):
+            if name in GENERATED_ELSEWHERE:
+                continue
             src = os.path.join(dirpath, name)
             rel = os.path.relpath(src, src_version_root)
             dest_rel = os.path.join(TARGET_MOD, VERSION_DIR, rename_path(rel))
             dest = os.path.join(dest_root, dest_rel)
             if name.lower().endswith(TEXT_EXT):
                 write(dest, transform(rel, read(src)))
-            else:                                   # 二进制（poster.png 等）原样复制
+            else:                                   # 二进制（.png 图标等）原样复制
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 shutil.copy2(src, dest)
             count += 1
@@ -912,6 +942,8 @@ def compare_tree(a_root, b_root, verbose):
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d != "node_modules"]
             for name in filenames:
+                if name in GENERATED_ELSEWHERE:
+                    continue
                 full = os.path.join(dirpath, name)
                 files[os.path.relpath(full, root)] = full
         return files
@@ -1022,9 +1054,25 @@ def main():
 
         if args.write:
             dest_mod = os.path.join(MODS_DIR, TARGET_MOD)
+            # 变体目录会被整棵重建，所以先把"由别的工具生成"的文件（海报）读进内存，
+            # 重建之后再放回去 —— 否则 --write 会把 YeseMarket 那张海报删掉。
+            keep = {}
             if os.path.isdir(dest_mod):
+                for dirpath, _, filenames in os.walk(dest_mod):
+                    for name in filenames:
+                        if name in GENERATED_ELSEWHERE:
+                            full = os.path.join(dirpath, name)
+                            keep[os.path.relpath(full, dest_mod)] = read_bytes(full)
                 shutil.rmtree(dest_mod)
             shutil.copytree(os.path.join(tmp, "mods", TARGET_MOD), dest_mod)
+            for rel, data in keep.items():
+                out = os.path.join(dest_mod, rel)
+                os.makedirs(os.path.dirname(out), exist_ok=True)
+                with open(out, "wb") as handle:
+                    handle.write(data)
+            if keep:
+                print("保留非本生成器产出的文件：%s（由 tools/make_images.py 生成）"
+                      % ", ".join(sorted(keep)))
             dest_test = os.path.join(HERE, "test-yese")
             if os.path.isdir(dest_test):
                 shutil.rmtree(dest_test)

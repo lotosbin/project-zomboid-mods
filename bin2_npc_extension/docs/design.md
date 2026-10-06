@@ -1,9 +1,13 @@
 # bin2_npc_extension 设计文档
 
-> 目标模组：`Bin2NPCExtension`（物品目录 `bin2_npc_extension`）
-> 依赖：`OrangeCommunityEconomy`（必需）、`ProjectALifeNPCs`（需要）、`ProjectALifeJimmy`（可选）
-> 版本：0.2.2（2026-10-05）｜ 工坊 id：3813914438（已发布，物品内含两个模组）
-> 状态：**已进游戏跑通基础流程，完整清单（T1~T18）未跑完**
+> 目标：工坊物品 `bin2_npc_extension`（内含 **4 个模组**：公共层 `Bin2NPCExtensionBase` + 三个口味
+> `Bin2NPCExtension` / `Bin2NPCExtensionYese` / `Bin2NPCExtensionVanilla`）
+> 依赖：公共层零依赖；三个口味都要 `ProjectALifeNPCs`（需要）与 `ProjectALifeJimmy`（可选）；
+> 橙子口味另需 `OrangeCommunityEconomy`，YeseMarket 口味另需 `YeseMarket`，
+> **原版钞票口味（§13）不需要任何经济模组**
+> 版本：0.4.0（2026-10-06）｜ 工坊 id：3813914438（已发布，public）
+> 状态：橙子口味已进游戏跑通基础流程；**YeseMarket 与 原版钞票 口味尚未进游戏验证**；
+> 完整清单（`docs/test-plan.md`）未跑完
 
 ---
 
@@ -334,7 +338,7 @@ follow   → Alife.orderFollow(player, uid, quiet)
 
 ### 11.3 跨模组互查：同一个 NPC 不能被两边同时雇走
 
-两个模组各有一份 ModData、各自独立的名册。没有互查的话，玩家可以在两个界面各雇一次同一个 actor，
+三个口味各有一份 ModData、各自独立的名册。没有互查的话，玩家可以在三个界面各雇一次同一个 actor，
 两边都认为自己拥有它，而 `DecisionLoop.orders` 是**一人一槽**，指令会互相顶掉。
 
 `Service.hireExisting` 里加了一道**只读**互查（`takenBySibling`）：读 `Config.SIBLING_MODULE` 指向的模组的
@@ -354,7 +358,7 @@ follow   → Alife.orderFollow(player, uid, quiet)
 
 除橙子版的 T1~T18 外，YeseMarket 版要额外测：导航栏那一行是否出现且位置正确、
 点它是否切到招募页、Ctrl+Alt+N 是否也能开、`Open` 后是否停在招募页而不是首页、
-以及两个模组同时启用时同一名 NPC 只能被一边雇走。
+以及三个口味同时启用时同一名 NPC 只能被一边雇走。
 
 ### 11.6 进游戏第一轮暴露的两个问题（v0.2.1 修复）
 
@@ -473,7 +477,7 @@ follow   → Alife.orderFollow(player, uid, quiet)
 
 ### 12.1 为什么要抽
 
-同一个工坊物品里两个口味（§11）的 A-Life / Jeem 适配、契约模型、维护循环、命令路由
+同一个工坊物品里三个口味（§11、§13）的 A-Life / Jeem 适配、契约模型、维护循环、命令路由
 **完全同源**，靠 `tools/fork_variant.py` 复制一份。代价是"上游一改就得改两处"，
 而最容易改的恰恰是 A-Life 适配层 —— 生成器的 `--check` 只能防"有人手改变体"，
 防不了"两份都在、但改的时候漏了一处"。v0.3.0 把这一层变成**只有一份代码**。
@@ -514,7 +518,7 @@ Bin2NPCExtension = NS
   server 层文件来表达 —— 所以口味那边留了两个各 5 行的 `Bootstrap.lua`。
 * `Core.API` 与 spec 里的 `coreApi` 必须相等，否则口味打一行
   `public layer mismatch: … Update the whole workshop item (all three mods ship in the same item)`
-  并**停用自己**（返回 nil，不抛异常）。这是"同一个物品拆成三个模组"最典型的坏法：只更新了一半。
+  并**停用自己**（返回 nil，不抛异常）。这是"同一个物品拆成四个模组"最典型的坏法：只更新了一半。
 
 ### 12.4 引擎依据（先证后改：全部来自 `projectzomboid.jar` 的字节码）
 
@@ -534,7 +538,7 @@ Bin2NPCExtension = NS
 
 | 工具 | 守什么 |
 | --- | --- |
-| `tools/check_base.py` | ① 公共层里不出现任何口味身份字面量（身份值从各口味 Profile 的 spec 里**反推**出来，含工坊 id 与中文片段）；② `coreApi` 与 `Core.API` 相等、`module` 与 `mod.info` 的 id 一致、`modversion` 与 spec 的 `version` 一致；③ 两个口味的 `module/tag/sandboxTable/textPrefix/playerPrefix/flowItem` **两两不同**（撞车=写同一张表/抢同一套选项/互相盖翻译键）；④ `sibling` 必须指向**另一个**口味，不能是自己 |
+| `tools/check_base.py` | ① 公共层里不出现任何口味身份字面量（身份值从各口味 Profile 的 spec 里**反推**出来，含工坊 id 与中文片段）；② `coreApi` 与 `Core.API` 相等、`module` 与 `mod.info` 的 id 一致、`modversion` 与 spec 的 `version` 一致；③ 各口味的 `module/tag/sandboxTable/textPrefix/playerPrefix/flowItem` **两两不同**（撞车=写同一张表/抢同一套选项/互相盖翻译键）；④ `sibling` 必须指向**其它**口味（不能是自己），并且**必须列全**其它每一个口味 —— 漏一个就留出一个「同一个 NPC 被两边同时雇走」的漏洞；⑤ `money` 必须是公共层支持的收钱方式（见 §13.2） |
 | `tools/extract_base.py --from-git <抽取前的提交>` | 抽取那次机械搬移的**可复现差异报告**（本次：12 个文件一致、274 行改动）。Base 之后被手改过它当然会报差异 —— 那是预期的，之后事实来源就是 Base |
 | `tools/fork_variant.py --check` | YeseMarket 口味 + 它的测试套件仍是生成物，没有被手改 |
 | 两套离线测试（各 40 条） | 行为没变 —— 这才是"抽取没改坏东西"的**持续**保证，文本 diff 只是迁移那一次的快照 |
@@ -578,4 +582,284 @@ Bin2NPCExtension = NS
    切开的那一下正好制造了一个只在变体里出现的 bug，而且极难从现象反推。
 4. **不变量要写成可执行断言，不要只写在文档里。** `check_base.py` 的四条断言里有一条
    直接抓出了一个上线了好几轮的真 bug。
+---
 
+## 13. 第三个口味：原版钞票版（`Bin2NPCExtensionVanilla`）
+
+### 13.1 定位：一个经济模组都不装也能雇人
+
+前两个口味（§11）都是"经济模组 × A-Life"：钱走经济模组的服务端账本，入口挂经济模组的界面。
+第三个口味把这两个前提都去掉：
+
+| | 橙子口味 | YeseMarket 口味 | **原版钞票口味** |
+| --- | --- | --- | --- |
+| 钱 | `OrangeTradingModServer.Pay` | `YeseMarketServer.Pay` | **原版物品 `Base.Money` / `Base.MoneyBundle`** |
+| 需要经济模组 | 是（硬依赖） | 是（硬依赖） | **否** |
+| 入口 | 经济界面首页按钮 | YeseMarket 导航栏插一行 | **原版左侧竖排图标栏（`ISEquippedItem`）里的一个 NPC 图标** |
+| UI 容器 | `UIPrimitives.CreateCardGrid` | `CreateList` + `doDrawItem` | **自己画的 `ISUI`（`ui/Panel.lua`）** |
+| 账单/流水 | 有（`RecordPlayerFlow`） | 有 | 无（原版没有账单系统，`Cash.flow()` 如实返回 false） |
+
+它同时是"钱从哪来"这个抽象的**第一个非经济模组实现** —— 正是它逼出了 §13.2 的可换接口。
+逆向证据：`docs/research/vanilla-money-integration.md`（钱）与 `docs/research/vanilla-sidebar-entry.md`（入口）。
+
+### 13.2 钱的接口是可换实现
+
+公共层不给"经济模组"写死任何假设，只认一组方法；谁来实现由 spec 决定：
+
+```lua
+-- Bin2NPCExtensionCore/Namespace.lua
+Core.API = 2
+Core.MONEY_PROVIDERS = { upstream = "Economy", cash = "Cash" }
+-- Core.bind 里：NS.Economy = require("Bin2NPCExtensionCore/" .. Core.MONEY_PROVIDERS[NS.MONEY_KIND])(NS)
+```
+
+口味在 `Profile.lua` 的 spec 里写 `money = "cash"`；**省略就是 `"upstream"`**（老口味不用改）。
+`Service` / `Maintain` 只认 `Config.Economy` 上的这组方法，看不见背后是谁：
+
+| 方法 | 语义 | `upstream`（`Economy.lua`） | `cash`（`Cash.lua`） |
+| --- | --- | --- | --- |
+| `available()` | 收钱这件事现在能不能用 | 服务端 `Pay`/`AddCoins` 在位 | 恒 `true`（原版钞票永远可用），钱不够留给 `pay` |
+| `balance(player)` | 余额；**读不到返回 `nil`**（与 0 区分） | 上游 `PlayerData(player).coins` | 遍历主背包 + 穿戴容器的钞票/捆（捆按 100） |
+| `pay(player, amount)` | 扣款，返回 `ok, why` | 上游 `Pay` + 记流水 | 先散钞、不够破捆找零（§13.3b） |
+| `refund(player, amount)` | 退款 | 上游 `AddCoins` + 记流水 | 新发钞票 + 显式发包 |
+| `flow(...)` | 记一笔流水（**可为空实现**） | `RecordPlayerFlow` | 恒 `false`（原版没有账单） |
+| `wage()` | 每名雇员的日薪 | 沙盒 `DailyWage` | 同一套沙盒选项（只是钱从哪来不同） |
+
+两条设计决定：
+
+* **`Core.API` 从 1 升到 2。** 这一版其实是**加字段**（`spec.money`、`NS.MONEY_KIND`、`spec.uiHint`），
+  老口味不加也能跑；但仍然按接口变更处理，因为"只更新了一半的工坊物品"必须被拦下 ——
+  新口味要的 `Cash.lua` 在旧公共层里**不存在**，`require` 失败只会让 `NS.Economy` 变成 nil，
+  在游戏里表现为"没有经济模组"这种最坏的静默降级。升版本号让 `coreApi` 守卫（§12.3）把它变成
+  一条明确的"请更新整个工坊物品"日志。
+* **认不出的 `money` 直接拒绝建命名空间**，而不是 `pcall` 兜底成 `upstream`：
+  `Core.namespace` 遇到 `Core.MONEY_PROVIDERS[kind] == nil` 会打
+  `unknown money provider %q (this public layer supports: …)` 并返回 nil。
+
+### 13.3 原版钞票的三条引擎事实
+
+三条都写在 `Cash.lua` 的文件头，也都有可复现的证据。
+
+**(a) `Base.Money` 一张 = 1 个单位，`Base.MoneyBundle` 一捆 = 100 张。**
+唯一依据是游戏自己的配方，不是引擎常量：
+
+```
+media/scripts/generated/recipes/recipes_packing.txt:168-182
+    craftRecipe UnbundleMoney
+        inputs  { item 1 [Base.MoneyBundle] flags[AllowFavorite;InheritFavorite], }
+        outputs { item 100 Base.Money, }
+media/scripts/generated/items/normal.txt:8656   DoubleClickRecipe = UnbundleMoney   （双击拆捆）
+```
+
+物品本体：`normal.txt:8636` `item Money`（weight 0.01，`base:fitswallet`）、
+`normal.txt:8647` `item MoneyBundle`（weight 0.5）。⇒ `Cash.BUNDLE_VALUE = 100`。
+
+> **未证实**：这是**配方约定**而不是引擎常量。将来的原版更新若改配方数字，`100` 就错了。
+> 验证/加固方法（`vanilla-money-integration.md` §1.2 末尾也写了）：运行时从配方读
+> （`getScriptManager():getRecipe("UnbundleMoney")` → outputs 里 `Base.Money` 的 count），
+> 或至少在 `available()` 里断言 `FindItem("Base.MoneyBundle") ~= nil`。
+
+**(b) B42 没有"堆叠数量"这回事 —— 所以没有"部分扣除/找零"的引擎原语。**
+
+```bash
+$ javap -p -c .../zombie/inventory/InventoryItem.class | sed -n '/boolean CanStack(zombie.inventory.InventoryItem)/,+3p'
+  public boolean CanStack(zombie.inventory.InventoryItem);
+       0: iconst_0
+       1: ireturn                       # 恒 false（CanStackNoTemp 同样是 iconst_0; ireturn）
+```
+
+* `count` 字段恒为 1：`setCount` 只是一句 `putfield`，不联网、不落盘、不进 `SyncItemFieldsPacket`
+  （逐引用计数见 `vanilla-money-integration.md` §1.3）。
+* 全游戏 Lua **零处** `:setCount(`：
+
+  ```bash
+  $ grep -rn ":setCount(" "$PZ/media/lua" | wc -l
+  0
+  ```
+
+⇒ 一个钞票实例永远值 1，"给一捆收 30、找回 70"**只能靠删掉一捆 + 新发 70 张**。
+所以 `Cash.pay` 的策略是固定的四步（见 `Cash.lua` 的 `pay`）：
+
+1. 先确认 `balance >= price`，**不够就一个物品都不动**直接 `return false, "no_funds"`；
+2. 花散钞：一张 1 个单位，`RemoveAll(Cash.ITEM, n)` 删 n 个实例；
+3. 散钞不够就**破捆**：删 1 捆（=100），多出来的当场**新发钞票**找零；
+4. 走到"删完还不够"只可能是并发改包，如实失败并 `warn`（`cash payment short by …`）。
+
+**(c) 穿在身上的容器不在主背包里 —— 数钱必须自己补，改钱必须自己发包。**
+
+```bash
+$ javap -p -c .../zombie/characters/IsoGameCharacter.class   # setWornItem(ItemBodyLocation, InventoryItem, boolean)
+       160: invokestatic  GameServer.sendRemoveItemFromContainer(ItemContainer, InventoryItem)
+       164: invokevirtual getInventory()
+       169: invokevirtual ItemContainer.Remove(InventoryItem)
+```
+
+⇒ 背包/腰包一旦被 `setWornItem` 穿上，就**从 `getInventory()` 里被 Remove 掉**，
+所以 `player:getInventory():getCountTypeRecurse(...)` **数不到背着的钱袋**。
+`Cash.rootContainers` 因此另外遍历 Human 身体部位：
+
+```lua
+BodyLocations.getGroup("Human") → group:getLocationByIndex(i) → player:getWornItems():getItem(location:getId())
+                                → item:getInventory()
+```
+
+（容器内部的嵌套 —— 背包里的钱包 —— 由 `getCountTypeRecurse` / `getItemsFromType(type, true)`
+的 recurse 参数覆盖，不用自己递归。`BodyLocations` 在世界初始化前可能为 nil，全程 `pcall`。）
+
+联机那半条同样重要：`AddItem` / `Remove` / `RemoveAll` **都不发包**，
+`setDrawDirty(true)` 只是**本地 UI 脏标记**。真正的同步是引擎全局：
+
+```lua
+sendRemoveItemsFromContainer(container, removedList)   -- 删了钱之后
+sendAddItemsToContainer(container, addedList)          -- 发了钱之后（退款/找零）
+```
+
+原版先例：`media/lua/server/ClientCommands.lua`、`BuildingObjects/campingCampfire.lua`、
+`ISShovelGround.lua`。非服务器进程里这两个调用是**精确 no-op**
+（`INetworkPacket.send` 首指令就判 `GameServer.server`），所以单机/主机下照调不误。
+
+### 13.4 入口：挂进原版左侧竖排图标栏（`ISEquippedItem`）
+
+`ISEquippedItem` 就是屏幕上那一列「心/背包/建造/家具/地图」。挂接方式（证据：`vanilla-sidebar-entry.md` §2.1）：
+
+* **后置 hook `ISEquippedItem:initialise`**：跑完原版 `initialise` → `attach(self)` 追加自己的
+  `ISButton` → 再调一次 `self:shrinkWrap()`。
+* **`shrinkWrap` 只统计 `Type == "ISButton"` 的子元素**（`ISEquippedItem.lua:972-984` 的零参覆写版），
+  而 `ISButton = ISPanel:derive("ISButton")` 会给实例打上 `Type`，所以我们的按钮会被自动计入面板高度。
+  ⚠ 这和方法 `ISUIElement:shrinkWrap(padRight, padBottom, predicate)` 是**两个不同实现**，别混。
+* **只能追加在最后**：插在中间就得平移原版所有按钮的 y，而原版在 `initialise` 里就把
+  `movableTooltip` / `movablePopup` 的坐标按 `movableBtn:getY()` **写死**了
+  （`ISEquippedItem.lua:807-812`，后者还已经 `addToUIManager()`）。整体下移会让这两个浮层错位。
+* **原版按钮列只在 `player 0` 建**（整段包在 `if self.chr:getPlayerNum() == 0 then`，
+  `ISEquippedItem.lua:737…:967`）。分屏 player 1+ 只有 mainHand/offHand 两个 `ISImage`，
+  我们的 `attach` 对非 0 号玩家直接返回 true（**不去造**，这是原版的设计）。
+* **`TEXTURE_WIDTH` / `TEXTURE_HEIGHT` / `setTextureWidth()` 是对方文件级 local**（`:4-8`），
+  模组读不到、也调不到。所以尺寸一律**从原版按钮上量**（`panel.invBtn:getWidth()`，
+  依次退到 `healthBtn`/`craftingBtn`/`mapBtn`），再吸附到 `{48,64,80,96,128}` 最近的一档 ——
+  不自己复刻 `getOptionSidebarSize()` 的映射（它还有一个 `size == 6 → getOptionFontSizeReal()-1`
+  的分支，复刻容易错）。
+* **改"侧边栏尺寸"时原版会整体重建面板**：`prerender` 第一行 `checkSidebarSizeOption()`
+  发现选项变了就 `setVisible(false)` + `removeFromUIManager()` + `launchEquippedItem()` 换一个新实例
+  （`:1059-1068`）。所以**按钮引用只能挂在面板自己身上**（`panel.bin2NpcIcon`），挂模块级全局会指向
+  已经死掉的那个面板。副作用是正面的：面板重建 → `initialise` 重跑 → 我们的按钮自动以新尺寸重生。
+* 两态贴图跟着窗口开关走（开着用 `On`）：hook `prerender` 里 `refreshIcon(self)`，同时在
+  `panel.bin2NpcIcon == nil` 时补一次 `attach`（重载 Lua / 重进世界时原版面板可能已经建好了）。
+* 幂等/防 Reset Lua 的判据是**类表的身份**（`Icon.hooked ~= class`），与 §12 里 `Events` 表身份的写法同源。
+* `Icon.install()` 在 `ISEquippedItem` 缺失或被别的模组换成非函数时**如实返回 false**，
+  由公共层的 `ClientBootstrap` 继续重试并在试满 `Config.UI_RETRY_MAX` 次后打印口味自己的
+  `spec.uiHint`（公共层不猜入口为什么装不上 —— 三个口味的入口形态完全不同）。
+* 热键与图标走同一条路：`Icon.open()` → `Config.RecruitPanel.toggle(player)`；**Ctrl+Alt+N 永远可用**，
+  即使侧边栏图标没装上（翻译文案里承诺了它）。
+
+### 13.5 贴图与版本目录：`42.21/media` 里的资产引擎找得到
+
+贴图路径是原版**拼出来的**：`media/ui/Sidebar/<尺寸>/<名字>_<On|Off>_<尺寸>.png`，
+而我们的模组把 `media/ui` 放在**版本目录** `42.21/` 下。这一步找不找得到，离线检查（语法/测试/生成器一致性）全都看不出来。
+
+证据来自 `ChooseGameInfo$Mod` 上引擎自己解析出来的字段：
+
+```java
+public java.lang.String dir;         // 模组根
+public java.lang.String versionDir;  // 版本子目录（B42 的 42.21）
+public final PZModFolder mediaFile;  // media 的两套：common（模组根）/ version（版本目录）
+```
+
+`tools/modinfo_probe/TextureProbe.java` 直接把这两个目录打印出来，再用 `java.io.File` 逐个确认存在。
+本机实测（`tools/modinfo_probe/run.sh`）：
+
+```
+media.common  : …/Contents/mods/Bin2NPCExtensionVanilla/common/media
+media.version : …/Contents/mods/Bin2NPCExtensionVanilla/42.21/media
+OK   ui/Sidebar/48/NPC_Off_48.png   1862 bytes  <- … (media.version)
+…（5 档 x 2 态）
+ALL PATHS RESOLVED
+```
+
+⇒ **放在版本目录里的贴图能被找到**（10 个路径全部由 `media.version` 解析）。
+尺寸由 `tools/make_icons.py` 生成并自检（`--check`：48x36 / 64x48 / 80x60 / 96x72 / 128x96，RGBA）。
+
+> **未证实**：这是"引擎的 media 目录解析"这一层的证据，**不等于**实机 `getTexture` 一定拿到图
+> （纹理走的是 texture pack 那条链，见 `vanilla-sidebar-entry.md` §3.5）。验证方法：进游戏后看
+> `~/Zomboid/console.txt` 有没有该 `getTexture` 的缺图告警，或用 debug 的 Texture Viewer 搜 `NPC_On_48`。
+
+### 13.6 `sibling` 从"一个"变成"一张表"
+
+三个口味必须**两两互查** —— 同一个 A-Life NPC 只能属于一个人。所以：
+
+* `spec.sibling` 接受**字符串**（两个口味）或**字符串表**（三个以上口味），
+  `Core.namespace` 统一归一化成数组 `NS.SIBLING_MODULES`（`NS.SIBLING_MODULE` 保留第一个供旧调用点读）；
+* 指向自己的项会被**丢掉并打一条 WARN**（`spec.sibling points at this mod itself; ignored`）——
+  这是给 §12.6 那个历史 bug 留的运行时兜底；
+* `Service.takenBySibling` 遍历整张表，任一兄弟口味雇过这名 NPC 就报 `taken_by_other`。
+
+守卫加在 `tools/check_base.py` 上（它在 N 个口味上都成立）：
+
+| 断言 | 防的是什么 |
+| --- | --- |
+| `sibling` 不能指向自己 | §12.6 的历史 bug："你雇过这个人"被读成"别人雇了他" |
+| 每个列出的 sibling 必须是本物品里真实存在的口味 | id 拼错 |
+| **`sibling` 必须列全其它每一个口味** | 漏一个就留下"同一个 NPC 被两边同时雇走"的漏洞 |
+| `money` 必须是公共层支持的收钱方式 | 见 §13.2 |
+
+生成器侧同时收紧（`tools/fork_variant.py`）：
+
+* `PRE_SUBS_PATCHES` 现在处理三个口味的情形：
+  `sibling = { "Bin2NPCExtensionYese", "Bin2NPCExtensionVanilla" }` → 两个哨兵；
+* `PROTECT_BEFORE` 增加 `Bin2NPCExtensionVanilla → \x00VANILLA\x00`（否则全局替换会把它切成
+  `Bin2NPCExtensionYeseVanilla`）；
+* **所有外科手术式替换都改走 `sub_once`：必须恰好命中一次，否则 `SystemExit` 拒绝生成。**
+  这条是针对一个真实事故加的：替换表是手写的字面量，源文件被改过（哪怕只是把
+  `sibling = "X"` 改成 `sibling = { "X", "Y" }`）就会**静默失配** ——
+  生成物看上去正常，只有那一处悄悄没换。历史上真的发生过：变体的 `sibling` 被翻成了自己
+  （`Bin2NPCExtensionYeseYese`），于是重招被解雇/阵亡过的自己人反而被拒。
+
+### 13.7 沙盒默认值：原版口味刻意更便宜
+
+公共层的 `Config.DEFAULTS`（两个经济口味用的兜底值）与钞票口味的 `sandbox-options.txt` 对比：
+
+| 选项 | 公共层默认 | 原版钞票口味 | 理由 |
+| --- | --- | --- | --- |
+| `SignPrice` | 500 | **50** | 一捆钞票 = 100 张；500 等于"先攒五捆"，开局不可达 |
+| `SpawnPrice` | 1500 | **200** | 同上；派遣本来就该比收编贵 |
+| `DailyWage` | 20 | **5** | 日薪按"玩家能捡到多少钞票"定价，不按经济模组的通胀 |
+| 其余（`MaxContracts` / `RecruitRadius` / `AllowHostile` / `MakeAllied` / `SpawnDistance` / `WageEnabled` / `UnpaidGraceDays` / `DefaultMode` / `CreateCamp` / `DebugLog`） | 3 / 6 / false / true / 2 / true / 1 / 1 / true / false | **与公共层相同** | — |
+
+> **未证实**：这三个数字是**设计取值**，没有做过经济平衡测试（钞票在世界里的实际掉落率）。
+> 验证方法：进游戏跑 V8（日薪按沙盒扣），并在 `docs/test-plan.md` 记录"一捆钱大概能雇几次"。
+
+**两处默认值必须一致**：游戏里真正生效的是本口味的 `media/sandbox-options.txt`（`SandboxVars`
+由它生成），而公共层的 `Config.DEFAULTS` 只是"整个沙盒表读不到"时的兜底（例如存档早于模组的沙盒表）。
+两边不一致的后果是：那种边角情况下会**显示/收取另一套价格**（原版口味一开始差了 10 倍）。
+所以 `spec.defaults` 允许口味覆盖兜底值，本口味的 `Profile.lua` 写着：
+
+```lua
+defaults = { SignPrice = 50, SpawnPrice = 200, DailyWage = 5 },
+```
+
+`Config.lua` 建 `DEFAULTS` 时套用这份覆盖（只覆盖它列出的键）；
+`tools/test-vanilla` 的用例 23 把「随包发布的默认值 = 公共层兜底值 = 沙盒表缺失时的取值」三条一起钉住。
+
+### 13.8 未证实清单（写工坊声明时不要美化）
+
+| 事项 | 状态 | 验证方法 |
+| --- | --- | --- |
+| 原版钞票口味的**任何**游戏内行为 | **完全未进游戏验证** | 按 `docs/test-plan.md` 的 V1~V12 跑 |
+| 100:1 的面值 | 配方约定，非引擎常量 | 从配方读，或至少断言 item 存在（§13.3a） |
+| `42.21/media/ui/...` 实机加载成功 | 引擎目录解析已证，`getTexture` 未证 | 看 `console.txt` 缺图告警 / Texture Viewer（§13.5） |
+| 128 档侧边栏下图标是否超出屏幕底部 | 源码手算：原版面板高 ≈ `8W+135`，128 档 ≈1159，追加按钮后 ≈1270（1080p 越界） | 游戏内把侧边栏尺寸切到 128，打印 `getPlayerData(0).equipped:getHeight()`（`vanilla-sidebar-entry.md` §2.1） |
+| 分屏 player 1 真的看不到按钮列 | 源码级结论（按钮列只给 player 0 建） | 2 人分屏，看 2P 屏幕左侧是否只有两只手 |
+| 离线测试套件（`tools/test-vanilla`） | 目录已落地但**本文写作时尚未跑绿**：`ui/Panel.lua` 加载时缺 mock 全局 `ISCollapsableWindowJoypad` | 跑 `tools/test-vanilla/run_lua_test.sh --quick`，补齐 mock 后由该套件自己给出数字 |
+
+### 13.9 沉淀的判断
+
+1. **"钱"要抽象成接口，判断依据是"有没有第二种实现"。** 抽公共层（§12）时刻意没动钱包逻辑，
+   只把访问路径收敛到 `Config.economyServer()` / `Config.TAG`；等到原版钞票口味出现，
+   加一个 `Core.MONEY_PROVIDERS` 就够了 —— 如果当时写成 `if economy == "orange" then`，现在就要改两处。
+2. **接口加字段也要升 `Core.API`。** 老口味不加新字段照样跑，但"半个物品没更新"必须被拦下，
+   而它最坏的形态不是报错，是**静默降级成"没有经济模组"**。
+3. **B42 的钞票没有堆叠 ⇒ 一切"部分扣除"都必须变成"删除 + 新发"。** 这条引擎事实决定了
+   `pay`/`refund` 的整个形状，而且它只在字节码和配方里写着，文档里查不到。
+4. **引擎帮你"看不见"的东西，往往正是你要操作的东西。** 穿在身上的容器被 `setWornItem` 从主背包
+   摘掉了 —— 数钱会漏、改钱会错，而且单机下完全看不出来（发包是 no-op，错了也不报错）。
+5. **生成的资产放版本目录是对的，但要拿引擎自己的目录字段证明**（`ChooseGameInfo$Mod.mediaFile`），
+   不能靠"看起来应该能找到"。

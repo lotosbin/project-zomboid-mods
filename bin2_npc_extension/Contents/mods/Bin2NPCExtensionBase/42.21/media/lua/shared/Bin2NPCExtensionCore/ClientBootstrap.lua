@@ -17,13 +17,14 @@ local function factory(NS)
         Bin2NPCExtensionCore :: ClientBootstrap（公共层工厂）
 
         客户端只做三件事（全部由 ClientBootstrap.install() 触发，口味的 client 层文件负责调用）：
-          1. 把招募页注册进经济模组并装上入口（对方可能比我们晚就绪 → 重试到成功为止）；
-          2. 挂一个热键（Ctrl+Alt+N）—— 对方全库没有任何按键绑定，不会冲突；
+          1. 让口味把招募界面的入口装上（可能是上游经济模组窗口里的一个按钮，
+             也可能是原版左侧侧边栏里的一个图标；对方可能比我们晚就绪 → 重试到成功为止）；
+          2. 挂一个热键（Ctrl+Alt+N）—— 上游经济模组全库没有任何按键绑定，不会冲突；
           3. 进世界时打一行自检日志（依赖状态 + 是否接上了 UI）。
 
-        页面的**容器**（ui/Page.lua、ui/Entry.lua）是口味自己实现的：不同经济模组的 UI 原语
-        不一样，这一层没法共用。这里只依赖它的两个契约入口：Config.Entry.install / .open
-        与 Config.RecruitPage.ID，且都按"可能还没就绪"探测。
+        界面的**容器**（ui/Panel.lua、ui/Entry.lua 或 ui/Icon.lua）是口味自己实现的：不同
+        宿主（各家经济模组的 UI 原语、原版 ISUI）差别太大，这一层没法共用。这里只依赖它的
+        契约入口：Config.Entry.install / .open，都按"可能还没就绪"探测。
     ]]
 
     local Config = NS
@@ -89,13 +90,14 @@ local function factory(NS)
 
     local function onGameStart()
         Bootstrap.tryInstall()
-        local ui = Config.economy()
-        Config.always(string.format("client ready v%s | economy=%s page=%s",
+        -- 一行自检：钱从哪来（money=收钱方式）、有没有上游经济模组的客户端全局、
+        -- 我们的入口有没有装上去。三个口味的入口形态完全不同（首页按钮 / 导航行 / 左侧图标），
+        -- 所以这里只报"装没装上"，具体入口见各口味 ui/Entry.lua 自己的日志。
+        Config.always(string.format("client ready v%s | money=%s economy=%s ui=%s",
             Config.VERSION,
-            tostring(ui ~= nil),
-            tostring(ui ~= nil and ui.UIPageRegistry ~= nil
-                and type(ui.UIPageRegistry.Has) == "function"
-                and ui.UIPageRegistry.Has(Config.RecruitPage.ID) == true)))
+            tostring(Config.MONEY_KIND),
+            tostring(Config.economy() ~= nil),
+            tostring(installed)))
         Config.always("hotkey: Ctrl+Alt+N = NPC recruit panel")
     end
 
@@ -106,8 +108,10 @@ local function factory(NS)
         lastTryMs = now
         retries = retries + 1
         if not Bootstrap.tryInstall() and retries >= Config.UI_RETRY_MAX then
-            Config.warn("gave up installing the recruit page after " .. tostring(retries)
-                .. " attempts; is " .. Config.ECONOMY_MOD_ID .. " enabled?")
+            -- 排障提示由口味自己给（spec.uiHint）：三个口味的入口装不上的原因完全不同，
+            -- 公共层不猜（历史上这里写的是"is <经济模组 id> enabled?"，对原版口味毫无意义）。
+            Config.warn("gave up installing the recruit entry after " .. tostring(retries)
+                .. " attempts; " .. tostring(Config.UI_HINT))
         end
     end
 
@@ -116,8 +120,16 @@ local function factory(NS)
             require("Bin2NPCExtensionCore/ClientBootstrap")(NS).install()
 
         调用前口味的 client 层必须已经把 ui/Entry（连带 ui/Page）加载好。
+
+        **install() 自身幂等**：判据是 Events 表的身份（见文件头那段"防 Reset Lua 重入"的说明）。
+        工厂里那道判据只保证"同一个 NS 不会被建两次"，挡不住"install 被调两次" ——
+        而引擎 Reset Lua 会**重跑所有 Lua 文件**，口味的 client/Bootstrap.lua 会再调一次 install；
+        没有这道闸，`OnTick` 会注册两遍（Maintain 每帧跑两次），Ctrl+Alt+N 会"开了又关"。
     ]]
     function Bootstrap.install()
+        if Config.ClientBootstrapInstalledEvents == Events then return Bootstrap end
+        Config.ClientBootstrapInstalledEvents = Events
+
         -- 回包通道属于客户端接线，跟着一起装（Net 本身由 Profile 在 shared 层实例化）
         local Net = Config.Net
         if Net ~= nil and type(Net.install) == "function" then Net.install() end

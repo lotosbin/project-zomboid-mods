@@ -143,8 +143,10 @@ local function factory(NS)
                 and type(jeem.StandingService.addGroup) == "function"
         end },
         { "economy.pay", function()
-            local server = Config.economyServer()
-            return server ~= nil and type(server.Pay) == "function" and type(server.AddCoins) == "function"
+            -- 收钱的能力由 NS.Economy（可换的钱实现）自己回答：
+            --   upstream = 上游经济模组的 Pay/AddCoins 在不在
+            --   cash     = 原版钞票物品能不能用（不需要任何经济模组）
+            return Config.Economy ~= nil and Config.Economy.available() == true
         end },
     }
 
@@ -164,26 +166,39 @@ local function factory(NS)
         return active, inactive
     end
 
-    -- 依赖自检：把"三个依赖各在不在 + 挂了几个能力"打成一行日志，方便一眼定位"点了没反应"
+    --[[
+        依赖自检：把"钱从哪来 + 三个依赖各在不在 + 挂了几个能力"打成一行日志，
+        方便一眼定位"点了没反应"。
+
+        money=%s(%s) 里的第二个值是**收钱方式**（upstream / cash）：服务器上跑的是哪一份实现，
+        日志里必须能看出来 —— 否则"钱扣不掉"和"经济模组没装"在日志里长得一模一样。
+    ]]
     function Bootstrap.report()
-        local economy = Config.economy() ~= nil
-        local economyServer = Config.economyServer() ~= nil
+        local money = Config.Economy ~= nil and Config.Economy.available() == true
         local alife = Config.alife() ~= nil
         local jeem = Config.jeem() ~= nil
         local active, inactive = Bootstrap.capabilities()
         Config.always(string.format(
-            "loaded v%s | economy=%s(server=%s) alife=%s jeem=%s | hooks active=%d inactive=%d"
+            "loaded v%s | money=%s(%s) alife=%s jeem=%s | hooks active=%d inactive=%d"
             .. " | max=%d sign=%d spawn=%d wage=%d",
-            Config.VERSION, tostring(economy), tostring(economyServer), tostring(alife), tostring(jeem),
+            Config.VERSION, tostring(money), tostring(Config.MONEY_KIND),
+            tostring(alife), tostring(jeem),
             active, #inactive,
             Config.maxContracts(), Config.signPrice(), Config.spawnPrice(), Config.dailyWage()))
         if #inactive > 0 then
             Config.warn("inactive hooks (" .. tostring(#inactive) .. "): " .. table.concat(inactive, ", ")
                 .. " -- an upstream rename looks like this; the matching feature degrades instead of throwing")
         end
-        if not economy then
-            Config.warn(Config.ECONOMY_NAME .. " (" .. Config.ECONOMY_MOD_ID
-                .. ") is missing; the recruit page stays hidden")
+        if not money then
+            -- 上游口味查的是**服务端**表：专用服务器上本来就没有它的客户端表，
+            -- 拿客户端表当判据会在每个专用服上误报"经济模组没装"。
+            if Config.MONEY_KIND == "upstream" then
+                Config.warn(Config.ECONOMY_NAME .. " (" .. Config.ECONOMY_MOD_ID
+                    .. ") is missing; the recruit page stays hidden")
+            else
+                Config.warn("no money provider available (money=" .. tostring(Config.MONEY_KIND)
+                    .. "); hiring is disabled")
+            end
         elseif not alife then
             Config.warn("Project A-Life is missing or not started yet; NPC hiring is disabled")
         end
@@ -226,8 +241,15 @@ local function factory(NS)
     --[[
         接线。由口味的 server 层文件调用（见该口味的 server/Bootstrap.lua）：
             require("Bin2NPCExtensionCore/ServerBootstrap")(NS).install()
+
+        **install() 自身幂等**（判据是 Events 表的身份，同 ClientBootstrap）：引擎 Reset Lua 会重跑
+        所有 Lua 文件，口味的 server/Bootstrap.lua 会再调一次；没有这道闸，`OnTick` 注册两遍，
+        维护循环每帧跑两次（工资结算、指令重下都会重入）。
     ]]
     function Bootstrap.install()
+        if Config.ServerBootstrapInstalledEvents == Events then return Bootstrap end
+        Config.ServerBootstrapInstalledEvents = Events
+
         if Events ~= nil then
             if Events.OnClientCommand ~= nil then Events.OnClientCommand.Add(onClientCommand) end
             if Events.OnGameStart ~= nil then Events.OnGameStart.Add(onWorldReady) end

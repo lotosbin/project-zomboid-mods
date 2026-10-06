@@ -33,9 +33,14 @@ from PIL import Image, ImageDraw, ImageFont
 HERE = os.path.dirname(os.path.abspath(__file__))
 ITEM_DIR = os.path.dirname(HERE)                       # bin2_npc_extension/
 MOD_VERSION = os.environ.get("MOD_VERSION", "42.21")
+MODS_DIR = os.path.join(ITEM_DIR, "Contents", "mods")
 OUT_PREVIEW = os.path.join(ITEM_DIR, "preview.png")
-OUT_POSTER = os.path.join(ITEM_DIR, "Contents", "mods", "Bin2NPCExtension",
-                          MOD_VERSION, "poster.png")
+
+
+def poster_path(mod_id: str) -> str:
+    """每个模组自己的海报：mod.info 的 poster= 指向它（四个模组各一张，不再互相复制）。"""
+    return os.path.join(MODS_DIR, mod_id, MOD_VERSION, "poster.png")
+
 
 FONT_DIR = "/System/Library/Fonts"
 SUPP = os.path.join(FONT_DIR, "Supplemental")
@@ -45,10 +50,74 @@ GRID = (30, 40, 52)
 CARD = (11, 15, 20)
 CARD_LINE = (34, 48, 60)
 ACCENT = (255, 109, 20)          # #ff6d14（橙子社区经济的强调色）
+ORANGE = ACCENT                  # 海报里三个口味各自的强调色（见下面的 FLAVOURS）
 TEXT = (232, 238, 245)
 MUTED = (139, 152, 168)
 GREEN = (127, 209, 138)
 GOLD = (255, 173, 38)
+STEEL = (110, 168, 255)
+
+# ----------------------------------------------------------------- 四个口味的海报
+# 一个工坊物品里现在是四个模组（公共层 + 三个口味）。以前三个口味共用同一张海报，
+# 在游戏模组列表里根本分不出谁是谁；这里每张海报带上自己的强调色、依赖模组和入口说明。
+FLAVOURS = {
+    "Bin2NPCExtension": {
+        "accent": ACCENT,
+        "pill": "A-LIFE x JEEM x ORANGE ECONOMY",
+        "tagline": "橙子社区经济 · 佣兵中介",
+        "rows": [
+            ("$ npc hire --uid palife:0042", MUTED, False),
+            ("[Bin2NPCExtension] spawned friendly npc", MUTED, False),
+            ("[Bin2NPCExtension] follow order accepted", MUTED, False),
+            ("paid 500.00  |  wage 20.00 / day", GOLD, False),
+        ],
+        "active": "contract active: follow / guard / resident",
+        "footer": "社区货币雇佣 · 日薪 · 居民 / 守卫 / 跟随",
+        "entry": "入口：经济窗口首页「NPC 招募」/ Ctrl+Alt+N",
+    },
+    "Bin2NPCExtensionYese": {
+        "accent": GOLD,
+        "pill": "A-LIFE x JEEM x YESEMARKET",
+        "tagline": "YeseMarket · 金币中介",
+        "rows": [
+            ("$ npc hire --uid palife:0042", MUTED, False),
+            ("[Bin2NPCExtensionYese] spawned friendly npc", MUTED, False),
+            ("[Bin2NPCExtensionYese] follow order accepted", MUTED, False),
+            ("paid 500 coins  |  wage 20 / day", GOLD, False),
+        ],
+        "active": "contract active: follow / guard / resident",
+        "footer": "金币雇佣 · 日薪 · 居民 / 守卫 / 跟随",
+        "entry": "入口：YeseMarket 导航栏「NPC 招募」/ Ctrl+Alt+N",
+    },
+    "Bin2NPCExtensionVanilla": {
+        "accent": GREEN,
+        "pill": "A-LIFE x JEEM x VANILLA CASH",
+        "tagline": "纯原版 · 用钞票雇人",
+        "rows": [
+            ("$ npc hire --cash", MUTED, False),
+            ("[Bin2NPCExtensionVanilla] spawned friendly npc", MUTED, False),
+            ("[Bin2NPCExtensionVanilla] broke a bundle, gave change", MUTED, False),
+            ("paid 50 notes  |  wage 5 / day  (1 bundle = 100)", GOLD, False),
+        ],
+        "active": "contract active: follow / guard / resident",
+        "footer": "原版钞票雇佣 · 一捆钞票 = 100 张",
+        "entry": "入口：屏幕左侧 NPC 图标 / Ctrl+Alt+N",
+    },
+    "Bin2NPCExtensionBase": {
+        "accent": STEEL,
+        "pill": "PUBLIC LAYER · NO FLAVOUR",
+        "tagline": "公共层 · 三个口味共用同一份逻辑",
+        "rows": [
+            ("[Bin2NPCExtensionCore] namespace bound", MUTED, False),
+            ("[Bin2NPCExtensionCore] core API 2", MUTED, False),
+            ("[Bin2NPCExtensionCore] money = upstream / cash", MUTED, False),
+            ("[Bin2NPCExtensionCore] not a player-facing mod", MUTED, False),
+        ],
+        "active": "enable one flavour; this layer comes along",
+        "footer": "橙子社区经济 / YeseMarket / 原版钞票",
+        "entry": "勾选任一 flavour 时游戏会自动一并启用本模组",
+    },
+}
 
 WARNINGS: list[str] = []
 
@@ -121,32 +190,35 @@ def grid_background(draw, size, step):
         draw.line([(0, gy), (size, gy)], fill=GRID, width=1)
 
 
-def tag_pill(draw, size, text, y, size_px, pad, radius):
+def tag_pill(draw, size, text, y, size_px, pad, radius, accent=None):
+    colour = accent if accent is not None else ACCENT
     font = f_bold(size_px)
     w = draw.textlength(text, font=font)
     if w + pad * 2 > size - 8:
         WARNINGS.append("标签溢出 %.0fpx: %s" % (w + pad * 2, text))
     x0, x1 = (size - w) / 2 - pad, (size + w) / 2 + pad
     y0, y1 = y, y + size_px + pad
-    draw.rounded_rectangle([x0, y0, x1, y1], radius=radius, outline=ACCENT, width=1)
-    draw.text(((size - w) / 2, y0 + pad / 2), text, font=font, fill=ACCENT)
+    draw.rounded_rectangle([x0, y0, x1, y1], radius=radius, outline=colour, width=1)
+    draw.text(((size - w) / 2, y0 + pad / 2), text, font=font, fill=colour)
 
 
 # ----------------------------------------------------------------- 海报 512
 
-def render_poster(size: int = 512) -> Image.Image:
+def render_poster(mod_id: str, size: int = 512) -> Image.Image:
+    flavour = FLAVOURS[mod_id]
+    accent = flavour["accent"]
     s = size / 512.0
     img = Image.new("RGB", (size, size), BG)
     d = ImageDraw.Draw(img)
 
     grid_background(d, size, max(8, int(32 * s)))
-    tag_pill(d, size, "A-LIFE  x  JEEM  x  ORANGE ECONOMY", int(26 * s), int(12 * s), int(11 * s), int(6 * s))
+    tag_pill(d, size, flavour["pill"], int(26 * s), int(12 * s), int(11 * s), int(6 * s), accent)
 
     centred(d, "NPC Recruit", int(88 * s), f_title(int(50 * s)), TEXT, size)
-    centred(d, "橙子社区经济 · 佣兵中介", int(150 * s), f_cjk(int(20 * s)), MUTED, size)
+    centred(d, flavour["tagline"], int(150 * s), f_cjk(int(20 * s)), MUTED, size)
 
     bw = int(120 * s)
-    d.rectangle([(size - bw) / 2, int(196 * s), (size + bw) / 2, int(201 * s)], fill=ACCENT)
+    d.rectangle([(size - bw) / 2, int(196 * s), (size + bw) / 2, int(201 * s)], fill=accent)
 
     cx0, cy0, cx1, cy1 = int(30 * s), int(224 * s), size - int(30 * s), int(384 * s)
     d.rounded_rectangle([cx0, cy0, cx1, cy1], radius=int(10 * s), fill=CARD,
@@ -154,38 +226,35 @@ def render_poster(size: int = 512) -> Image.Image:
 
     mono = f_mono(int(13 * s))
     lx = cx0 + int(14 * s)
-    rows = [
-        ("$ npc hire --uid palife:0042", MUTED, False),
-        ("[Bin2NPCExtension] spawned friendly npc", MUTED, False),
-        ("[Bin2NPCExtension] follow order accepted", MUTED, False),
-        ("paid 500.00  |  wage 20.00 / day", GOLD, False),
-    ]
     y = cy0 + int(16 * s)
-    for text, colour, strike in rows:
+    for text, colour, strike in flavour["rows"]:
         left(d, text, lx, y, mono, colour, cx1 - int(10 * s), strike)
         y += int(26 * s)
-    left(d, "contract active: follow / guard / resident", lx, y + int(8 * s), mono, GREEN, cx1 - int(10 * s))
+    left(d, flavour["active"], lx, y + int(8 * s), mono, GREEN, cx1 - int(10 * s))
 
     centred(d, "Project A-Life  ·  Jeem Extension  ·  Build 42", int(420 * s),
             f_bold(int(15 * s)), MUTED, size)
-    centred(d, "社区货币雇佣 · 日薪 · 居民 / 守卫 / 跟随", int(452 * s), f_cjk(int(15 * s)), MUTED, size)
-    centred(d, "招募面板：Ctrl+Alt+N", int(478 * s), f_cjk(int(13 * s)), ACCENT, size)
+    centred(d, flavour["footer"], int(452 * s), f_cjk(int(15 * s)), MUTED, size)
+    centred(d, flavour["entry"], int(478 * s), f_cjk(int(13 * s)), accent, size)
     return img
 
 
 # ----------------------------------------------------------------- 工坊预览 256
 
 def render_preview(size: int = 256) -> Image.Image:
-    """游戏只接受正方形且边长 256/512 的 preview.png；这里用 256，所以文案缩短、字号另配。"""
+    """游戏只接受正方形且边长 256/512 的 preview.png；这里用 256，所以文案缩短、字号另配。
+
+    这是**物品级**预览：一个物品里四个模组，所以主标题之后直接列三个口味与公共层。
+    """
     s = size / 256.0
     img = Image.new("RGB", (size, size), BG)
     d = ImageDraw.Draw(img)
 
     grid_background(d, size, max(8, int(16 * s)))
-    tag_pill(d, size, "A-LIFE  x  ORANGE ECONOMY", int(12 * s), int(8 * s), int(7 * s), int(4 * s))
+    tag_pill(d, size, "A-LIFE x JEEM x 3 FLAVOURS", int(12 * s), int(8 * s), int(7 * s), int(4 * s), ACCENT)
 
     centred(d, "NPC Recruit", int(42 * s), f_title(int(26 * s)), TEXT, size)
-    centred(d, "橙子经济 · NPC 招募", int(74 * s), f_cjk(int(12 * s)), MUTED, size)
+    centred(d, "一个物品 · 三个口味 + 公共层", int(74 * s), f_cjk(int(12 * s)), MUTED, size)
 
     bw = int(72 * s)
     d.rectangle([(size - bw) / 2, int(98 * s), (size + bw) / 2, int(101 * s)], fill=ACCENT)
@@ -197,27 +266,27 @@ def render_preview(size: int = 256) -> Image.Image:
     lx = cx0 + int(8 * s)
     right = cx1 - int(5 * s)
     rows = [
-        ("$ npc hire", MUTED, False),
-        ("spawned friendly npc", MUTED, False),
-        ("follow order accepted", MUTED, False),
-        ("paid 500.00 / wage 20.00", GOLD, False),
+        ("橙子社区经济版   社区货币", ORANGE, False),
+        ("YeseMarket 版     金币", GOLD, False),
+        ("原版钞票版        钞票", GREEN, False),
+        ("公共层 Bin2NPCExtensionBase", MUTED, False),
     ]
     y = cy0 + int(11 * s)
     for text, colour, strike in rows:
         left(d, text, lx, y, mono, colour, right, strike)
         y += int(16 * s)
-    left(d, "contract active", lx, y + int(4 * s), mono, GREEN, right)
+    left(d, "每个口味各有独立的存档表与沙盒选项", lx, y + int(4 * s), mono, MUTED, right)
 
     centred(d, "Build 42  ·  Ctrl+Alt+N", int(214 * s), f_bold(int(11 * s)), MUTED, size)
-    centred(d, "社区货币雇佣 NPC", int(234 * s), f_cjk(int(11 * s)), MUTED, size)
+    centred(d, "橙子经济 / YeseMarket / 原版钞票", int(234 * s), f_cjk(int(11 * s)), MUTED, size)
     return img
 
 
 # ----------------------------------------------------------------- 入口
 
-TARGETS = [
-    (OUT_PREVIEW, lambda: render_preview(256), 256),
-    (OUT_POSTER, lambda: render_poster(512), 512),
+TARGETS = [(OUT_PREVIEW, lambda: render_preview(256), 256)] + [
+    (poster_path(mod_id), (lambda mid: (lambda: render_poster(mid, 512)))(mod_id), 512)
+    for mod_id in sorted(FLAVOURS)
 ]
 
 

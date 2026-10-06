@@ -1,0 +1,8 @@
+{
+  "name": "bin2-npc-extension-vanilla-offline-test",
+  "private": true,
+  "description": "Offline Lua integration test for Bin2NPCExtensionVanilla (vanilla Base.Money cash + vanilla sidebar entry, fengari). Run ./run_lua_test.sh",
+  "dependencies": {
+    "fengari": "^0.1.5"
+  }
+}

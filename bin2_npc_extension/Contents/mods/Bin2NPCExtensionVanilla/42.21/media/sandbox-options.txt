@@ -1,0 +1,86 @@
+VERSION = 1,
+
+option Bin2NPCExtensionVanilla.Enabled = {
+    type = boolean, default = true,
+    page = Bin2NPCExtensionVanilla_1General, translation = Bin2NPCExtensionVanilla.Enabled,
+    _tooltip = Bin2NPCExtensionVanilla.Enabled_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.MaxContracts = {
+    type = integer, min = 1, max = 10, default = 3,
+    page = Bin2NPCExtensionVanilla_1General, translation = Bin2NPCExtensionVanilla.MaxContracts,
+    _tooltip = Bin2NPCExtensionVanilla.MaxContracts_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.SignPrice = {
+    type = integer, min = 0, max = 100000, default = 50,
+    page = Bin2NPCExtensionVanilla_1General, translation = Bin2NPCExtensionVanilla.SignPrice,
+    _tooltip = Bin2NPCExtensionVanilla.SignPrice_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.SpawnPrice = {
+    type = integer, min = 0, max = 100000, default = 200,
+    page = Bin2NPCExtensionVanilla_1General, translation = Bin2NPCExtensionVanilla.SpawnPrice,
+    _tooltip = Bin2NPCExtensionVanilla.SpawnPrice_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.RecruitRadius = {
+    type = integer, min = 2, max = 20, default = 6,
+    page = Bin2NPCExtensionVanilla_2Recruit, translation = Bin2NPCExtensionVanilla.RecruitRadius,
+    _tooltip = Bin2NPCExtensionVanilla.RecruitRadius_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.AllowHostile = {
+    type = boolean, default = false,
+    page = Bin2NPCExtensionVanilla_2Recruit, translation = Bin2NPCExtensionVanilla.AllowHostile,
+    _tooltip = Bin2NPCExtensionVanilla.AllowHostile_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.MakeAllied = {
+    type = boolean, default = true,
+    page = Bin2NPCExtensionVanilla_2Recruit, translation = Bin2NPCExtensionVanilla.MakeAllied,
+    _tooltip = Bin2NPCExtensionVanilla.MakeAllied_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.SpawnDistance = {
+    type = integer, min = 1, max = 8, default = 2,
+    page = Bin2NPCExtensionVanilla_2Recruit, translation = Bin2NPCExtensionVanilla.SpawnDistance,
+    _tooltip = Bin2NPCExtensionVanilla.SpawnDistance_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.WageEnabled = {
+    type = boolean, default = true,
+    page = Bin2NPCExtensionVanilla_3Wage, translation = Bin2NPCExtensionVanilla.WageEnabled,
+    _tooltip = Bin2NPCExtensionVanilla.WageEnabled_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.DailyWage = {
+    type = integer, min = 0, max = 10000, default = 5,
+    page = Bin2NPCExtensionVanilla_3Wage, translation = Bin2NPCExtensionVanilla.DailyWage,
+    _tooltip = Bin2NPCExtensionVanilla.DailyWage_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.UnpaidGraceDays = {
+    type = integer, min = 0, max = 7, default = 1,
+    page = Bin2NPCExtensionVanilla_3Wage, translation = Bin2NPCExtensionVanilla.UnpaidGraceDays,
+    _tooltip = Bin2NPCExtensionVanilla.UnpaidGraceDays_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.DefaultMode = {
+    type = enum, numValues = 3, default = 1,
+    page = Bin2NPCExtensionVanilla_4Mode, translation = Bin2NPCExtensionVanilla.DefaultMode,
+    _tooltip = Bin2NPCExtensionVanilla.DefaultMode_tooltip,
+    valueTranslation = Bin2NPCExtensionVanilla.DefaultMode,
+}
+
+option Bin2NPCExtensionVanilla.CreateCamp = {
+    type = boolean, default = true,
+    page = Bin2NPCExtensionVanilla_4Mode, translation = Bin2NPCExtensionVanilla.CreateCamp,
+    _tooltip = Bin2NPCExtensionVanilla.CreateCamp_tooltip,
+}
+
+option Bin2NPCExtensionVanilla.DebugLog = {
+    type = boolean, default = false,
+    page = Bin2NPCExtensionVanilla_5Debug, translation = Bin2NPCExtensionVanilla.DebugLog,
+    _tooltip = Bin2NPCExtensionVanilla.DebugLog_tooltip,
+}

@@ -125,8 +125,8 @@ local SOURCE_KEYS = Config.__sourceKeys or {}
 -- ===========================================================================
 -- 1. 加载
 -- ===========================================================================
-runTest(1, "loader: 18 files (public layer 13 + flavour 5), expected globals only, require is idempotent", function()
-    M.assert_eq(Config.__loadedCount, 18, "loaded file count")
+runTest(1, "loader: 19 files (public layer 14 + flavour 5), expected globals only, require is idempotent", function()
+    M.assert_eq(Config.__loadedCount, 19, "loaded file count")
     M.assert_eq(Config.MODULE, "Bin2NPCExtensionYese", "Config.MODULE")
     M.assert_eq(Bin2NPCExtensionYese, Config, "Bin2NPCExtensionYese is the Config table")
     M.assert_truthy(type(Config.Text.get) == "function", "Config.Text.get")
@@ -180,9 +180,12 @@ runTest(1, "loader: 18 files (public layer 13 + flavour 5), expected globals onl
     M.assert_truthy(require("Bin2NPCExtensionCore/Contracts") == coreContracts,
         "a second require returns the very same factory (package.loaded hit)")
     -- 17 个模块名 / 18 个文件（client 与 server 两个 Bootstrap 同名）
-    M.assert_eq(#Config.__requireNames, 17, "17 distinct require names for 18 files")
-    M.assert_eq(#Config.__coreModules, 13, "13 modules in the public layer")
-    -- 自动加载已经把 18 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
+    M.assert_eq(#Config.__requireNames, 18, "18 distinct require names for 19 files")
+    M.assert_eq(#Config.__coreModules, 14, "14 modules in the public layer")
+    M.assert_eq(Config.MONEY_KIND, "upstream", "this flavour pays through the upstream economy mod")
+    M.assert_truthy(type(Config.UI_HINT) == "string" and Config.UI_HINT ~= "",
+        "the flavour ships a diagnostic hint for the client entry")
+    -- 自动加载已经把 19 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
     -- 这一条同时守住两件事：文件只执行一次（引擎的真实语义），以及没有写错的模块名。
     local reloaded = {}
     for _, name in ipairs(Config.__requireNames) do
@@ -2006,12 +2009,16 @@ end)
 -- ===========================================================================
 -- 40. 公共层接口版本校验（"只更新了一半的工坊物品"必须被明确挡住）
 -- ===========================================================================
-runTest(40, "public layer: namespace() refuses a coreApi mismatch / missing module", function()
+runTest(40, "public layer: namespace() refuses a coreApi / money mismatch, normalizes sibling", function()
     local Core = Bin2NPCExtensionCore
     M.assert_truthy(type(Core) == "table", "公共层注册表存在")
-    M.assert_eq(Core.API, 1, "Core.API")
+    M.assert_eq(Core.API, 2, "Core.API")
     M.assert_truthy(type(Core.namespace) == "function" and type(Core.bind) == "function",
         "公共层导出 namespace / bind")
+    -- 收钱方式是一张表（名字 -> 公共层文件），两个实现都要在
+    M.assert_truthy(type(Core.MONEY_PROVIDERS) == "table", "Core.MONEY_PROVIDERS")
+    M.assert_eq(Core.MONEY_PROVIDERS.upstream, "Economy", "upstream -> Economy.lua")
+    M.assert_eq(Core.MONEY_PROVIDERS.cash, "Cash", "cash -> Cash.lua")
 
     -- 老口味的 Profile 配新公共层（或反过来）时必须拿到 nil 并打日志，
     -- 而不是建出一张字段缺失的半成品表 —— 那种表会在游戏里把存档写进错的键。
@@ -2020,9 +2027,12 @@ runTest(40, "public layer: namespace() refuses a coreApi mismatch / missing modu
     M.assert_eq(Core.namespace({}), nil, "missing module -> refuse to build a namespace")
     M.assert_eq(Core.namespace({ module = "Probe", coreApi = 999 }), nil,
         "missing coreApi -> refuse to build a namespace")
+    -- 认不出的收钱方式同样必须停用自己：静默降级成"没有经济模组"是最坏的坏法
+    M.assert_eq(Core.namespace({ module = "Probe", coreApi = Core.API, money = "bitcoin" }), nil,
+        "unknown money provider -> refuse to build a namespace")
 
     -- 合法 spec 建出的字段就是公共层与口味之间的全部接口
-    local ns = Core.namespace({ module = "Probe", coreApi = 1 })
+    local ns = Core.namespace({ module = "Probe", coreApi = Core.API })
     M.assert_truthy(type(ns) == "table", "a valid spec builds a namespace")
     M.assert_eq(ns.MODULE, "Probe", "MODULE")
     M.assert_eq(ns.TAG, "Probe.Contracts.v1", "TAG has a default")
@@ -2031,6 +2041,54 @@ runTest(40, "public layer: namespace() refuses a coreApi mismatch / missing modu
     M.assert_eq(ns.PLAYER_PREFIX, "ProbePlayer_", "PLAYER_PREFIX has a default")
     M.assert_eq(ns.FLOW_ITEM, "Probe.contract", "FLOW_ITEM has a default")
     M.assert_eq(ns.SIBLING_MODULE, nil, "no sibling -> nil (the cross-check degrades)")
+    M.assert_eq(ns.MONEY_KIND, "upstream", "money defaults to the upstream economy mod")
+    M.assert_truthy(type(ns.UI_HINT) == "string" and ns.UI_HINT ~= "", "UI_HINT has a default")
+    M.assert_eq(#ns.SIBLING_MODULES, 0, "no sibling -> empty list")
+
+    -- sibling：字符串（两个口味）与字符串表（三个口味）都归一化成数组；
+    -- 指向自己的项被丢掉 —— 那正是历史上把"你雇过他"读成"别人雇了他"的成因。
+    local two = Core.namespace({ module = "Probe", coreApi = Core.API, sibling = "Other" })
+    M.assert_eq(two.SIBLING_MODULE, "Other", "string sibling -> SIBLING_MODULE")
+    M.assert_eq(#two.SIBLING_MODULES, 1, "string sibling -> one-entry list")
+    M.assert_eq(two.SIBLING_MODULES[1], "Other", "…and it is the same id")
+    local three = Core.namespace({ module = "Probe", coreApi = Core.API,
+        sibling = { "Other", "Probe", "Third" } })
+    M.assert_eq(#three.SIBLING_MODULES, 2, "a self-referencing sibling is dropped")
+    M.assert_eq(three.SIBLING_MODULES[1], "Other", "…keeping the order")
+    M.assert_eq(three.SIBLING_MODULES[2], "Third", "…of the remaining ids")
+
+    -- 收钱方式选中哪个实现，看的是 Core.bind 里那张表；两个实现都要给出同一组方法
+    M.assert_truthy(type(Config.MONEY_KIND) == "string", "the bound namespace knows its money kind")
+    for _, method in ipairs({ "available", "balance", "pay", "refund", "flow", "wage" }) do
+        M.assert_truthy(type(Config.Economy[method]) == "function",
+            "the bound money provider implements " .. method)
+    end
+
+    -- 原版钞票实现（cash）：本口味不用它，但它与 Economy 是同一层接口，
+    -- 所以在这里直接把工厂拉起来做单元断言（完整算术在 tools/test-vanilla 里）
+    local cashFactory = require "Bin2NPCExtensionCore/Cash"
+    M.assert_truthy(type(cashFactory) == "function", "Cash.lua exports a factory")
+    local stub = {
+        MODULE = "Probe",
+        wageEnabled = function() return true end,
+        dailyWage = function() return 7 end,
+        warn = function() end,
+        log = function() end,
+        Store = { playerName = function() return "Tester" end },
+    }
+    local cash = cashFactory(stub)
+    M.assert_eq(stub.Economy, cash, "the factory registers itself as the namespace's Economy")
+    M.assert_eq(cash.ITEM, "Base.Money", "cash provider knows the vanilla note")
+    M.assert_eq(cash.BUNDLE, "Base.MoneyBundle", "…and the bundle")
+    M.assert_eq(cash.BUNDLE_VALUE, 100, "one bundle is 100 notes (craftRecipe UnbundleMoney)")
+    M.assert_eq(cash.available(), true, "cash payment needs no upstream mod")
+    M.assert_eq(cash.wage(), 7, "cash wage comes from the same sandbox option")
+    M.assert_eq(cash.flow(nil, "out", "npc_hire", "FlowHire", 10), false,
+        "cash has no ledger: flow() reports \"not recorded\"")
+    -- 没有玩家对象时不报错、如实说读不到（服务端在玩家还没进世界时会走到这里）
+    M.assert_eq(cash.balance(nil), nil, "no player -> balance is nil (not 0)")
+    M.assert_eq(cash.pay(nil, 10), false, "no player -> pay fails")
+    M.assert_eq(cash.refund(nil, 10), false, "no player -> refund fails")
 end)
 
 -- ===========================================================================

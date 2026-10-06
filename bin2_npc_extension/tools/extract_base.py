@@ -111,6 +111,33 @@ CONFIG = [
         '    local server = rawget(_G, "OrangeTradingModServer")',
         "    local server = rawget(_G, Config.ECONOMY_SERVER_GLOBAL)",
     ),
+
+    (
+        r"""-- 沙盒选项默认值（沙盒表缺失时用同一份默认值）
+""",
+        r"""--[[
+    沙盒选项默认值。
+
+    游戏里这些值的**真正来源**是口味自己的 media/sandbox-options.txt（SandboxVars 由它生成）；
+    这份表只在"整个沙盒表读不到"时兜底（例如存档早于模组的沙盒表）。所以口味可以用
+    `spec.defaults` 覆盖任意一项，保持两边一致 —— 否则兜底时面板与日志会显示另一套价格
+    （原版钞票口味的签约价是 50 张而不是 500，差 10 倍）。
+]]
+""",
+    ),
+    (
+        r"""}
+""",
+        r"""}
+
+-- 口味在 spec.defaults 里给的覆盖值（只覆盖它列出的项）
+if type(Config.DEFAULTS_OVERRIDE) == "table" then
+    for key, value in pairs(Config.DEFAULTS_OVERRIDE) do
+        Config.DEFAULTS[key] = value
+    end
+end
+""",
+    ),
 ]
 
 # --- Text.lua ---------------------------------------------------------------
@@ -283,6 +310,50 @@ SERVICE = [
     (
         "    自带限速与去重：橙子经济的 action_request_guard 是白名单制（只护它自己的命令），",
         "    自带限速与去重：上游经济模组的 action_request_guard 是白名单制（只护它自己的命令），",
+    ),
+
+    (
+        r"""    同一个物品里的"另一个口味"是否已经雇了这名 NPC（只读对方的存档表，拿不到就当没有）。
+""",
+        r"""    同一个物品里的"其它口味"是否已经雇了这名 NPC（只读对方的存档表，拿不到就当没有）。
+""",
+    ),
+    (
+        r"""    两个模组各有一份 ModData，但**同一个 NPC 只能属于一个人**；没有这道互查，
+""",
+        r"""    每个口味各有一份 ModData，但**同一个 NPC 只能属于一个人**；没有这道互查，
+""",
+    ),
+    (
+        r"""    后续指令会互相顶掉（DecisionLoop.orders 一人一槽）。
+""",
+        r"""    后续指令会互相顶掉（DecisionLoop.orders 一人一槽）。
+    Config.SIBLING_MODULES 是"其它口味"的数组（spec.sibling 给字符串或字符串表都归一化成它，
+    由 tools/check_base.py 断言"必须列全本物品里其它所有口味"）。
+""",
+    ),
+    (
+        r"""local function takenBySibling(uid)
+    local siblingId = Config.SIBLING_MODULE
+    if type(siblingId) ~= "string" or siblingId == "" then return false end
+""",
+        r"""local function siblingHolds(siblingId, uid)
+""",
+    ),
+    (
+        r"""    return ownerKey ~= nil
+""",
+        r"""    return ownerKey ~= nil
+end
+
+local function takenBySibling(uid)
+    local siblings = Config.SIBLING_MODULES
+    if type(siblings) ~= "table" then return false end
+    for _, siblingId in ipairs(siblings) do
+        if siblingHolds(siblingId, uid) then return true end
+    end
+    return false
+""",
     ),
 ]
 
@@ -477,6 +548,86 @@ SERVER_BOOTSTRAP = [
         "\n"
         "return Bootstrap",
     ),
+
+    (
+        r"""        local server = Config.economyServer()
+        return server ~= nil and type(server.Pay) == "function" and type(server.AddCoins) == "function"
+""",
+        r"""        -- 收钱的能力由 NS.Economy（可换的钱实现）自己回答：
+        --   upstream = 上游经济模组的 Pay/AddCoins 在不在
+        --   cash     = 原版钞票物品能不能用（不需要任何经济模组）
+        return Config.Economy ~= nil and Config.Economy.available() == true
+""",
+    ),
+    (
+        r"""-- 依赖自检：把"三个依赖各在不在 + 挂了几个能力"打成一行日志，方便一眼定位"点了没反应"
+""",
+        r"""--[[
+    依赖自检：把"钱从哪来 + 三个依赖各在不在 + 挂了几个能力"打成一行日志，
+    方便一眼定位"点了没反应"。
+
+    money=%s(%s) 里的第二个值是**收钱方式**（upstream / cash）：服务器上跑的是哪一份实现，
+    日志里必须能看出来 —— 否则"钱扣不掉"和"经济模组没装"在日志里长得一模一样。
+]]
+""",
+    ),
+    (
+        r"""    local economy = Config.economy() ~= nil
+    local economyServer = Config.economyServer() ~= nil
+""",
+        r"""    local money = Config.Economy ~= nil and Config.Economy.available() == true
+""",
+    ),
+    (
+        r"""        "loaded v%s | economy=%s(server=%s) alife=%s jeem=%s | hooks active=%d inactive=%d"
+""",
+        r"""        "loaded v%s | money=%s(%s) alife=%s jeem=%s | hooks active=%d inactive=%d"
+""",
+    ),
+    (
+        r"""        Config.VERSION, tostring(economy), tostring(economyServer), tostring(alife), tostring(jeem),
+""",
+        r"""        Config.VERSION, tostring(money), tostring(Config.MONEY_KIND),
+        tostring(alife), tostring(jeem),
+""",
+    ),
+    (
+        r"""    if not economy then
+        Config.warn(Config.ECONOMY_NAME .. " (" .. Config.ECONOMY_MOD_ID
+            .. ") is missing; the recruit page stays hidden")
+""",
+        r"""    if not money then
+        -- 上游口味查的是**服务端**表：专用服务器上本来就没有它的客户端表，
+        -- 拿客户端表当判据会在每个专用服上误报"经济模组没装"。
+        if Config.MONEY_KIND == "upstream" then
+            Config.warn(Config.ECONOMY_NAME .. " (" .. Config.ECONOMY_MOD_ID
+                .. ") is missing; the recruit page stays hidden")
+        else
+            Config.warn("no money provider available (money=" .. tostring(Config.MONEY_KIND)
+                .. "); hiring is disabled")
+        end
+""",
+    ),
+
+    (
+        r"""        require("Bin2NPCExtensionCore/ServerBootstrap")(NS).install()
+""",
+        r"""        require("Bin2NPCExtensionCore/ServerBootstrap")(NS).install()
+
+    **install() 自身幂等**（判据是 Events 表的身份，同 ClientBootstrap）：引擎 Reset Lua 会重跑
+    所有 Lua 文件，口味的 server/Bootstrap.lua 会再调一次；没有这道闸，`OnTick` 注册两遍，
+    维护循环每帧跑两次（工资结算、指令重下都会重入）。
+""",
+    ),
+    (
+        r"""function Bootstrap.install()
+""",
+        r"""function Bootstrap.install()
+    if Config.ServerBootstrapInstalledEvents == Events then return Bootstrap end
+    Config.ServerBootstrapInstalledEvents = Events
+
+""",
+    ),
 ]
 
 # --- client/Bootstrap.lua -> ClientBootstrap.lua ---------------------------
@@ -570,6 +721,78 @@ CLIENT_BOOTSTRAP = [
         "end\n"
         "\n"
         "return Bootstrap",
+    ),
+
+    (
+        r"""      1. 把招募页注册进经济模组并装上入口（对方可能比我们晚就绪 → 重试到成功为止）；
+      2. 挂一个热键（Ctrl+Alt+N）—— 对方全库没有任何按键绑定，不会冲突；
+""",
+        r"""      1. 让口味把招募界面的入口装上（可能是上游经济模组窗口里的一个按钮，
+         也可能是原版左侧侧边栏里的一个图标；对方可能比我们晚就绪 → 重试到成功为止）；
+      2. 挂一个热键（Ctrl+Alt+N）—— 上游经济模组全库没有任何按键绑定，不会冲突；
+""",
+    ),
+    (
+        r"""    页面的**容器**（ui/Page.lua、ui/Entry.lua）是口味自己实现的：不同经济模组的 UI 原语
+    不一样，这一层没法共用。这里只依赖它的两个契约入口：Config.Entry.install / .open
+    与 Config.RecruitPage.ID，且都按"可能还没就绪"探测。
+""",
+        r"""    界面的**容器**（ui/Panel.lua、ui/Entry.lua 或 ui/Icon.lua）是口味自己实现的：不同
+    宿主（各家经济模组的 UI 原语、原版 ISUI）差别太大，这一层没法共用。这里只依赖它的
+    契约入口：Config.Entry.install / .open，都按"可能还没就绪"探测。
+""",
+    ),
+    (
+        r"""    local ui = Config.economy()
+    Config.always(string.format("client ready v%s | economy=%s page=%s",
+""",
+        r"""    -- 一行自检：钱从哪来（money=收钱方式）、有没有上游经济模组的客户端全局、
+    -- 我们的入口有没有装上去。三个口味的入口形态完全不同（首页按钮 / 导航行 / 左侧图标），
+    -- 所以这里只报"装没装上"，具体入口见各口味 ui/Entry.lua 自己的日志。
+    Config.always(string.format("client ready v%s | money=%s economy=%s ui=%s",
+""",
+    ),
+    (
+        r"""        tostring(ui ~= nil),
+        tostring(ui ~= nil and ui.UIPageRegistry ~= nil
+            and type(ui.UIPageRegistry.Has) == "function"
+            and ui.UIPageRegistry.Has(Config.RecruitPage.ID) == true)))
+""",
+        r"""        tostring(Config.MONEY_KIND),
+        tostring(Config.economy() ~= nil),
+        tostring(installed)))
+""",
+    ),
+    (
+        r"""        Config.warn("gave up installing the recruit page after " .. tostring(retries)
+            .. " attempts; is " .. Config.ECONOMY_MOD_ID .. " enabled?")
+""",
+        r"""        -- 排障提示由口味自己给（spec.uiHint）：三个口味的入口装不上的原因完全不同，
+        -- 公共层不猜（历史上这里写的是"is <经济模组 id> enabled?"，对原版口味毫无意义）。
+        Config.warn("gave up installing the recruit entry after " .. tostring(retries)
+            .. " attempts; " .. tostring(Config.UI_HINT))
+""",
+    ),
+
+    (
+        r"""    调用前口味的 client 层必须已经把 ui/Entry（连带 ui/Page）加载好。
+""",
+        r"""    调用前口味的 client 层必须已经把 ui/Entry（连带 ui/Page）加载好。
+
+    **install() 自身幂等**：判据是 Events 表的身份（见文件头那段"防 Reset Lua 重入"的说明）。
+    工厂里那道判据只保证"同一个 NS 不会被建两次"，挡不住"install 被调两次" ——
+    而引擎 Reset Lua 会**重跑所有 Lua 文件**，口味的 client/Bootstrap.lua 会再调一次 install；
+    没有这道闸，`OnTick` 会注册两遍（Maintain 每帧跑两次），Ctrl+Alt+N 会"开了又关"。
+""",
+    ),
+    (
+        r"""function Bootstrap.install()
+""",
+        r"""function Bootstrap.install()
+    if Config.ClientBootstrapInstalledEvents == Events then return Bootstrap end
+    Config.ClientBootstrapInstalledEvents = Events
+
+""",
     ),
 ]
 

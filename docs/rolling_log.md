@@ -2824,3 +2824,140 @@ Base 的 `poster.png` 与橙子版是同一张图。
 > ② **mock 若比引擎宽松，bug 就藏在宽松处** —— 这次藏的是"同一个文件被跑两遍"，整整存在了好几轮；
 > ③ **生成器里的"翻字面量"必须用哨兵** —— 否则会被随后的全局替换二次切开，本轮真切开了一个 bug（sibling 自指）；
 > ④ **把不变量写成可执行断言**（`tools/check_base.py`）比写在文档里有用：sibling 自指就是被它抓出来的。
+
+## 2026-10-06 · `bin2_npc_extension` 第四个模组：纯原版钞票口味 + 左侧侧边栏入口（0.4.0）
+
+**需求**：新增模组 `Bin2NPCExtensionVanilla` —— 原版招募，依赖公共层 `Bin2NPCExtensionBase`，
+屏幕左侧加一个 NPC 图标打开招募界面，用**原版钞票**结算。即：把"钱从哪来"和"入口挂哪"这两件事
+从"经济模组"上解耦，同时加第三个口味。
+
+### 先把三件事证掉，再动手
+
+前两个口味是"经济模组 × A-Life"，钱写死在经济模组的服务端函数上、入口挂在它的窗口里。
+原版口味把这两个前提都去掉，所以开写之前先派了两个只读调研（各交付一份带证据的报告）：
+
+| 问题 | 结论（证据） | 报告 |
+| --- | --- | --- |
+| 原版钞票怎么算钱 | `Base.Money` 一件 = 1 单位、`Base.MoneyBundle` 一捆 = **100** 张（依据是配方 `craftRecipe UnbundleMoney` 的 `outputs item 100 Base.Money`）；**没有** `getMoney()` 之类的面值属性 | `docs/research/vanilla-money-integration.md` |
+| 能不能"收 30 找 70" | **不能**：`InventoryItem.CanStack()` / `CanStackNoTemp()` 字节码是 `iconst_0; ireturn`（恒 false），count 恒 1、不进存档也不进 `SyncItemFieldsPacket`，全游戏 Lua 零处 `:setCount(` ⇒ **B42 没有堆叠，就没有"部分扣除"原语** | 同上 §1.3 |
+| 钱在背包里能不能数到 | `getCountTypeRecurse` 会进**子容器**（背包里的钱包），但**数不到穿戴中的容器** —— `IsoGameCharacter.setWornItem` 会把穿戴容器从主背包里 `Remove` 掉（offset 163-169）⇒ 必须另外遍历 `BodyLocations.getGroup("Human")` + `player:getWornItems()` | 同上 §2.3 |
+| 改完背包客户端怎么知道 | `AddItem` / `Remove` / `RemoveAll` **都不发包**；真同步是引擎全局 `sendRemoveItemsFromContainer` / `sendAddItemsToContainer`（`setDrawDirty` 只是本地 UI 脏标记）。原版先例：`server/ClientCommands.lua:210-218` | 同上 §3.4 |
+| 左侧图标栏怎么加自己的按钮 | **后置 hook `ISEquippedItem:initialise`**，在原版按钮之后追加 `ISButton` 再调一次 `shrinkWrap()`（它只统计 `Type=="ISButton"`）；只能追加在最后 —— 插中间要平移 y，而原版把 `movableTooltip/movablePopup` 的坐标写死在 `:initialise` 里；没有"侧边栏注册表"可以 append | `docs/research/vanilla-sidebar-entry.md` |
+| 三个尺寸档在哪 | `getOptionSidebarSize()` 1..5 → 48/64/80/96/128；`TEXTURE_WIDTH/HEIGHT` 与 `setTextureWidth()` 都是对方文件的 **local**，所以只能从 `self.invBtn:getWidth()` 量 | 同上 |
+| 贴图放 `42.21/media/ui/...` 找得到吗 | **找得到**：`ChooseGameInfo$Mod` 带 `dir / versionDir / mediaFile{common,version}`，带版本目录的模组解析 media 用的是 **`<mod>/42.21/media`**（`media.version`） | 本轮新查（见下） |
+
+最后一条是这轮唯一"离线看不出来、又必须知道"的事：贴图放在版本目录里到底能不能被 `getTexture`
+找到。原版侧边栏的路径是拼出来的（`media/ui/Sidebar/<尺寸>/<名字>_<On|Off>_<尺寸>.png`），
+而我们的 `media/ui` 在 `42.21/` 下面。我先写了一个探针用 `ZomboidFileSystem.getAbsolutePath()`
+去解析 —— 结果 10 张全部 null，连**模组的 Lua 文件**也 null：那个 API 只搜**游戏本体**目录，
+不是"模组资源解析"。换成引擎自己的模组信息才拿到真结论：
+
+```
+mod        : Bin2NPCExtensionVanilla
+versionDir : ~/Zomboid/mods/Bin2NPCExtensionVanilla/42.21
+media.common  : .../Bin2NPCExtensionVanilla/common/media
+media.version : .../Bin2NPCExtensionVanilla/42.21/media
+
+OK   ui/Sidebar/48/NPC_Off_48.png    1862 bytes  <- .../42.21/media/ui/Sidebar/48/NPC_Off_48.png (media.version)
+...
+ALL PATHS RESOLVED
+```
+
+⇒ 探针 `tools/modinfo_probe/TextureProbe.java` 与 mod.info 探针一起进 `run.sh`（4 个模组 `ALL MOD.INFO PARSED`
++ 10/10 贴图）。这条也是"探针要探对 API"的教训：`getAbsolutePath` 的 null 差点被读成"贴图路径错了"。
+
+### 设计：把"钱"变成可换的实现（`Core.API` 1 → 2）
+
+公共层原来只有一份 `Economy.lua`（写死经济模组的 `Pay/AddCoins/PlayerData`）。现在：
+
+```lua
+Core.MONEY_PROVIDERS = { upstream = "Economy", cash = "Cash" }   -- Namespace.lua
+-- 口味的 Profile.lua：money = "cash"（不写 = upstream）
+NS.Economy = require("Bin2NPCExtensionCore/" .. Core.MONEY_PROVIDERS[NS.MONEY_KIND])(NS)
+```
+
+两个实现给出同一组方法（`available / balance / pay / refund / flow / wage`），`Service`/`Maintain`
+看不见区别；`cash` 的口味没有账单系统，`flow()` 如实返回 false。**`Core.API` 升到 2**：
+这一版是加字段，老口味不加也能跑，但"只更新了一半的工坊物品"必须被拦下 —— 新口味要的 `Cash.lua`
+在旧公共层里不存在，静默降级的后果是变成了"没有经济模组"，正是最坏的降级。
+
+`Cash.pay` 的形状完全由上面那两条事实决定：
+
+1. 先确认余额够（不够就**一个物品都不动**地失败）；
+2. 先花散钞（一件 = 1 单位，删 N 个实例）；
+3. 不够就**破捆**：删 1 捆（=100），多出来的**当场新发找零**（B42 做不到"原地拆分"）；
+4. 删完还不够只可能是并发改包，如实失败并记日志 —— **绝不静默多收或少收**。
+
+`sibling` 也从"一个字符串"变成"字符串或字符串表"：三个口味要两两互查（同一个 A-Life NPC 只能被
+一边雇走），归一化成 `NS.SIBLING_MODULES`，指向自己的项会被丢掉并记一条日志。
+
+### 顺手抓出来的真 bug（两个我自己踩的 + 三个测试套件报的）
+
+**① 生成器又静默失配了一次（同一类 bug 换个方式复发）**。三个口味意味着 `sibling` 从
+`sibling = "Bin2NPCExtensionYese"` 变成一张表，而 `fork_variant.py` 里那条外科手术替换的
+匹配串是**含 `sibling = ` 前缀的整行**——改动之后它命中 0 次，脚本只是 `.replace()`，于是
+什么也没发生；紧接着的全局替换把表里的 `"Bin2NPCExtensionYese"` 又切了一次，YeseMarket 版
+的 sibling 变成了 `Bin2NPCExtensionYeseYese`。**这正是 v0.3.0 刚修过的那个 bug**
+（"重招被解雇/阵亡过的自己人"被误报"已被别人雇走"）换个方式复活。修法：
+`sub_once()` —— 每条替换必须**恰好命中一次**，否则拒绝生成（和 `extract_base.py` 同一条纪律）。
+
+**② 侧边栏按钮的回调签名写错会变成"点了没反应"**。`ISButton:onMouseUp` 调的是
+`self.onclick(self.target, self, ...)`：第一个参数是**注册时给的目标**（面板本身），第二个才是按钮。
+原版 `ISEquippedItem.onOptionMouseDown(button, x, y)` 之所以能把第一个参数叫 `button`，是因为它
+以面板为 self 被调用。我一开始写成 `onIconClicked(button)`（单参），于是 `button` 收到的是面板、
+`button.internal` 恒 nil ⇒ 那个图标点了永远没反应，而**离线语法检查完全看不出来**。
+
+测试套件交付时还报了三个**被测代码的真问题**，都已修，并把对应断言从「钉住现状」改成「钉住正确行为」：
+① `ui/Panel.lua` 的两个 UI 类名忘了写 `local`，直接漏进 `_G`（第三方模组可以撞名）；
+② `Bootstrap.install()` **自身不幂等** —— 幂等判据只在工厂里，引擎 "Reset Lua" 重跑文件后会再 install
+一次，`OnTick` 注册两遍（维护循环每帧跑两次）、Ctrl+Alt+N 会「开了又关」；
+③ 原版口味的沙盒默认值（50/200/5）与公共层兜底值（500/1500/20）不一致，沙盒表整个读不到时会显示
+10 倍价格（新增 `spec.defaults` 让口味覆盖兜底值）。这三条都是「离线静态检查看不见、忠实 mock 或
+实机才看得见」的类别。
+
+### 工具与守卫（每条都能失败）
+
+* `tools/check_base.py`：支持任意数量口味；新增 ③ sibling 必须列全其它所有口味、④ `money` 必须是
+  公共层支持的收钱方式、⑤ 每个口味的 `sandbox-options.txt` 里的 `translation/_tooltip/page/enum`
+  键在 CN/EN `Sandbox.json` 里都有（22 键/口味；我删掉一个键验证过它确实会红）。
+  `currencyName` 不再算身份字面量 —— 钞票/金币这种"钱叫什么"的显示词不是身份，
+  公共层的 `Cash.lua` 必须能说清楚这件事。
+* `tools/make_icons.py`（新）：5 档 x 2 态侧边栏图标，尺寸照原版实测
+  （48x36 / 64x48 / 80x60 / 96x72 / 128x96 = W x 0.75W；**交正方形会被 `ISButton:render`
+  等比缩到 0.75W 而糊掉**）。
+* `tools/make_images.py`：海报改成**每个口味一张**（各自的强调色/依赖/入口），顺带修掉
+  "公共层的海报是橙子口味那张的复制品"这个遗留问题；`fork_variant.py` 相应地把 `poster.png`
+  列为"不由本生成器产出"，`--write` 时**保留**磁盘上那一张（第一次跑就被它删了一次，已修）。
+* `tools/extract_base.py`：本轮手改了 `Service/ServerBootstrap/ClientBootstrap` 三个公共层文件，
+  配方同步更新（`--from-git 33f24e3` 重新变绿：12 文件一致，合计 **347 行**替换）。
+  第一次补配方时我手抄了"包装后（整体缩进 4 格）"的文本，5 条里 2 条失配 —— 改成
+  从生成器的**未包装帧**里自动 diff 出替换块并模拟应用一遍验证，才不再靠手抄缩进。
+* `tools/test-vanilla/`（新套件，**50 条断言，50/50 ALL PASS**）：钱的部分用「原版物品栏」mock 断言（余额含子容器与**穿戴容器**、破捆找零、钱不够时一个物品都不动、每次删/加都显式发包、退款回到原值、端到端走 `Service.dispatch` 扣的正好是 `SignPrice`），入口的部分断言（hook 幂等、只有 player 0 有图标、尺寸从原版按钮量、面板重建后新图标、点图标开关窗口、没有侧边栏时热键照样能开），窗口的部分断言（三个页签各自发什么命令、名册页岗位没变时**什么都不发**、revision 变了才重建、`close()` 摘掉 UIManager 并清单例）。静态部分还会校验 10 张侧边栏贴图的像素/RGBA，并从 `sandbox-options.txt` 读出真正生效的默认值。
+
+### 验证（本轮实测）
+
+```
+python3 tools/check_base.py                     → 公共层零身份 + 3 个口味互不撞车：OK
+tools/lua_syntax_check.mjs <四个模组 + 三个测试目录> → files=35 failed=0
+tools/test/run_lua_test.sh --quick              → 40/40 ALL PASS
+tools/test-yese/run_lua_test.sh --quick         → 40/40 ALL PASS
+python3 tools/fork_variant.py --check           → 变体与生成器一致（mod 11 文件 / test 5 文件）
+python3 tools/extract_base.py --from-git 33f24e3 → 公共层 12 个文件与机械搬移结果一致（347 行）
+python3 tools/make_icons.py --check             → 图标齐全且尺寸正确（5 档 x 2 态）
+tools/modinfo_probe/run.sh                      → ALL MOD.INFO PARSED（4 模组）+ ALL PATHS RESOLVED（10/10）
+bin2_workshop_upload_fix/.../pz_workshop_probe/run.sh → validatePreviewImage=OK、SetItem*=true、STOP before Submit
+bash bin2_workshop_upload_fix/.../check_all.sh  → ALL CHECKS PASSED (18 item(s))；item 10 简介 7848/7873
+```
+
+**未做**：游戏内 V1~V12 未跑（`docs/test-plan.md` 有逐条清单）；工坊未重新上传（线上还是 v0.2.3 / 两个模组）；
+手柄目前只能靠热键/鼠标开面板（原版侧边栏本身没有手柄导航，可后续挂 `ISDPadWheels.onDisplayRight` 加一格）。
+
+> 结论 / 沉淀（四条）：
+> ① **"钱怎么算"是策略，不是接口** —— B42 没有堆叠，就没有"找零"原语；先证清楚这一点，
+>    `pay()` 才不会写成一个跑不通的"部分扣除"；
+> ② **探针要探对 API** —— `getAbsolutePath` 对模组资源一律返回 null（它只搜游戏本体），
+>    差点被读成"贴图路径写错了"；换成 `ChooseGameInfo$Mod.mediaFile.version` 才有答案；
+> ③ **回调签名是沉默的坑** —— `ISButton.onclick(target, self)` 传的是"目标, 按钮"，
+>    顺序写反既不报错也不生效；这类错只有"点一下"或忠实 mock 才抓得到；
+> ④ **生成器里每一条替换都该"恰好命中一次"** —— 本轮它第二次以同一方式咬人（sibling 又变成自己），
+>    修法不是改那一行，而是给生成器加断言。

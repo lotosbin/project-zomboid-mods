@@ -45,7 +45,14 @@ local function factory(NS)
 
     -- 沙盒选项表名由口味注入（每个口味一套独立选项，互不覆盖）
 
-    -- 沙盒选项默认值（沙盒表缺失时用同一份默认值）
+    --[[
+        沙盒选项默认值。
+
+        游戏里这些值的**真正来源**是口味自己的 media/sandbox-options.txt（SandboxVars 由它生成）；
+        这份表只在"整个沙盒表读不到"时兜底（例如存档早于模组的沙盒表）。所以口味可以用
+        `spec.defaults` 覆盖任意一项，保持两边一致 —— 否则兜底时面板与日志会显示另一套价格
+        （原版钞票口味的签约价是 50 张而不是 500，差 10 倍）。
+    ]]
     Config.DEFAULTS = {
         Enabled = true,
         MaxContracts = 3,
@@ -62,6 +69,13 @@ local function factory(NS)
         CreateCamp = true,
         DebugLog = false,
     }
+
+    -- 口味在 spec.defaults 里给的覆盖值（只覆盖它列出的项）
+    if type(Config.DEFAULTS_OVERRIDE) == "table" then
+        for key, value in pairs(Config.DEFAULTS_OVERRIDE) do
+            Config.DEFAULTS[key] = value
+        end
+    end
 
     -- 客户端每次进入世界最多尝试注册 UI 的次数（经济模组可能比我们晚加载）
     Config.UI_RETRY_MAX = 60
