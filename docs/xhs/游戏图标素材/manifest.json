@@ -853,5 +853,33 @@
     "cn": "自制木炭"
    }
   ]
+ },
+ "Item_Pot_Water": {
+  "pack": "UI.pack",
+  "size": [
+   32,
+   32
+  ],
+  "rect": [
+   0,
+   66,
+   32,
+   31
+  ],
+  "items": []
+ },
+ "Item_WaterDrop": {
+  "pack": "UI2.pack",
+  "size": [
+   32,
+   32
+  ],
+  "rect": [
+   919,
+   779,
+   19,
+   31
+  ],
+  "items": []
  }
 }

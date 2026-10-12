@@ -183,11 +183,12 @@ def items_from_recipes(recipe_files, tags):
 
 # ---------------------------------------------------------------- 导出
 
-def export(found, out_dir, scale):
+def export(found, out_dir, scale, previous=None):
+    """previous: 已有的 manifest(增量导出时保留上次导出的条目,不把目录里的记录冲掉)"""
     from PIL import Image
     os.makedirs(out_dir, exist_ok=True)
     pages = {}
-    manifest = {}
+    manifest = dict(previous or {})
     for sprite, (pack, rect) in sorted(found.items()):
         x, y, w, h, off_x, off_y, orig_w, orig_h, page_offset = rect
         key = (pack, page_offset)
@@ -274,7 +275,14 @@ def main():
         sprites.add(icon if icon.startswith("Item_") else f"Item_{icon}")
 
     found = lookup_sprites(args.game, args.packs, sprites)
-    manifest = export(found, args.out, args.scale)
+    manifest_path = os.path.join(args.out, "manifest.json")
+    previous = {}
+    if os.path.exists(manifest_path):            # 增量导出:保留目录里已有的条目
+        try:
+            previous = json.load(open(manifest_path, encoding="utf-8"))
+        except Exception:
+            previous = {}
+    manifest = export(found, args.out, args.scale, previous)
     for full in sorted(full_types):
         icon = icons.get(full)
         if not icon:
@@ -282,7 +290,7 @@ def main():
         sprite = icon if icon.startswith("Item_") else f"Item_{icon}"
         if sprite in manifest:
             manifest[sprite]["items"].append({"fullType": full, "cn": names.get(full, "")})
-    json.dump(manifest, open(os.path.join(args.out, "manifest.json"), "w", encoding="utf-8"),
+    json.dump(manifest, open(manifest_path, "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
 
     print(f"请求 {len(sprites)} 个图标,导出 {len(manifest)} 个 → {args.out}")
