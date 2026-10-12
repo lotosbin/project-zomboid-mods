@@ -830,7 +830,6 @@ Bin2MakeHacksawBlade     : 1 木炭 + 1 小金属板 + 锤子 + 凿子          
 (MetalWelding / Cooking —— 原版**没有** "Metalworking" 技能,Metalworking 只是分类名)。
 
 ### 14.7 复现
-
 ```bash
 # 缺口扫描(可加 --json gaps.json / --top 80 / --lang CN)
 python3 bin2_b42/tools/recipe_gap/scan_recipe_gaps.py --top 40
@@ -844,6 +843,34 @@ python3 -m mod_dependency_analyzer.validate_recipes --root ./bin2_b42
 
 坑:探针会提示"3 个 fullType 查不到",那是 `Bin2MakeEpoxy` 引用的 `LabItems.*`(来自另一个 mod)——
 探针不加载 mod,跨 mod 引用被判为未知属正常;原版物品里出现未知 fullType 才是拼写错误。
+
+### 14.8 顺带挖到:物品图标藏在贴图包里(PZPK 格式)
+
+写更新公告要画"配方消耗什么、产出什么",需要物品图标。**B42 的物品图标没有独立 png 文件**:
+`media/textures/` 下只有世界模型贴图(如 `WorldItems/Glue.png`,64x128,那是丢在地上的样子),
+真正的物品栏图标打包在 `media/texturepacks/UI.pack`(1.2 MB,老包)与 `UI2.pack`(54 MB)里。
+实测出来的格式(两个包都成立):
+
+```
+magic "PZPK"                      4 字节;UI.pack 这类老包直接以记录开头
+记录 = uint32 名称长度 + 名称 + 8 个 uint32
+       x, y, w, h        雪碧图里的裁剪矩形(图标是裁掉透明边之后的)
+       offX, offY        画回原尺寸画布时的偏移
+       origW, origH      原始画布(物品图标通常 32x32)
+页码 = 该记录之后最近的那个 PNG —— 每张雪碧图前面紧跟着它自己的名称表
+       (PNG 数据是内嵌在 .pack 里的,不是旁边的独立文件)
+```
+
+关键坑:① 图标名**不等于物品 ID**,要读物品脚本的 `Icon = X`,再找 sprite `Item_X`
+(例:`Base.HacksawBlade` 的 `Icon = Sawblade` → sprite `Item_Sawblade`;
+`Base.AnimalBone` 的 `Icon = Bone` → `Item_Bone`);② 名称表按页分散在包里,
+`UI2.pack` 里 `Item_NutsBolts` 在第 3 张雪碧图上、`Item_Bone` 在第 1 张上,
+所以"先解析整张表再查"很慢(逐字节扫 54 MB),按名字用 `bytes.find` 定向查找快一个数量级;
+③ 大小标签不一致的图标是同一物品的不同档(`Item_MetalSheetSmall` 与 `Item_MetalSheet_Small` 都在)。
+
+工具:`bin2_b42/tools/pz_atlas/extract_item_icons.py`(用法与依赖见该目录 README)。
+用它给 `bin2_Recipes.txt` 里出现的全部物品导过 45 个图标,总览图在
+`docs/xhs/游戏图标素材/图标总览.png`。
 
 ---
 
