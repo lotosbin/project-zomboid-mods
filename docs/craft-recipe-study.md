@@ -689,7 +689,7 @@ IsNotSealed / Unseal / EquipSecondary / SetActivated`。
   ⇒ `-fluid 0.5 categories[Water] mode:mixture` 中的 `mode:mixture` = 容器里可以是含水的混合液
 - `-fluid` 的筛选既可以写 `[Water;TaintedWater]`(`FluidKey`),也可以写 `categories[Water]`
   (`FluidCategory`);原版 `media/scripts/generated/fluids.txt` 里 `Water` 与 `TaintedWater` **同属
-  `Water` 类别**,所以 `categories[Water]` 净水/脏水都吃
+  `Water` 类别**,所以 `categories[Water]` 水/污染的水都吃(`CarbonatedWater` 也在内)
 
 ### 13.4 解析结果里看不到流体行,不代表流体没生效
 
@@ -923,6 +923,42 @@ magic "PZPK"                      4 字节;UI.pack 这类老包直接以记录�
 所以每个新数字都要有一条**独立于脚本**的交叉验证(这次是运营按配方名手数的 7 条),
 而且派生的用户可见数字(33/11/10/9/3)要单独复查是否受影响(这次不受影响,因为那 5 个物品
 恰好都没踩到这两种写法)。判据侧的交叉验证命令见 14.7。
+
+### 14.11 流体到底被扣多少:扣 amount,不是抽干整锅(字节码证据)
+
+一个曾经只写在更新日志里、没有证据的句子:"制盐后锅内剩下的水还在"。2026-10-13 用字节码把它落实了 ——
+**它是对的**,而且顺带解释了两件容易踩的事。
+
+`zombie/entity/components/crafting/recipe/CraftRecipeManager.consumeInputFluidInternal(...)` 的逻辑
+(反汇编 `projectzomboid.jar` 得到):
+
+```
+amount = InputScript.getAmount();                 // -fluid 0.5 → 0.5
+if (cache != null) amount -= cache.fluidConsumed;  // 同一次制作里不重复扣
+if (!script.isFluidMatch(container)) return false; // 类别/模式不符 → 输入不成立
+float remove = min(amount, max(container.getAmount() - <已计部分>, 0));
+if (remove < 1.0E-5f) return false;                // 容器里的量不够 → 这条输入不成立
+container.removeFluid(remove, ...);                // 只扣这么多
+```
+
+三条可用的结论:
+
+1. **只扣配方要求的量,不抽干整锅**。1.5 升的蒸煮锅里有 1 升水,做一次盐剩下 0.5 升;
+   `mode:mixture` 只影响"匹配"(容器里可以是混合液),**不影响扣多少** —— 扣多少由 `amount` 决定。
+2. **水不够就做不了**(`remove < 1e-5` 直接 `return false`)。0.6 升的平底煮锅装 0.5 升够用,
+   只剩 0.4 升时这条配方不成立。**引擎只认"够不够",不关心 0.5 还是 0.6** —— 0.5 是我们选的数,
+   唯一受约束的是上限:不能超过最小锅的 0.6 升,否则小锅做不了(这是设计取舍,不是引擎结论)。
+3. `CacheData.fluidConsumed` 让一次制作里重复的扣除互相抵消,所以"同一条配方写两行 `-fluid`"
+   不等于扣两次。
+
+复核命令(本机 42.21 安装包):
+
+```bash
+JAR="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/projectzomboid.jar"
+WD=$(mktemp -d); unzip -q "$JAR" 'zombie/entity/components/crafting/*' -d "$WD"
+javap -p -c -cp "$WD" zombie.entity.components.crafting.recipe.CraftRecipeManager \
+  | sed -n '/consumeInputFluidInternal/,/^$/p'      # 看 removeFluid 前后
+```
 
 ---
 

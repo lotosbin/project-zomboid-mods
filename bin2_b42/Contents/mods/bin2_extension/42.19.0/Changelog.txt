@@ -22,7 +22,7 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 - 优化: Bin2MakeSalt 制盐配方改为通用锅具
   (平底煮锅 / 铜平底煮锅 / 蒸煮锅 / 粗制蒸煮锅 / 水壶 / 铜制水壶,原来只认 Base.Saucepan)
 - 修复: 制盐配方不消耗任何液体 → 只要有木炭就能无限刷盐
-  补上 -fluid 0.5 categories[Water] mode:mixture (净水或脏水均可)
+  补上 -fluid 0.5 categories[Water] mode:mixture (「水」或「污染的水」均可)
 - 修复: 锅具用 mode:keep 保留却仍在 outputs 里返回 → 制作后锅具翻倍
   现在锅具保留、不再额外产出一个锅
 - 修复: flags[NotEmpty] 对装液体的容器不生效
