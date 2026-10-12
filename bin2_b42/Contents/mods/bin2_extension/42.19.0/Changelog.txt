@@ -3,6 +3,18 @@ link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 [ ------ ]
 
+[ 10/12/2026 ]
+版本 1.6.2 (2026-10-12)
+- 优化: Bin2MakeSalt 制盐配方改为通用锅具
+  (平底煮锅 / 铜煮锅 / 炖锅 / 锻造炖锅 / 水壶 / 铜水壶,原来只认 Base.Saucepan)
+- 修复: 制盐配方不消耗任何液体 → 只要有木炭就能无限刷盐
+  补上 -fluid 0.5 categories[Water] mode:mixture (净水或脏水均可)
+- 修复: 锅具用 mode:keep 保留却仍在 outputs 里返回 → 制作后锅具翻倍
+  现在锅具保留、不再额外产出一个锅
+- 修复: flags[NotEmpty] 对装液体的容器不生效
+  (引擎只对 FluidContainer 校验 IsFull / IsEmpty,见 docs/craft-recipe-study.md 第 14 节)
+- 校验: 新增 bin2_b42/tools/recipe_probe,用游戏自带脚本解析器离线解析全部 6 条配方
+
 [ 06/10/2026 ]
 - 修复: 拆解简易木钳配方 outputs 引用不存在的物品 ID
   (Base.WoodenStick → Base.Plank, Base.Rag → Base.RippedSheets)

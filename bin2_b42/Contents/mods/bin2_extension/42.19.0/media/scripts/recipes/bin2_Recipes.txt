@@ -83,13 +83,13 @@ module Bin2Recipe
         xpAward = Cooking:5,
         inputs
         {
-            item 1 [Base.Saucepan] mode:keep flags[Prop1;NotEmpty;ItemCount],
+            item 1 [Base.Saucepan;Base.SaucepanCopper;Base.Pot;Base.PotForged;Base.Kettle;Base.Kettle_Copper] mode:keep flags[ItemCount],
+            -fluid 0.5 categories[Water] mode:mixture,
             item 1 [Base.Charcoal;Base.CharcoalCrafted;Base.Coke],
         }
         outputs
         {
             item 1 Base.Salt,
-            item 1 Base.Saucepan,
         }
     }
     craftRecipe Bin2MakeEpoxy

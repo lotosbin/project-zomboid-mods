@@ -2961,3 +2961,141 @@ bash bin2_workshop_upload_fix/.../check_all.sh  → ALL CHECKS PASSED (18 item(s
 >    顺序写反既不报错也不生效；这类错只有"点一下"或忠实 mock 才抓得到；
 > ④ **生成器里每一条替换都该"恰好命中一次"** —— 本轮它第二次以同一方式咬人（sibling 又变成自己），
 >    修法不是改那一行，而是给生成器加断言。
+
+## 2026-10-11 · 读 PZ Pulse 实时面板，给角色出诊断（非改码任务）
+
+用户给的是一条 `file://` 清单地址：工坊 `3753700423` 的 `PZ_Pulse/42/media/web/index.html?d=file:///Users/liubinbin/Zomboid/Lua/PZ_Pulse/`，
+要求"获取信息 → 给出游戏建议"。产出 `docs/pz-pulse-character-advice-2026-10-11.md`。
+
+**数据链**：`?d=` 指向的是**数据目录**而不是页面目录。目录里是
+`data.txt`（`window.PZ_DATA = {...}; window.PZ_DATA.seq = N;`）、`heartbeat.txt`（beat/seq/state/build/mp/mem）、
+`ext.txt`（扩展清单）、`lang.txt`（该语言的全部 UI 文案）、`MOVED.txt`（mod 自己写的"书签搬家"说明）。
+
+**踩到的坑（都是"看着像、其实不是"）**：
+
+1. **`data.txt` 不是纯 JSON**：尾部还有一条 `window.PZ_DATA.seq = 914;`。直接 `json.loads` 会报
+   `Extra data: line 1 column 21294` —— 正确做法是按**第一个 `;` 截断**再解析，别按"整文件"或"最后一行"。
+2. **字段语义必须回读 mod 源码**（`media/lua/client/PZ_Pulse_Collectors.lua`），否则一定会读错：
+   - `protection.bite/scratch` 是 `player:getBodyPartClothingDefense(i, isBite, false)`，**所有衣物层合并后的数值**，
+     不是单件装备的数值 —— 也就是游戏内"防护"页签显示的那个数。
+   - `bodytemp.skin/ins` 是 `*UI()` 的 **0..1 梯度位置**（`pct01` 放大成 0..100），**不是温度**；
+     真正的摄氏度在 `skinC`（`getSkinCelcius()`），绝缘实值在 `insVal`。
+   - `encumbrance.load/max` 是 `getInventoryWeight()/getMaxWeight()`，**不等于**背包面板里那个"X / Y"
+     （那个只算主物品栏）——源码注释里专门写了这一点。
+   - `encumbrance.tier` 取的是 `Moodles_HeavyLoad_lvl{N}`，是引擎自己的档名。
+3. **阈值不必猜，页面里就有**：体重档位表 `WEIGHT_STOPS` 在 `index.html`（kg，注释原文
+   `85 is the overweight edge`）→ 正常 76–84 / 超重 85–97 / 肥胖 98–130。角色 125kg 在肥胖档深处。
+4. **角色特质描述本身就是攻略**：`info.traits[].desc` 是游戏内文本，`爱书之人`（任何书消除不快/压力/无聊）、
+   `热爱驾驶`（每 100 米 -5% 压力/不快/无聊）、`憎恨女人`（每杀一只 -2% 压力/不快）直接解释了
+   "压力 99 该怎么降"。**先读数据，再谈常识**。
+5. **单机/多分别靠猜**：heartbeat 的 `mp:"client"` 在单机也会是 client（`isClient()` 单机同样为真），
+   真正的证据是 `~/Zomboid/Saves/Multiplayer/` + `Logs/*_connections.txt`（本次是 `pt-99.mutong1.com:21012`）。
+   确认 MP 之后，`内向/不友善/个人主义者/扫兴鬼` 这四个只对"其他玩家"生效的特质才敢认作真凶。
+6. **武器数值要看 mod 脚本**：`Base.Daxialongque` 来自 `Willowbrook Bastion!`（工坊 3479667649），
+   `Categories = base:longblade`、`MaxDamage 3.2 / MinDamage 2.6`、双手、3 目标 —— 和面板里
+   短棍 Lv8 那把"钉刺短棒 0.7–1.3"差 2 倍以上，所以"技能等级高就该用等级高的武器"是错的。
+
+**沉淀**：只读型面板的价值 = 它把"游戏内自己已经能查到的事实"变成可解析的结构化数据；
+所以读它的第一原则不是"按字段名猜语义"，而是**找到写它的那段 Lua 和读它的那段 JS**，
+两边对齐之后，数字才有意义（`protection` 与 `bodytemp` 两处都是靠这一步才没读反）。
+
+### 追加 · 外部核对打回 6 条：**面板是事实，机制是另一回事**
+
+`docs/pz-pulse-character-advice-2026-10-11.md` 出 v1 后，另派 subagent 去 pzwiki 逐条核对机制，
+结果 v1 有 6 处"看起来天经地义"的说法是错的：
+
+1. **音乐/收音机降的是"无聊"，不是压力**；**睡觉不降压力**（wiki 原文 "It will not decrease during sleep"）；
+   β blockers 只降恐慌。三条都是"常识级"误解。
+2. **原版里靠近其他玩家/聊天降的是"无聊"** —— 我把"原版机制"和"这个角色身上的 mod 特质"混为一谈了。
+   涨压力的是 thisIsMe-TraitsMP 的 `内向/不友善` 自身效果（面板描述就是证据）。
+   **教训：面板给的是"这个存档的事实"，wiki 给的是"原版规则"，两者冲突时以面板为准，但别把面板当原版。**
+3. **不存在"头部被咬必死"**：任何部位被咬都是 100% 感染，真正特殊的是**脖子**（无视伤害上限）。
+   头部 10% 的问题是"被咬概率最大化"，不是"更致命"。
+4. 我把"军用头盔"当成高防咬装备推荐，实际它只有 **70/80**；100/100 的是
+   摩托车/防暴/**废金属/简易金属**头盔、核生化面罩 —— 而角色是**锻造 Lv10 的铁匠**，
+   **废金属头盔可以自己打**。这条更正反而把建议从"去抢"变成"自己做"。
+5. 负重 127% 不是"会变慢"这么轻：**Heavy Load 档冲刺直接禁用、移速 −37%、绊倒 26%**，
+   再 23 个百分点就进 **>150%（奔跑禁用 + 持续掉血到 75% HP）**。
+6. 我把四肢皮温当失温风险（wiki 无"手冷"机制，判冷暖看**核心体温**），
+   同时**漏掉了最要命的一条**：**肥胖档下"体格"完全拿不到经验** ——
+   减重从"养生建议"变成"解锁体格的前置条件"。
+
+**沉淀**：把"面板读数"和"机制解释"分成两级证据写在报告里（一手事实 / wiki 参考 + 版本标注），
+v1 的问题正是两级混着写，看起来每句都有出处，其实出处不是同一层。
+wiki 侧的另一个坑：多数页面仍标 42.12.3 / 42.14.1 / 42.20.0，**引用时必须带上页面上的版本标签**。
+
+---
+
+## 2026-10-12 · 制盐配方「支持其他锅具」：顺手挖出无限刷盐 + 锅具翻倍 + 一个空操作 flag
+
+用户诉求一句话：「制盐配方更通用，支持其他的锅具」。原配方只认 `Base.Saucepan`：
+
+```lua
+item 1 [Base.Saucepan] mode:keep flags[Prop1;NotEmpty;ItemCount],
+item 1 [Base.Charcoal],
+outputs { item 1 Base.Salt, item 1 Base.Saucepan, }
+```
+
+查证方式选了**引擎源码**而不是先抄 Wiki：`Project Zomboid.app/Contents/Java/projectzomboid.jar`
+（B42 42.19.0）反编译 `zombie/scripting/entity/components/crafting/*`。三条硬事实：
+
+1. **`flags[NotEmpty]` 对装液体的容器是空操作**。`InputFlag` 全枚举里有 `NotEmpty`，但
+   `InputScript.doesItemPassIsOrNotEmptyAndFullTests(InventoryItem)` 的 FluidContainer 分支
+   **只判 `IsFull` / `IsEmpty`**；`NotEmpty` 只在 `DrainableComboItem`（手电/打火机的使用次数）与
+   `Radio` / `WeaponPart` 分支里判。⇒ 更新日志里写的"需要装满液体的平底煮锅"从来没生效过。
+2. **`-fluid` 的水不来自 inputs 里那只锅**。`InputScript.isFluidMatch(FluidContainer)` +
+   `CraftRecipeManager.consumeInputFluid(...)` 说明流体需求是拿"上下文里能拿到的 FluidContainer"匹配的。
+   原版反证：`recipes_cooking.txt` 的 `MakeGravy` 同时要求 `[Base.Bowl;Base.ClayBowl] mode:keep flags[IsEmpty]`
+   （碗必须空）与 `-fluid 1.0 categories[Water] mode:mixture`（必须消耗 1 升水）—— 水只能来自附近别的容器。
+3. **原配方根本没有 `-fluid` 行** ⇒ 花 1 木炭凭空出 1 盐；再加 `mode:keep` 的锅又出现在 `outputs` 里
+   ⇒ 做完锅里外各一个。两条都是刷子，比"不支持锅具"严重得多。
+
+**改法**（照抄原版烹饪腔调：容器 `mode:keep` + 单独一条 `-fluid`，产出只留产物）：
+
+```lua
+item 1 [Base.Saucepan;Base.SaucepanCopper;Base.Pot;Base.PotForged;Base.Kettle;Base.Kettle_Copper] mode:keep flags[ItemCount],
+-fluid 0.5 categories[Water] mode:mixture,
+item 1 [Base.Charcoal;Base.CharcoalCrafted;Base.Coke],
+outputs { item 1 Base.Salt, }
+```
+
+0.5 升是**被最小锅具卡的**：`Base.Saucepan` 容量只有 0.6 L（`Pot`/`Kettle` 1.5 L，金属桶 10 L），
+要求再高就只剩大锅能用。`categories[Water]` 同时吃 `Water` 与 `TaintedWater`
+（`media/scripts/generated/fluids.txt` 里两者同属 `Water` 类别）。
+
+**为什么不用 `tags[...]` 做"通用锅具"**：原版**没有**锅具专用 tag。`base:cookable` 命中 **115 个物品**
+（威士忌瓶、汽水罐、香水、喂奶瓶全在内）；`Base.RoastingPan/BakingPan/BakingTray/MuffinTray` 带
+`base:cookable` 却**没有 FluidContainer**，装不了水。所以"支持其他锅具"只能显式列 fullType。
+
+**校验：让引擎自己说**。新工具 `bin2_b42/tools/recipe_probe`（headless 跑 `ScriptManager.Load()`，
+不启动游戏、不碰 Steam）。踩到的四个坑都写进工具 README 了：
+
+- `ScriptManager.Load()` 直接调会炸两处：`ServerOptions.<clinit>` 里 `randomizer` 为 null（需先
+  `RandStandard.INSTANCE.init()`）、车辆脚本 `defineVehicleScript` 的 `UnsatisfiedLinkError`（需先 `Bullet.init()`）；
+- 游戏字节码是 **class file 69.0**，编译必须 JDK 25（游戏自带 JRE 在 `Contents/PlugIns/jre-*/`）；
+- 配方注册的 key 是 **`模块.配方ID`**（`Bin2Recipe.Bin2MakeSalt`），用裸 ID 查是查不到的；
+- **`CraftRecipe.getInputs()` 不含流体行**，流体行在 private `ioLines` 里 —— 只看 `getInputs()` 会误判
+  "`-fluid` 被引擎吃了"（我第一次就误判了，还拿 `MakePizza` 做了对照才发现）。
+
+最终探针输出（本次改动的事实基线）：
+
+```
+### Bin2MakeSalt : OK  fullType=Bin2Recipe.Bin2MakeSalt time=80 category=Cooking tags=[AnySurfaceCraft]
+    IN  [Item] item 1 [Base.Saucepan;…;Base.Kettle_Copper] mode:keep flags[ItemCount]   keep=true itemCount=true
+    IN  [Fluid] fluid 0.5 categories[Water] mode:mixture                                 fluidMode=Mixture amount=0.5
+    IN  [Item] item 1 [Base.Charcoal;Base.CharcoalCrafted;Base.Coke]
+    OUT [Item] item 1 Base.Salt
+ALL RECIPES PARSED      # 6 条配方全过；6 个锅具 fullType 全部解析成功
+```
+
+`run.sh` 需要把待校验文件放进引擎会扫描的目录，所以它**临时**复制一份到
+`<游戏>/media/scripts/generated/recipes/zz_probe_*.txt`，`EXIT trap` 无条件删除（本次跑完确认无残留）。
+
+**同步的其它文件**：`mod.info` 1.6.1 → 1.6.2、`bin2_b42/Changelog.txt` 与 mod 内 `Changelog.txt` 各加
+`[ 10/12/2026 ]` 段、`workshop.txt` 简介补上漏掉的 `Bin2MakeSalt` / `Bin2MakeEpoxy`、
+`docs/craft-recipe-study.md` 新增第 13 节「引擎实测补充」并修正第 11 节已经过时的 B42 样例。
+
+**沉淀**：配方脚本的语义只有引擎说了算 —— "Wiki 有这条 flag" ≠ "引擎会判这条 flag"，
+"我在 inputs 里写了流体" ≠ "引擎收下了流体行"。可复用的验证姿势是
+**把引擎自己的解析器跑起来、把它解析出的结构打印出来**，而不是再写一层正则去猜；
+这次的 4 个 headless 坑，也正是"猜"与"跑"之间的差价。

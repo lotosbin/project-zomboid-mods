@@ -35,18 +35,89 @@ def parse_json_lenient(text: str):
     return json.loads(text)
 
 
-def index_known_items() -> Set[str]:
+def pz_install_dirs() -> List[str]:
     """
-    索引 PZ 中真实存在的物品 ID
-    来源: Steam Workshop 已装 mod 的 ItemName.json
+    本机 PZ 安装目录(含 projectzomboid.jar 的那层)。可用 PZ_GAME_DIR 覆盖。
     """
-    known = set()
+    roots = []
+    bases = [os.environ.get("PZ_GAME_DIR"),
+             "/Users/liubinbin/Library/Application Support/Steam/steamapps/common/ProjectZomboid"]
+    for base in bases:
+        if not base:
+            continue
+        for rel in ("", "Contents/Java", "Project Zomboid.app/Contents/Java", "ProjectZomboid"):
+            d = os.path.join(base, rel) if rel else base
+            if os.path.isfile(os.path.join(d, "projectzomboid.jar")) and d not in roots:
+                roots.append(d)
+    return roots
 
-    # 索引目录
+
+def index_game_items() -> Set[str]:
+    """
+    从**游戏自己的物品脚本**索引原版 fullType(`module X { item Y }` → `X.Y`)。
+    这是最权威的一手来源,且不依赖任何已装 mod / 存档。
+    """
+    known: Set[str] = set()
+    for root in pz_install_dirs():
+        scripts = os.path.join(root, "media", "scripts")
+        for dirpath, dirnames, filenames in os.walk(scripts):
+            dirnames[:] = [d for d in dirnames if d not in ("__pycache__",)]
+            for fn in filenames:
+                if not fn.endswith(".txt"):
+                    continue
+                try:
+                    with open(os.path.join(dirpath, fn), encoding="utf-8", errors="replace") as f:
+                        lines = f.read().splitlines()
+                except Exception as e:
+                    logger.warning(f"跳过 {os.path.join(dirpath, fn)}: {e}")
+                    continue
+                module = None
+                for line in lines:
+                    m = re.match(r"\s*module\s+([A-Za-z_]\w*)", line)
+                    if m:
+                        module = m.group(1)
+                        continue
+                    # 物品声明是独占一行的 `item <Name>`;配方里的 `item 1 Base.X,` 不会命中
+                    m = re.match(r"\s*item\s+([A-Za-z_]\w*)\s*$", line)
+                    if m and module:
+                        known.add(f"{module}.{m.group(1)}")
+    return known
+
+
+def index_world_dictionary() -> Set[str]:
+    """
+    从引擎自己写出的物品全量表索引 fullType —— B42 在存档目录里生成
+    `WorldDictionaryReadable.lua`(`fulltype = "Base.X"`),里面**含 mod 物品**,
+    相当于"这个档真实注册过的物品清单"。
+    """
+    known: Set[str] = set()
+    saves = os.path.expanduser("~/Zomboid/Saves")
+    if not os.path.isdir(saves):
+        return known
+    pattern = re.compile(r'fulltype\s*=\s*"([^"]+)"')
+    for dirpath, dirnames, filenames in os.walk(saves):
+        dirnames[:] = [d for d in dirnames if d not in ("__pycache__",)]
+        for fn in filenames:
+            if fn != "WorldDictionaryReadable.lua":
+                continue
+            try:
+                with open(os.path.join(dirpath, fn), encoding="utf-8", errors="replace") as f:
+                    for line in f:
+                        m = pattern.search(line)
+                        if m:
+                            known.add(m.group(1))
+            except Exception as e:
+                logger.warning(f"跳过 {os.path.join(dirpath, fn)}: {e}")
+    return known
+
+
+def index_translation_json_items() -> Set[str]:
+    """补充来源:中文化 JSON 的 `ItemName_<fullType>` 键(覆盖一手来源里还没有的物品)"""
+    known = set()
     idx_dirs = [
         # B42Trans_CN_As1 (key 无前缀)
         "/Users/liubinbin/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Resources/steamapps/workshop/content/108600/3556544454/mods/B42Trans_CN_As1/42.0/media/lua/shared/Translate/CN",
-        # 本仓库 bin2_extension
+        # 本仓库 bin2_extension(同时兼容已部署到 Workshop 的旧路径)
         "/Users/liubinbin/Zomboid/Workshop/bin2_b42/Contents/mods/bin2_extension/42.19.0/media/lua/shared/Translate/CN",
         # ZVirusVaccine (化学物品索引)
         "/Users/liubinbin/Zomboid/Workshop/learn/ZVirusVaccine42BETA/42.14/media/lua/shared/Translate/CN",
@@ -77,6 +148,28 @@ def index_known_items() -> Set[str]:
                 logger.warning(f"跳过 {path}: {e}")
 
     return known
+
+
+def index_known_items() -> Set[str]:
+    """
+    索引 PZ 中真实存在的物品 ID(fullType)。三路合并:
+
+    1. 游戏自己的物品脚本 `media/scripts/**/*.txt` —— 原版,最权威且不依赖 mod/存档
+    2. 存档里的 `WorldDictionaryReadable.lua` —— 引擎写出的全量清单,含 mod 物品
+    3. 中文化 JSON 的 `ItemName_*` 键 —— 补充
+
+    注:第 2 路是"这个档注册过什么",所以只认已玩过的 mod;没装/没玩过的 mod 物品
+    仍会被判为不存在(那是真的没验证过,不是误报)。
+    """
+    game_items = index_game_items()
+    world_items = index_world_dictionary()
+    json_items = index_translation_json_items()
+    logger.info(f"  原版物品脚本: {len(game_items)} 个 fullType"
+                + (f" (来自 {', '.join(pz_install_dirs())})" if game_items else " (未找到游戏安装目录,可设 PZ_GAME_DIR)"))
+    logger.info(f"  存档 WorldDictionary: {len(world_items)} 个 fullType")
+    logger.info(f"  中文化 JSON: {len(json_items)} 个 fullType")
+    return game_items | world_items | json_items
+
 
 
 def check_json_duplicates(path: str) -> List[str]:

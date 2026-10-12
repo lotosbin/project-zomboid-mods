@@ -136,15 +136,21 @@ item <数量> [<筛选条件>] mode:<模式> flags[<flag1>;<flag2>...] mappers[<
 | `ItemCount` | 计数可部分消耗(液体桶) |
 | `AllowDestroyedItem` | 允许使用已损坏物品(参见 3.5) |
 
+> ⚠️ 容器类 flag 的实测差异(见 13.2):对装了液体的容器,**只有 `IsEmpty` / `IsFull` 生效**,
+> `NotEmpty` 是空操作 —— "锅里必须先装满液体" 这类需求不能靠 `NotEmpty` 表达。
+
 ### 3.5 液体输入
 
 ```lua
 -fluid 1.0 [Petrol],
 -fluid <升数> [<FluidID>],
+-fluid 0.5 categories[Water] mode:mixture,   -- 按类别 + 匹配模式(B42 常用写法)
 ```
 
 - 用 `-fluid` 前缀(不是 `item`)
 - 数量单位是升(可以为小数)
+- `mode:` 取值 `exact` / `primary` / `mixture` / `anything`(枚举来源见 13.3)
+- 液体**不必**装在同一条 `inputs` 里列出的容器中(见 13.1)
 
 ### 3.6 进阶:B41 兼容字段(若用 B41 语法)
 
@@ -564,22 +570,24 @@ module Bin2Recipe
 }
 ```
 
-**B42 新式** — `bin2_extension/42.19.0/media/scripts/recipes/bin2_Recipes.txt`:
+**B42 新式** — `bin2_extension/42.19.0/media/scripts/recipes/bin2_Recipes.txt`(v1.6.2 现状):
 ```lua
 module Bin2Recipe
 {
     craftRecipe Bin2DisassembleCrudeWoodenTongs
     {
-        Tags = AnySurfaceCraft,
+        time = 5,
+        timedAction = Making,
+        Tags = InHandCraft;CanBeDoneFromFloor,
         category = Cooking,
         inputs
         {
-            item 1 [CrudeWoodenTongs],
+            item 1 [Base.CrudeWoodenTongs],
         }
         outputs
         {
-            item 2 Base.WoodenStick,
-            item 1 Base.Rag,
+            item 2 Base.ShortBat,
+            item 1 Base.RippedSheets,
         }
     }
 }
@@ -591,14 +599,14 @@ module Bin2Recipe
 |------|--------------|---------------|
 | RecipeID | `DisassembleCrudeWoodenTongs` | `Bin2DisassembleCrudeWoodenTongs` (加 mod 前缀) |
 | 字段语法 | `属性:值` | `属性 = 值` |
-| 原料写法 | `CrudeWoodenTongs,` 简写 | `item 1 [CrudeWoodenTongs]` 显式 |
-| 产出写法 | `Result:WoodenStick=2,` | `outputs { item 2 Base.WoodenStick, }` |
-| 工作台条件 | (无) | `Tags = AnySurfaceCraft,` |
-| 经验钩子 | `OnGiveXP:Recipe_GiveXP` | (B42 应补 `OnCreate = Recipe.OnCreate.XXX`) |
-| Time 字段 | `Time:5.0` | (本文件省略,应补 `time = 5`) |
+| 原料写法 | `CrudeWoodenTongs,` 简写 | `item 1 [Base.CrudeWoodenTongs]` 显式 |
+| 产出写法 | `Result:WoodenStick=2,` | `outputs { item 2 Base.ShortBat, }` |
+| 工作台条件 | (无) | `Tags = InHandCraft;CanBeDoneFromFloor` |
+| Time 字段 | `Time:5.0` | `time = 5`(v1.6.1 起已补,此前缺失会落到默认值) |
 | category | (无) | `category = Cooking` |
 
-> ⚠️ 注意:42.19.0 文件缺 `time` 与 `OnCreate`,实际游戏内可能会以默认 time=50 触发,经验不发放 — 建议补全。
+> 说明:这段 B42 代码在 v1.6.1 之前缺 `time`、且引用了不存在的物品 ID(`Base.WoodenStick`/`Base.Rag`),
+> 现在已修好;要复核任何一条配方到底被引擎解析成什么,用 `bin2_b42/tools/recipe_probe`(见 13 节)。
 
 ---
 
@@ -623,7 +631,103 @@ module Bin2Recipe
 
 ---
 
-## 13. 参考链接(真实引用地址)
+## 13. 引擎实测补充(用游戏自带解析器核实)
+
+> 来源:本机安装的 `Project Zomboid.app/Contents/Java/projectzomboid.jar`(B42 42.19.0)反编译 +
+> 仓库工具 `bin2_b42/tools/recipe_probe`(headless 跑 `ScriptManager.Load()`,逐行打印引擎的解析结果)。
+> 下面每条都是**引擎自己解析出来的**,不是 Wiki 转述;类名/方法名即证据。
+
+### 13.1 `-fluid` 的水**不一定**来自 inputs 里那只锅
+
+`zombie/scripting/entity/components/crafting/InputScript.isFluidMatch(FluidContainer)` 说明流体需求是
+拿"上下文里能拿到的 FluidContainer"去匹配的(`CraftRecipeManager.consumeInputFluid(InputScript, List<Resource>, …)`),
+不是绑在某个 item 输入上。原版可作反证:
+
+```lua
+-- recipes_cooking.txt / MakeGravy:碗必须是空的,却要 1 升水
+item 1 [Base.Bowl;Base.ClayBowl] mode:keep flags[IsEmpty],
+-fluid 1.0 categories[Water] mode:mixture,
+```
+
+碗 `flags[IsEmpty]`(必须无液体)与 `-fluid 1.0`(必须消耗 1 升)同时成立 ⇒ 水只能来自**附近别的容器**
+(背包里的水瓶、雨水桶……)。实践含义:
+
+- 想要求"锅里得有卤水",光靠 `-fluid` 不行,还得配 Lua 校验;
+- 反过来,`-fluid` 是**防刷**的关键:没有 `-fluid` 行的"蒸发法"等于凭空产盐。
+
+### 13.2 `flags[NotEmpty]` 对装液体的容器是空操作
+
+`InputFlag` 全量枚举(`zombie/entity/components/crafting/InputFlag`):`HandcraftOnly / AutomationOnly /
+IsFull / NotFull / ItemIsUses / ItemIsFluid / ItemIsEnergy / IsEmpty / NotEmpty / Prop1 / Prop2 / ToolLeft /
+ToolRight / IsDamaged / IsUndamaged / IsWholeFoodItem / IsEmptyContainer / IsUncookedFoodItem /
+IsCookedFoodItem / IsNotDull / IsHeadPart / IsSharpenable / DontPutBack / InheritColor / InheritCondition /
+InheritEquipped / InheritSharpness / InheritHeadCondition / MayDegrade / MayDegradeLight / MayDegradeVeryLight /
+MayDegradeHeavy / SharpnessCheck / InheritUses / InheritUsesAndEmpty / InheritFood / InheritFoodAge /
+InheritCooked / InheritModelVariation / InheritWeight / InheritName / InheritFreezingTime / DontInheritCondition /
+AllowFrozenItem / AllowRottenItem / NoBrokenItems / AllowDestroyedItem / IsWorn / IsNotWorn / InheritAmmunition /
+CopyClothing / AllowFavorite / InheritFavorite / FakeOutput / DontReplace / CanBeDoneFromFloor / ItemCount /
+IsExclusive / RecordInput / DontRecordInput / ResearchInput / IsBlunt / HasOneUse / HasNoUses / IsSealed /
+IsNotSealed / Unseal / EquipSecondary / SetActivated`。
+
+但 `InputScript.doesItemPassIsOrNotEmptyAndFullTests(InventoryItem)` 里,**FluidContainer 分支只判定
+`IsFull` 与 `IsEmpty`**,`NotEmpty` 只在 `DrainableComboItem`(手电/打火机等"使用次数"物品)与
+`Radio`/`WeaponPart` 分支里判定。结论:
+
+| 写法 | 对"锅/桶/瓶"这类液体容器 |
+|------|--------------------------|
+| `flags[NotEmpty]` | **不生效**(永远通过) |
+| `flags[IsEmpty]` | 生效:必须**没有**液体 |
+| `flags[IsFull]` | 生效:必须装满 |
+
+所以老的 `item 1 [Base.Saucepan] mode:keep flags[Prop1;NotEmpty;ItemCount]` 里"需要装满液体的锅"
+只是注释/更新日志里的一厢情愿,引擎没这么判。
+
+### 13.3 mode 与流体模式枚举值
+
+- `zombie/entity/components/crafting/ItemApplyMode`:`Normal` / `Keep` / `Destroy` ⇒ `mode:keep`、`mode:destroy`
+- `zombie/entity/components/crafting/FluidMatchMode`:`Exact` / `Primary` / `Mixture` / `Anything`
+  ⇒ `-fluid 0.5 categories[Water] mode:mixture` 中的 `mode:mixture` = 容器里可以是含水的混合液
+- `-fluid` 的筛选既可以写 `[Water;TaintedWater]`(`FluidKey`),也可以写 `categories[Water]`
+  (`FluidCategory`);原版 `media/scripts/generated/fluids.txt` 里 `Water` 与 `TaintedWater` **同属
+  `Water` 类别**,所以 `categories[Water]` 净水/脏水都吃
+
+### 13.4 解析结果里看不到流体行,不代表流体没生效
+
+`CraftRecipe.getInputs()` 只返回 item 输入,流体行在 private 字段 `ioLines`(`ArrayList<IOScript>`)里 ——
+校验脚本时用 `getInputs()` 会误判"`-fluid` 被吃掉了",要看 `ioLines`(探针已用反射读它)。
+
+### 13.5 原版可当"卤水锅"的锅具(以及没有通用 tag)
+
+`media/scripts/generated/items/*.txt` 实测(有 `component FluidContainer` 且 `IsCookable = true`):
+
+| 物品 | 容量 | 标签 |
+|------|------|------|
+| `Base.Saucepan` / `Base.SaucepanCopper` | 0.6 L | `base:cookable;base:hasmetal;…` |
+| `Base.Pot` / `Base.PotForged` | 1.5 L | `base:cookable;base:hasmetal;…` |
+| `Base.Kettle` / `Base.Kettle_Copper` | 1.5 L | `base:cookable;base:hasmetal;…` |
+| `Base.Bucket` 等金属桶 | 10 L | `base:bucket;base:cookable;…` |
+
+`Base.RoastingPan` / `Base.BakingPan` / `Base.BakingTray` / `Base.MuffinTray` 带 `base:cookable` 但
+**没有 FluidContainer**,装不了水。且**没有**"锅具"专用 tag:`base:cookable` 在原版命中 115 个物品
+(威士忌瓶、汽水罐、香水都在内),所以"更通用的锅具"只能用显式 fullType 列表,不能用 `tags[base:cookable]`。
+
+### 13.6 本次落地
+
+`bin2_extension` 的 `Bin2MakeSalt` 按 13.1~13.5 改成(见 `bin2_b42/Contents/mods/bin2_extension/42.19.0/`)：
+
+```lua
+item 1 [Base.Saucepan;Base.SaucepanCopper;Base.Pot;Base.PotForged;Base.Kettle;Base.Kettle_Copper] mode:keep flags[ItemCount],
+-fluid 0.5 categories[Water] mode:mixture,
+item 1 [Base.Charcoal;Base.CharcoalCrafted;Base.Coke],
+outputs { item 1 Base.Salt, }   /* 锅具 keep,不再重复产出 */
+```
+
+探针输出:`keep=true itemCount=true` + `IN [Fluid] fluid 0.5 categories[Water] mode:mixture (fluidMode=Mixture amount=0.5)`
++ 6 个锅具 fullType 全部解析成功。
+
+---
+
+## 14. 参考链接(真实引用地址)
 
 - PZWiki CraftRecipe (B42): <https://pzwiki.net/wiki/CraftRecipe> (oldid=1263201)
 - PZWiki Recipe (B41): <https://pzwiki.net/wiki/Recipe_(scripts)> (oldid=874781)
@@ -632,3 +736,9 @@ module Bin2Recipe
 - PZWiki Fluid: <https://pzwiki.net/wiki/Fluid>
 - Wiki 导航目录: <https://pzwiki.net/wiki/Modding> (Scripts 章节)
 - 抓取备份(用于 Cloudflare 拦截时): <https://web.archive.org/web/2025/https://pzwiki.net/wiki/CraftRecipe>
+- 引擎侧证据(本机 B42 42.19.0 安装包,随时可复核):
+  - `projectzomboid.jar` → `zombie/scripting/entity/components/crafting/InputScript`(`doesItemPassIsOrNotEmptyAndFullTests`、`isFluidMatch`)
+  - `projectzomboid.jar` → `zombie/entity/components/crafting/{InputFlag,ItemApplyMode,FluidMatchMode}`
+  - `projectzomboid.jar` → `zombie/scripting/ScriptManager`(`Load`、`getCraftRecipe`)、`zombie/scripting/entity/components/crafting/CraftRecipe`(`ioLines`)
+  - 原版脚本: `<游戏>/media/scripts/generated/{items/*.txt,fluids.txt,recipes/recipes_cooking.txt}`
+  - 仓库工具: `bin2_b42/tools/recipe_probe`(headless 跑引擎解析器)
