@@ -751,7 +751,7 @@ outputs { item 1 Base.Salt, }   /* 锅具 keep,不再重复产出 */
 
 | 侧 | 算什么 | 不算什么 |
 |---|---|---|
-| 消耗侧 | `inputs` 里 `item N [...]` 提到的物品 | `mode:keep` / `flags[Prop1\|Prop2\|ToolLeft\|ToolRight]` 的工具位(锤子、凿子、钳子只是被拿在手里) |
+| 消耗侧 | `inputs` 里 `item N [...]` 提到的物品 | `mode:keep` / `flags[Prop1\|Prop2\|ToolLeft\|ToolRight]` 的工具位(锤子、金属加工凿、金属加工钳/夹钳这类只是被拿在手里) |
 | 产出侧 | craftRecipe 的 `outputs` 直接产出;`itemMapper` 的**键**(`输出 = 触发它的输入`);`evolvedrecipe` 的 `ResultItem`;拆家具 `ISMoveableDefinitions` 的 `addScrapItem`;采集表 `Foraging/**` | 只是"能拿到"的容器/箱子内容物(战利品,不是产出) |
 
 按这个判据,42.21 的分布是:
@@ -802,7 +802,7 @@ outputs { item 1 Base.Salt, }   /* 锅具 keep,不再重复产出 */
 
 1. **螺母螺栓不可回炉**:`Base.NutsBolts` 的 tags 只有 `base:hasmetal`,没有 `base:smeltable*`,
    所以"1 金属块 → 6 螺母螺栓 → 回炉"这条路不存在。
-2. **圆锯片与回炉持平**:`ExtractSteelFromLargeItem` = 1 个 `base:smeltablesteellarge` 物品 + 9 木炭 + 坩埚 + 火钳 → **4 SteelChunk**;
+2. **圆锯片与回炉持平**:`ExtractSteelFromLargeItem` = 1 个 `base:smeltablesteellarge` 物品 + 9 木炭 + 坩埚 + 夹钳 → **4 SteelChunk**;
    `Forge_Steel_Sheet` = 1 SteelBlock(4 chunks 合成) + 木炭 → 1 `Base.SheetMetal`。
    于是 1 金属板 ≈ 4 钢块,而"2 木炭 + 1 金属板 → 1 圆锯片"恰好是材料中性 ——
    既补上了 11 条配方缺的料,又不构成"1 块钢刷出无限锯片"。
@@ -827,10 +827,10 @@ outputs { item 1 Base.Salt, }   /* 锅具 keep,不再重复产出 */
 /* 熬胶: 骨头 + 水 (原版只有搜刮/采集, 却有 9 条配方需要胶水) */
 Bin2MakeGlue        : 2 骨头 + 1 锅具 + 1 升水            → 2 胶水     (Cooking:2)
 /* 打造螺母与螺栓: 原版只能拆家具得到, 却有 33 条配方需要 (螺栓不可回炉) */
-Bin2MakeNutsBolts   : 1 木炭 + 1 金属料 + 锤子 + 钳子/火钳 → 6 螺母螺栓 (MetalWelding:1)
-Bin2MakeScrews      : 1 木炭 + 1 金属料 + 锤子 + 钳子/火钳 → 6 螺丝     (MetalWelding:1)
-Bin2MakeCircularSawblade : 2 木炭 + 1 金属板 + 锤子 + 凿子 + 钳子/火钳 → 1 圆锯片 (MetalWelding:2)
-Bin2MakeHacksawBlade     : 1 木炭 + 1 小金属板 + 锤子 + 凿子          → 2 手锯条 (MetalWelding:2)
+Bin2MakeNutsBolts   : 1 木炭 + 1 金属料 + 锤子 + 金属加工钳或夹钳 → 6 螺母螺栓 (MetalWelding:1)
+Bin2MakeScrews      : 1 木炭 + 1 金属料 + 锤子 + 金属加工钳或夹钳 → 6 螺丝     (MetalWelding:1)
+Bin2MakeCircularSawblade : 2 木炭 + 1 金属板 + 锤子 + 金属加工凿 + 金属加工钳或夹钳 → 1 圆锯片 (MetalWelding:2)
+Bin2MakeHacksawBlade     : 1 木炭 + 1 小金属板 + 锤子 + 金属加工凿          → 2 手锯条 (MetalWelding:2)
 ```
 
 工具/锅具一律 `mode:keep`(制作后原样保留);`category` 用原版真实存在的技能名
