@@ -56,9 +56,12 @@ cleanup() {
   for f in "${COPIED[@]:-}"; do [ -n "$f" ] && rm -f "$f"; done
   if [ "${#COPIED[@]}" -gt 0 ]; then
     for f in "${COPIED[@]}"; do
-      [ -e "$f" ] && echo "警告: 临时脚本没删掉: $f" >&2
+      if [ -e "$f" ]; then echo "警告: 临时脚本没删掉: $f" >&2; fi
     done
   fi
+  # 必须显式返回 0:EXIT trap 里最后一条命令若失败,set -e 会把整个脚本的退出码改成 1,
+  # 让 java 探针的退出码失去意义(调用方会误判校验失败)。
+  return 0
 }
 trap cleanup EXIT
 

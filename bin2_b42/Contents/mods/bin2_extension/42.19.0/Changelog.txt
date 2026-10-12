@@ -4,6 +4,20 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ ------ ]
 
 [ 10/12/2026 ]
+版本 1.7.0 (2026-10-12)
+- 新增: 5 条配方,补齐原版"被配方消耗、却无法制作"的材料
+  - Bin2MakeGlue 熬制胶水: 2 骨头 + 1 锅具 + 1 升水 → 2 胶水 (烹饪 2 级)
+  - Bin2MakeNutsBolts 制作螺母螺栓: 1 木炭 + 1 金属料 + 锤子 + 钳子/火钳 → 6 螺母螺栓 (金工 1 级)
+  - Bin2MakeScrews 制作螺丝: 1 木炭 + 1 金属料 + 锤子 + 钳子/火钳 → 6 螺丝 (金工 1 级)
+  - Bin2MakeCircularSawblade 制作圆锯片: 2 木炭 + 1 金属板 + 锤子 + 凿子 + 钳子/火钳 → 1 圆锯片 (金工 2 级)
+  - Bin2MakeHacksawBlade 制作手锯条: 1 木炭 + 1 小金属板 + 锤子 + 凿子 → 2 手锯条 (金工 2 级)
+- 依据: 扫描 Build 42.21 全部 969 条原版 craftRecipe (含 itemMapper 映射产出 / evolvedrecipe /
+  拆家具 / 采集来源) 后,螺母螺栓(33 条配方消耗)、圆锯片(11)、螺丝(10)、胶水(9)、
+  手锯条(3)确实只能搜刮;本次全部补上 (小手锯条与手锯条重复,未做)
+- 安全: 新配方不会形成材料循环 (螺母螺栓不可回炉;圆锯片按 1 金属板 = 4 钢块计与回炉持平)
+- 工具: 新增 bin2_b42/tools/recipe_gap/scan_recipe_gaps.py,可复现本次缺口结论
+- 校验: recipe_probe 离线解析全部 11 条配方通过 (ALL RECIPES PARSED)
+
 版本 1.6.2 (2026-10-12)
 - 优化: Bin2MakeSalt 制盐配方改为通用锅具
   (平底煮锅 / 铜煮锅 / 炖锅 / 锻造炖锅 / 水壶 / 铜水壶,原来只认 Base.Saucepan)

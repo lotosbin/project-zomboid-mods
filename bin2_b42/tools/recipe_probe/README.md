@@ -17,6 +17,11 @@ cd bin2_b42/tools/recipe_probe
 `amount=` 与脚本里写的意图一致。`!! UNKNOWN fullType:` 只在原版物品 ID 写错时才算问题
 (探针没加载别的 mod,所以别的 mod 的 ID 查不到是正常的 —— 例如 `LabItems.*` 来自 ZVirusVaccine)。
 
+退出码:`0` = 全部配方都解析成功,`1` = 有配方没被引擎注册。可以直接串进脚本/CI
+(`set -e` 下 `./run.sh > /dev/null` 失败即中断)。注意 2026-10-12 之前这个退出码是**坏的**:
+`set -e` 的 EXIT trap 里清理临时文件那条判断在正常情况下为假,会把脚本退出码改写成 1,
+于是"探针 exit 0"被吞掉 —— 现在 `cleanup()` 显式 `return 0`,退出码即探针的退出码。
+
 ## 它到底校验了什么
 
 `RecipeProbe.java` 打印的是 `CraftRecipe` 内部的 `ioLines`(含**流体输入行**;公开的

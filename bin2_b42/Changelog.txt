@@ -4,6 +4,28 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ ------ ]
 
 [ 10/12/2026 ]
+版本 1.7.0 (2026-10-12)
+- 新增: 5 条配方,补齐原版"配方在消耗、却没有任何配方能造出来"的材料
+  - Bin2MakeGlue 熬制胶水: 2 骨头 + 1 锅具 + 1 升水 → 2 胶水 (烹饪 2 级)
+  - Bin2MakeNutsBolts 制作螺母螺栓: 1 木炭 + 1 金属块/废料/金属片 + 锤子 + 钳子/火钳 → 6 螺母螺栓 (金工 1 级)
+  - Bin2MakeScrews 制作螺丝: 1 木炭 + 1 金属块/废料/金属片 + 锤子 + 钳子/火钳 → 6 螺丝 (金工 1 级)
+  - Bin2MakeCircularSawblade 制作圆锯片: 2 木炭 + 1 金属板 + 锤子 + 凿子 + 钳子/火钳 → 1 圆锯片 (金工 2 级)
+  - Bin2MakeHacksawBlade 制作手锯条: 1 木炭 + 1 小金属板 + 锤子 + 凿子 → 2 手锯条 (金工 2 级)
+  - 锅具 / 锤子 / 凿子 / 钳子 / 火钳 制作后原样保留,只消耗材料本身
+- 依据: 用新工具 bin2_b42/tools/recipe_gap 扫描 Build 42.21 全部 969 条原版 craftRecipe,
+  再算上 itemMapper 映射产出 / evolvedrecipe / 拆家具与采集来源,找出"被配方当材料消耗、
+  但没有任何制作途径"的物品。这些物品的数量远超预期:
+  螺母螺栓 被 33 条配方消耗、圆锯片 11 条、螺丝 10 条、胶水 9 条、手锯条 3 条、小手锯条 3 条
+- 刻意不做: 小手锯条 (与手锯条重复,且都能回炉)、纽扣 (骨珠可替代)、
+  武器刀刃 (KillerBlades / *_NoTang,会破坏锻造平衡)、火柴打火机 (属于搜刮设计)、
+  鱼 / 电子 / 带状态物品 (CandleLit、MetalPipe_Broken 等,不是"缺配方"而是设计如此)
+- 安全性: 没有任何一条新配方会形成材料循环 —— 螺母螺栓没有 smeltable 标签(不可回炉),
+  圆锯片按 1 金属板 = 4 钢块计,与回炉产出持平,不构成"用 1 块钢刷出无限锯片"
+- 工具: 新增 bin2_b42/tools/recipe_gap/scan_recipe_gaps.py(缺口扫描) ;
+  recipe_probe 修好退出码(此前 EXIT trap 会让脚本恒返 1,CI 里无法判断成败)
+- 校验: recipe_probe 离线解析全部 11 条配方 = ALL RECIPES PARSED(退出码 0);
+  scan_recipe_gaps + validate_recipes 全部通过
+
 版本 1.6.2 (2026-10-12)
 - 优化: 制盐 (Bin2MakeSalt) 支持多种锅具
   - 可用锅具: 平底煮锅 / 铜煮锅 / 炖锅 / 锻造炖锅 / 水壶 / 铜水壶

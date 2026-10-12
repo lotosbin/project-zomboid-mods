@@ -727,7 +727,127 @@ outputs { item 1 Base.Salt, }   /* 锅具 keep,不再重复产出 */
 
 ---
 
-## 14. 参考链接(真实引用地址)
+## 14. 原版配方缺口扫描(969 条 craftRecipe 的结论)
+
+第 13 节是"单条配方怎么被引擎解释",这一节是"整个原版配方体系缺了什么"。
+结论来自 `bin2_b42/tools/recipe_gap/scan_recipe_gaps.py`,数据全部取自游戏自带脚本,
+没有任何猜测成分,命令见 14.7。
+
+### 14.1 判据:什么叫"缺配方"
+
+最容易走偏的是"没有配方的物品"这个说法。Build 42.21 原版脚本解析出 **5079 个物品**,
+其中绝大多数本来就不该有配方(衣服、书籍、罐头、车辆零件……)。真正可判定、可复现的缺口是:
+
+> **被某条 craftRecipe 当作材料消耗,却没有任何机制能产出它。**
+
+两侧的判定细节:
+
+| 侧 | 算什么 | 不算什么 |
+|---|---|---|
+| 消耗侧 | `inputs` 里 `item N [...]` 提到的物品 | `mode:keep` / `flags[Prop1\|Prop2\|ToolLeft\|ToolRight]` 的工具位(锤子、凿子、钳子只是被拿在手里) |
+| 产出侧 | craftRecipe 的 `outputs` 直接产出;`itemMapper` 的**键**(`输出 = 触发它的输入`);`evolvedrecipe` 的 `ResultItem`;拆家具 `ISMoveableDefinitions` 的 `addScrapItem`;采集表 `Foraging/**` | 只是"能拿到"的容器/箱子内容物(战利品,不是产出) |
+
+按这个判据,42.21 的分布是:
+
+| 分类 | 数量 | 含义 |
+|---|---|---|
+| 被当材料消耗 | 1909 | 出现在材料位 |
+| 被当工具使用 | 1218 | 只出现在 Prop/Tool 位 |
+| 有配方产出 | 1614 | outputs / mapper 键 / evolvedrecipe 命中 |
+| 世界来源 | 1817 | 拆家具或采集能拿到 |
+| 有可产出替代品 | 763 | 同 tag 家族里有别的成员造得出来(如 `base:thread` 家族) |
+| **真缺口(只能搜刮)** | **389** | 上面几条都不沾 |
+| 有世界来源的材料 | 317 | 无配方可行,但拆家具/采集能拿(不算堵死) |
+| 有替代品的材料 | 135 | 无配方可行,但同族有替代品 |
+| 做得出没人用 | 370 | 有产出、无消耗(成品居多,**不是**缺口) |
+
+"做得出没人用"和"完全没配方"这两类都被明确排除:前者是设计(做出来就是拿来用的),
+后者是搜刮设计。
+
+### 14.2 本次补的 6 项(按被消耗条数排序)
+
+| 物品 | 消耗它的配方数 | 产出途径 | 世界来源 | 处理 |
+|---|---|---|---|---|
+| `Base.NutsBolts` 螺母与螺栓 | **33** | 无 | 拆家具(Fridge / MetalPlates / MetalPlatesAndBars / SmallMetalPlates) | ✅ 新增 |
+| `Base.CircularSawblade` 圆锯片 | **11** | 无 | 无(真缺口榜首) | ✅ 新增 |
+| `Base.Screws` 螺丝 | **10** | 只有 `OpenBox100`(开箱,属战利品) | 拆家具 5 处 + 采集 Trash | ✅ 新增 |
+| `Base.Glue` 胶水 | **9** | 无 | 采集(Trash.lua) | ✅ 新增 |
+| `Base.HacksawBlade` 手锯条 | **3** | 无 | 无 | ✅ 新增 |
+| `Base.SmallSawblade` 小手锯条 | **3** | 无 | 无 | ❌ 与手锯条功能重复,不做 |
+
+也就是说:原版有 33 条配方要螺母螺栓、11 条要圆锯片,而这些物品**一条制作路径都没有**,
+只能靠拆家具或搜刮。这是本次新增的真正理由,和"某物品没配方"完全不是一回事。
+
+### 14.3 被排除的假阳性(确认过,不是缺口)
+
+- `Base.Charcoal` 木炭:`MakeCoke` 产 `Base.Coke`,土窑产 `Base.CharcoalCrafted`,配方同时接受三者。
+- 线/线团家族:`SpinThreadFromFlax` / `SpinThreadFromWool` 可造,且 `base:thread` 家族 6 个成员可互换。
+- `Base.Button` 纽扣:`producibleSiblings` 命中 `Base.BoneBead_Large`(可造),可替代。
+- 坩埚类:`FireCeramicCrucible` 等有完整制作链。
+- `Base.SheetMetal` / `Base.SmallSheetMetal`:由 `evolvedrecipe` 产出(第 14.5 节的工具识别到了)。
+- 鱼/电子/带状态物品(`CandleLit`、`GardeningSprayEmpty`、`MetalPipe_Broken` 等):缺的不是配方,是状态链。
+- 火柴/打火机:原版刻意的搜刮物品,配方体系里当"火源"用,补制作会破坏前期节奏。
+- 武器刀刃(`Base.KillerBlades`、`*_NoTang`):锻造链已有,补配方会破坏 Blacksmith 平衡。
+
+### 14.4 安全约束:不许造出材料泵
+
+补配方时必须逐条检查"能不能用这条配方把材料变多",否则就是刷物品后门。这次的三条依据:
+
+1. **螺母螺栓不可回炉**:`Base.NutsBolts` 的 tags 只有 `base:hasmetal`,没有 `base:smeltable*`,
+   所以"1 金属块 → 6 螺母螺栓 → 回炉"这条路不存在。
+2. **圆锯片与回炉持平**:`ExtractSteelFromLargeItem` = 1 个 `base:smeltablesteellarge` 物品 + 9 木炭 + 坩埚 + 火钳 → **4 SteelChunk**;
+   `Forge_Steel_Sheet` = 1 SteelBlock(4 chunks 合成) + 木炭 → 1 `Base.SheetMetal`。
+   于是 1 金属板 ≈ 4 钢块,而"2 木炭 + 1 金属板 → 1 圆锯片"恰好是材料中性 ——
+   既补上了 11 条配方缺的料,又不构成"1 块钢刷出无限锯片"。
+   反面例子(明确否决):曾经想把圆锯片改成"1 金属块直接锻打",那才是材料泵。
+3. **螺丝产量低于回炉门槛**:`SmeltSmallerSteelItem` 要 **10** 个小件才出 1 钢块,
+   而 `Bin2MakeScrews` 一次出 6 个,不够回炉,不构成循环。
+
+### 14.5 一个引擎事实:craftRecipe 里没有"需要火源"这种字段
+
+`javap -p zombie.scripting.entity.components.crafting.CraftRecipe` 显示,配方里唯一的"外部条件"
+槽位就是 `prop1 / prop2 / toolLeft / toolRight` 加上 `inputs` —— **没有** heat / fire / near 之类字段。
+"要在灶上做"这件事由烹饪系统(物品的 cook 状态、灶台实体)负责,不在 craftRecipe 里。
+所以锅具类配方(制盐、熬胶)不可能写成"必须放在火上",只能写成"锅 + 水 + 热源材料(木炭)"。
+熬胶配方里没有木炭,是因为骨头熬胶的火候在 240 秒的 `timedAction = Making` 里体现,
+而不是靠额外消耗一个木炭 —— 这条取舍是刻意的,写在这里以免后人以为是漏写。
+
+### 14.6 本次落地的 5 条配方
+
+见 `bin2_b42/Contents/mods/bin2_extension/42.19.0/media/scripts/recipes/bin2_Recipes.txt`:
+
+```lua
+/* 熬胶: 骨头 + 水 (原版只有搜刮/采集, 却有 9 条配方需要胶水) */
+Bin2MakeGlue        : 2 骨头 + 1 锅具 + 1 升水            → 2 胶水     (Cooking:2)
+/* 打造螺母与螺栓: 原版只能拆家具得到, 却有 33 条配方需要 (螺栓不可回炉) */
+Bin2MakeNutsBolts   : 1 木炭 + 1 金属料 + 锤子 + 钳子/火钳 → 6 螺母螺栓 (MetalWelding:1)
+Bin2MakeScrews      : 1 木炭 + 1 金属料 + 锤子 + 钳子/火钳 → 6 螺丝     (MetalWelding:1)
+Bin2MakeCircularSawblade : 2 木炭 + 1 金属板 + 锤子 + 凿子 + 钳子/火钳 → 1 圆锯片 (MetalWelding:2)
+Bin2MakeHacksawBlade     : 1 木炭 + 1 小金属板 + 锤子 + 凿子          → 2 手锯条 (MetalWelding:2)
+```
+
+工具/锅具一律 `mode:keep`(制作后原样保留);`category` 用原版真实存在的技能名
+(MetalWelding / Cooking —— 原版**没有** "Metalworking" 技能,Metalworking 只是分类名)。
+
+### 14.7 复现
+
+```bash
+# 缺口扫描(可加 --json gaps.json / --top 80 / --lang CN)
+python3 bin2_b42/tools/recipe_gap/scan_recipe_gaps.py --top 40
+
+# 用游戏自带解析器离线校验配方脚本(必须 ALL RECIPES PARSED 且退出码 0)
+./bin2_b42/tools/recipe_probe/run.sh
+
+# 仓库级校验(物品 ID 真实性 + 翻译 JSON)
+python3 -m mod_dependency_analyzer.validate_recipes --root ./bin2_b42
+```
+
+坑:探针会提示"3 个 fullType 查不到",那是 `Bin2MakeEpoxy` 引用的 `LabItems.*`(来自另一个 mod)——
+探针不加载 mod,跨 mod 引用被判为未知属正常;原版物品里出现未知 fullType 才是拼写错误。
+
+---
+
+## 15. 参考链接(真实引用地址)
 
 - PZWiki CraftRecipe (B42): <https://pzwiki.net/wiki/CraftRecipe> (oldid=1263201)
 - PZWiki Recipe (B41): <https://pzwiki.net/wiki/Recipe_(scripts)> (oldid=874781)
@@ -741,4 +861,5 @@ outputs { item 1 Base.Salt, }   /* 锅具 keep,不再重复产出 */
   - `projectzomboid.jar` → `zombie/entity/components/crafting/{InputFlag,ItemApplyMode,FluidMatchMode}`
   - `projectzomboid.jar` → `zombie/scripting/ScriptManager`(`Load`、`getCraftRecipe`)、`zombie/scripting/entity/components/crafting/CraftRecipe`(`ioLines`)
   - 原版脚本: `<游戏>/media/scripts/generated/{items/*.txt,fluids.txt,recipes/recipes_cooking.txt}`
-  - 仓库工具: `bin2_b42/tools/recipe_probe`(headless 跑引擎解析器)
+  - 仓库工具: `bin2_b42/tools/recipe_probe`(headless 跑引擎解析器)、
+    `bin2_b42/tools/recipe_gap`(全量配方缺口扫描,数据见第 14 节)

@@ -5,5 +5,10 @@
   "Bin2MakeCheese": "制作奶酪",
   "Bin2MakeWeldingRods": "制作焊条",
   "Bin2MakeSalt": "制盐",
-  "Bin2MakeEpoxy": "制作环氧树脂"
+  "Bin2MakeEpoxy": "制作环氧树脂",
+  "Bin2MakeGlue": "熬制胶水",
+  "Bin2MakeNutsBolts": "制作螺母螺栓",
+  "Bin2MakeScrews": "制作螺丝",
+  "Bin2MakeCircularSawblade": "制作圆锯片",
+  "Bin2MakeHacksawBlade": "制作手锯条"
 }

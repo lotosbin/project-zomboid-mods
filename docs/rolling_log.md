@@ -3148,3 +3148,72 @@ ALL MOD.INFO OK      # 4 个模组目录全过
 也就是"42.19/42.20 的玩家看到不可用、更老的玩家反而拿到 EOL 版"—— 这是版本子目录与 versionMin
 两套机制叠加的结果，不是 bug；如果希望老客户端一律不可用，得连 EOL 目录的 versionMin 一起抬，
 但那与"EOL 归档"的定位冲突，所以保持不动。
+
+## 2026-10-12 · 「还有哪些原版物品缺少配方」：先定死判据，再补 5 条（1.7.0）
+
+用户诉求一句话：「发现还有哪些原版物品缺少配方的，自动加上」。
+
+**第一件事不是写配方，而是把"缺少配方"定死**。字面照做会得到荒谬答案：42.21 原版脚本解析出
+**5079 个物品**，其中 370 个"做得出没人用"、两千多个"压根没配方"（衣服、书、罐头、车件）——
+那是搜刮设计，不是缺口。可复现的判据只有一条：
+**被某条 craftRecipe 当材料消耗，却没有任何机制能产出它。**
+
+为此写了 `bin2_b42/tools/recipe_gap/scan_recipe_gaps.py`（纯文本扫描，不启动游戏、不需要 JDK）。
+第一版扫出来 6 项，逐条回查后**发现三类假阳性**，修完才是最终答案 —— 这三个坑值得记：
+
+1. **`itemMapper` 的键是产出、值是消耗**，一开始读反了。证据是原版
+   `generated/entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt`：`mappers[metalType]`
+   里 `Base.IronBar = Base.IronIngot` 配 `outputs { item 1 mapper:metalType }`，
+   `Base.IronIngot` 是拿在手里的料、`Base.IronBar` 才是产物；`default =` 是兜底产出。
+2. **`evolvedrecipe` 也是产出**：`media/scripts/generated/evolvedrecipes.txt`（`ResultItem = Base.X`）
+   —— 漏掉它就会把 `Base.SheetMetal` 误判成"造不出来"（它是把锅放灶上煮出来的）。
+3. **`tags[...]` 输入必须展开成标签成员**：`recipes_cooking.txt` 写 `tags[base:charcoal]`，
+   只按字面统计就整片漏掉；而 `mode:keep` 里混着工具位（`Prop1/Prop2/ToolLeft/ToolRight`），
+   不分开统计，报告里会全是锤子凿子。
+4. **"有替代品"也要算**：同一条 input 的兄弟物品（`[Base.Charcoal;Base.CharcoalCrafted;Base.Coke]`）
+   或**小标签**等价族（`base:thread` 6 个成员可互换；`base:hasmetal` 上千成员不算）——
+   这个过滤杀掉了一大片假阳性（木炭、线、纽扣）。
+
+**结论**（Build 42.21，969 条 craftRecipe）：
+
+| 物品 | 消耗它的配方数 | 产出途径 | 世界来源 |
+|---|---|---|---|
+| `Base.NutsBolts` 螺母与螺栓 | 33 | 无 | 拆家具 ×4 |
+| `Base.CircularSawblade` 圆锯片 | 11 | 无 | 无 |
+| `Base.Screws` 螺丝 | 10 | 只有开箱 | 拆家具 ×5 + 采集 |
+| `Base.Glue` 胶水 | 9 | 无 | 采集(Trash) |
+| `Base.HacksawBlade` 手锯条 | 3 | 无 | 无 |
+| `Base.SmallSawblade` 小手锯条 | 3 | 无 | 无（与手锯条重复，不做） |
+
+**补之前必须过"材料泵"检查**，否则就是刷物品后门。三条真实依据：
+`Base.NutsBolts` 的 tags 只有 `base:hasmetal`（**没有** `base:smeltable*`）→ 不可回炉；
+`ExtractSteelFromLargeItem` = 1 个大型钢件 + 9 木炭 → 4 `SteelChunk`，`Forge_Steel_Sheet` 用 4 chunks 的
+SteelBlock 出 1 `SheetMetal` ⇒ **1 金属板 ≈ 4 钢块**，"2 木炭 + 1 金属板 → 1 圆锯片"恰好材料中性；
+`SmeltSmallerSteelItem` 要 **10** 个小件才回炉 1 钢块，而螺丝配方一次出 6 个 ⇒ 不构成循环。
+（曾想过"1 金属块直接锻出圆锯片"，那是材料泵，明确否决。）
+
+顺带一个引擎事实，写进第 14.5 节免得后人以为是漏写：
+`javap -p zombie.scripting.entity.components.crafting.CraftRecipe` 里唯一的"外部条件"槽位是
+`prop1/prop2/toolLeft/toolRight` + `inputs` —— **没有** heat/fire/near 字段。
+"要在灶上做"由烹饪系统负责，不在 craftRecipe 里，所以锅具类配方只能写"锅 + 水 + 木炭"。
+
+**工具侧修了一个真 bug**：`recipe_probe/run.sh` 此前**恒返回 1**。原因是 `set -e` 下 EXIT trap 里
+最后一条命令（`[ -e "$f" ]` 检查临时文件是否删净，正常情况为假）失败会把整个脚本的退出码改写成 1，
+于是"java 探针 exit 0"这件事被吞掉，CI 里无法判断成败。修法是 `cleanup()` 显式 `return 0`。
+判据本身没变：末尾必须出现 `ALL RECIPES PARSED`。
+
+**落地**（`bin2_b42/Contents/mods/bin2_extension/42.19.0/`，modversion 1.6.2 → **1.7.0**）：
+`Bin2MakeGlue`（2 骨头 + 1 锅 + 1 升水 → 2 胶水，Cooking:2）、
+`Bin2MakeNutsBolts` / `Bin2MakeScrews`（1 木炭 + 1 金属料 + 锤子 + 钳子/火钳 → 6 个，MetalWelding:1）、
+`Bin2MakeCircularSawblade`（+ 1 金属板 + 凿子 → 1 片，MetalWelding:2）、
+`Bin2MakeHacksawBlade`（+ 1 小金属板 + 凿子 → 2 条，MetalWelding:2）；工具/锅具全部 `mode:keep`；
+CN 翻译键是**裸配方 id**（原版 `Translate/CN/Recipes.json` 同样是裸键，`Recipe_` 前缀是 B41 的老写法）。
+版本取 1.7.0 而不是 1.6.3：工坊上已发布的仍是 **1.6.1**（1.6.2 从未上传），新增内容按 minor 跳。
+
+**校验**：`./bin2_b42/tools/recipe_probe/run.sh` → `ALL RECIPES PARSED` 且**退出码 0**（11 条全过）；
+`python3 -m mod_dependency_analyzer.validate_recipes --root ./bin2_b42` → 全部通过；
+`scan_recipe_gaps.py` 复现上表数字。文档写在 `docs/craft-recipe-study.md` 第 14 节（含判据、四类分布、
+假阳性清单、材料泵三条依据、复现命令），工具用法在 `bin2_b42/tools/recipe_gap/README.md`。
+
+**仍未做**：进游戏实测 5 条配方（UI 里能不能选中、`timedAction` 动画对不对）；工坊未上传；
+`Base.SmallSawblade` / `Base.Button` / 武器刀刃 / 火柴打火机 / 鱼与带状态物品按上述理由不补。

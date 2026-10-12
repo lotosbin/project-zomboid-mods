@@ -111,4 +111,109 @@ module Bin2Recipe
             item 2 Base.Epoxy,
         }
     }
+    /* 熬胶: 骨头 + 水 (原版只有搜刮/采集, 却有 9 条配方需要胶水) */
+    craftRecipe Bin2MakeGlue
+    {
+        time = 240,
+        timedAction = Making,
+        Tags = AnySurfaceCraft;Cooking,
+        category = Cooking,
+        SkillRequired = Cooking:2,
+        xpAward = Cooking:10,
+        inputs
+        {
+            item 2 [Base.AnimalBone;Base.LargeAnimalBone;Base.SmallAnimalBone],
+            item 1 [Base.Saucepan;Base.SaucepanCopper;Base.Pot;Base.PotForged;Base.Kettle;Base.Kettle_Copper] mode:keep flags[ItemCount],
+            -fluid 1.0 categories[Water] mode:mixture,
+        }
+        outputs
+        {
+            item 2 Base.Glue,
+        }
+    }
+    /* 打造螺母与螺栓: 原版只能拆家具得到, 却有 33 条配方需要 (螺栓不可回炉, 不会形成材料循环) */
+    craftRecipe Bin2MakeNutsBolts
+    {
+        time = 200,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Metalworking,
+        SkillRequired = MetalWelding:1,
+        xpAward = MetalWelding:10,
+        inputs
+        {
+            item 1 tags[base:charcoal],
+            item 1 [Base.IronChunk;Base.SteelChunk;Base.IronScrap;Base.SteelScrap;Base.IronPiece;Base.SteelPiece],
+            item 1 tags[base:hammer;base:smithinghammer;base:ballpeenhammer] mode:keep flags[Prop1],
+            item 1 tags[base:metalworkingpliers;base:tongs] mode:keep flags[Prop2],
+        }
+        outputs
+        {
+            item 6 Base.NutsBolts,
+        }
+    }
+    /* 打造螺丝: 原版只能开箱得到, 有 10 条配方需要 */
+    craftRecipe Bin2MakeScrews
+    {
+        time = 200,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Metalworking,
+        SkillRequired = MetalWelding:1,
+        xpAward = MetalWelding:10,
+        inputs
+        {
+            item 1 tags[base:charcoal],
+            item 1 [Base.IronChunk;Base.SteelChunk;Base.IronScrap;Base.SteelScrap;Base.IronPiece;Base.SteelPiece],
+            item 1 tags[base:hammer;base:smithinghammer;base:ballpeenhammer] mode:keep flags[Prop1],
+            item 1 tags[base:metalworkingpliers;base:tongs] mode:keep flags[Prop2],
+        }
+        outputs
+        {
+            item 6 Base.Screws,
+        }
+    }
+    /* 锻打圆锯片: 原版 11 条配方需要圆锯片, 但只能搜刮 (1 金属板 = 4 钢块, 与回炉产出持平) */
+    craftRecipe Bin2MakeCircularSawblade
+    {
+        time = 300,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Metalworking,
+        SkillRequired = MetalWelding:2,
+        xpAward = MetalWelding:15,
+        inputs
+        {
+            item 2 tags[base:charcoal],
+            item 1 [Base.SheetMetal],
+            item 1 tags[base:hammer;base:smithinghammer;base:ballpeenhammer] mode:keep flags[Prop1],
+            item 1 tags[base:metalworkingchisel] mode:keep,
+            item 1 tags[base:metalworkingpliers;base:tongs] mode:keep flags[Prop2],
+        }
+        outputs
+        {
+            item 1 Base.CircularSawblade,
+        }
+    }
+    /* 打造手锯条: 原版手锯条只能搜刮 */
+    craftRecipe Bin2MakeHacksawBlade
+    {
+        time = 200,
+        timedAction = Making,
+        Tags = AnySurfaceCraft,
+        category = Metalworking,
+        SkillRequired = MetalWelding:2,
+        xpAward = MetalWelding:10,
+        inputs
+        {
+            item 1 tags[base:charcoal],
+            item 1 [Base.SmallSheetMetal],
+            item 1 tags[base:hammer;base:smithinghammer;base:ballpeenhammer] mode:keep flags[Prop1],
+            item 1 tags[base:metalworkingchisel] mode:keep,
+        }
+        outputs
+        {
+            item 2 Base.HacksawBlade,
+        }
+    }
 }
