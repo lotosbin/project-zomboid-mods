@@ -3417,3 +3417,36 @@ texture(必填), toggle(必填 function(playerNumber)), isOpen?, tooltip?(**已�
 `~/Zomboid/Server/云猫咖test.ini` 是**本地测试档**（`Public=false`、`PublicName=My PZ Server`、
 RCON 密码为空），不是线上那一份。它能提供的只有「线上很可能在跑本仓库的模组」这个**推测**
 （清单里有 `Bin2NPCExtensionBase` / `Bin2NPCExtensionVanilla`）——**未证实**，别写进对外文案。
+
+## 2026-10-13 · 提交前把一文件的改动拆成两个提交：改写工作区文件前必须先把原文另存
+
+需求只有一句「commit; push」，但工作区同时躺着三条不相干的线索：`bin2_npc_extension` v0.5.0、
+`63c9c92` 漏掉的 server-ops 补记、两份别的项目的复盘文档。`docs/rolling_log.md` 一个文件里装着
+**两条**线索（v0.5.0 记录 + 云猫咖补记），要按线索拆提交就得**部分暂存**。
+
+### 踩到的坑：先改文件、后 `git add`，原文就没了
+
+做法是"写一版只有前半段的文件 → `git add` → 提交 → 再把后半段写回去"。第一阶段的健全性检查
+（"切分点之前的正文必须是 HEAD 的前缀"）本身是对的，错在**第二阶段还要再读一次工作区文件**：
+那时标记行已经被第一阶段删掉，脚本报 `marker 出现 0 次，拒绝切分` 直接退出 ——
+而**完整原文只存在于被覆盖的那个工作区文件里**。也确认了它从未进过索引（没有 dangling blob）。
+
+### 救回来的路：会话转录里存着工具调用的原始载荷
+
+`~/.dsh/sessions/--<工作区路径转义>--/<session-id>/session.v4.jsonl.zstd` 是 **zstd 压缩**的
+JSONL 转录（所以 `grep` 直接搜什么都搜不到，必须 `zstdcat`）。每条 `tool/call` 事件的
+`data.arguments` 原样保存着当时写盘的内容 —— 那次追加是
+
+    data.arguments = {"file_path": ".../docs/rolling_log.md", "old_string": <锚点>, "new_string": <锚点+新段落>}
+
+于是"当前已提交内容 + `new_string` 去掉锚点"就是逐字节的原状，**不需要手抄**。
+复核方式：恢复后 `git diff --numstat` 应得 33 行，与最初 `git diff --stat` 的 133 行
+（已提交的 100 + 补记的 33）吻合 —— 用**行数守恒**当校验，而不是肉眼看。
+
+### 教训
+
+* 拆分暂存时，第一阶段就该把**完整原文另存一份到 `/tmp`**，改写工作区前留退路；
+  或改用 `git stash` / 直接在 `/tmp` 里拼好两版再 `git apply`。
+* 脚本的第二阶段不要再依赖"第一步之后的工作区状态"；要么把中间结果传参进去，要么只依赖 git 对象。
+* 丢文件先查**转录**（`zstdcat ... | grep`）再考虑手抄：手抄一个中文长段落是必然引入错字的动作，
+  而这个仓库已经有过一次"手工转录导致 5/2 处不一致"的先例。
