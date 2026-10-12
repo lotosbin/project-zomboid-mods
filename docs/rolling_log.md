@@ -3217,3 +3217,9 @@ CN 翻译键是**裸配方 id**（原版 `Translate/CN/Recipes.json` 同样是�
 
 **仍未做**：进游戏实测 5 条配方（UI 里能不能选中、`timedAction` 动画对不对）；工坊未上传；
 `Base.SmallSawblade` / `Base.Button` / 武器刀刃 / 火柴打火机 / 鱼与带状态物品按上述理由不补。
+
+**上传通路**（用户要求）：`ln -s <仓库>/bin2_b42 ~/Zomboid/Workshop/bin2_b42`。游戏内的工坊上传界面
+按"`~/Zomboid/Workshop/<名字>/` 下要有 `workshop.txt` + `Contents/mods/`"来识别，软链之后它读的就是
+仓库工作区本身（`~/Zomboid/Workshop/bin2_b42/workshop.txt` 里 `id=3628652563`，即已发布的那个工坊条目），
+改完代码不必先拷贝一份；同目录下 `bin2_npc_extension`、`bin2_viewpoint` 等 8 个条目都是这个做法。
+**注意**：软链只是本机上传/测试通路，上传前线上仍是 v1.6.1。
