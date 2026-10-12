@@ -25,8 +25,8 @@ end
 
 local NS = Core.namespace({
     module = "Bin2NPCExtensionYese",
-    version = "0.4.0",
-    coreApi = 2,
+    version = "0.5.0",
+    coreApi = 3,
 
     -- 存档与沙盒：三个口味各一套，互不串档、互不覆盖对方的选项
     tag = "Bin2NPCExtensionYese.Contracts.v1",
@@ -50,7 +50,7 @@ local NS = Core.namespace({
     currencyName = "金币",
 
     -- 入口（经济窗口首页的按钮）装不上时打给人看的那句话
-    uiHint = "is YeseMarket enabled?",
+    uiHint = "is YeseMarket enabled (and is the vanilla sidebar still there)?",
 })
 
 if NS == nil then return nil end          -- coreApi 不符：Core.namespace 已经打过日志

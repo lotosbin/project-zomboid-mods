@@ -225,6 +225,10 @@ local function defaultState()
         standing = {},
         ---- 经济状态
         economy = {},
+        ---- UI 状态（原版 ISUI 的桩）
+        uiElements = {},              -- UIManager 里的元素（窗口在不在屏幕上）
+        playerData = {},              -- 原版 getPlayerData(n)：equipped = 左侧竖排图标栏
+        iconFiles = nil,              -- M.setIconFiles() 打开"贴图必须真的存在"的严格模式
         ---- 记录
         players = nil,
         calls = {},
@@ -255,6 +259,9 @@ M.reset = function(options)
         fresh.sandboxTablePresent = M.state.sandboxTablePresent
     end
     fresh.players = M.state.players or { M.player }
+    -- 贴图清单代表磁盘上的文件，属于"环境"而不是"用例状态"：重置时保留，
+    -- 否则 YeseMarket 变体里 run.js 注入的严格模式会在第一个用例之后静默失效。
+    fresh.iconFiles, fresh.iconSizes = M.state.iconFiles, M.state.iconSizes
     M.state = fresh
     M.currentLogs = nil
     ProjectALifeJimmy = M.jeem
@@ -373,7 +380,7 @@ M.handler_count = function(name)
 end
 
 -- ---------------------------------------------------------------- 玩家
-local function makePlayer(username, x, y)
+local function makePlayer(username, x, y, playerNum)
     local player = {
         __username = username,
         __display = username,
@@ -381,13 +388,14 @@ local function makePlayer(username, x, y)
         __y = y or 100,
         __z = 0,
     }
+    local number = math.max(0, math.floor(tonumber(playerNum) or 0))
     function player:getUsername() return self.__username end
     function player:getDisplayName() return self.__display end
     function player:getX() return self.__x end
     function player:getY() return self.__y end
     function player:getZ() return self.__z end
     function player:setPosition(nx, ny, nz) self.__x, self.__y, self.__z = nx, ny, nz end
-    function player:getPlayerNum() return 0 end
+    function player:getPlayerNum() return number end
     function player:isDead() return false end
     function player:getModData() return {} end
     function player:setHaloNote(...) record("player.setHaloNote", { args = { ... } }) end
@@ -395,7 +403,7 @@ local function makePlayer(username, x, y)
 end
 
 M.player = makePlayer("TestPlayer", 100, 100)
-M.player2 = makePlayer("OtherPlayer", 300, 300)
+M.player2 = makePlayer("OtherPlayer", 300, 300, 1)
 M.state.players = { M.player }
 
 function getSpecificPlayer(index)
@@ -494,63 +502,324 @@ isCtrlKeyDown = function() return true end
 isAltKeyDown = function() return true end
 
 -- ---------------------------------------------------------------- UI 桩
-local function basePanel(x, y, width, height)
-    local panel = {
+--[[
+    [真实] 形状照抄游戏自己的 media/lua/client/ISUI/*.lua 与 ISEquippedItem.lua
+    （证据见 docs/research/vanilla-sidebar-entry.md §1-§2）：
+      * 方法挂在**类表**上（ISBaseObject:derive 的形状：Type / SuperType / __index），
+        实例只有字段 —— 所以"覆写 ISEquippedItem.initialise"这种 hook 才真的会被调到；
+      * `ISEquippedItem.initialise()` 结尾调 `self:shrinkWrap()`，而它覆写的零参 `shrinkWrap`
+        **只统计 `child.Type == "ISButton"`** 的子元素（ISEquippedItem.lua:972-984）；
+      * 整列按钮包在 `if self.chr:getPlayerNum() == 0 then` 里（:737…:967）；
+      * 按钮之间是 `上一个按钮的 bottom + 15`；
+      * `ISButton:new(x,y,w,h,title,clicktarget,onclick)`，点击回调签名是 `onclick(target, button)`；
+      * 引擎的 `getTexture(path)` 对**不存在**的文件返回 nil（ISButton 于是画不出图标）。
+    [简化]（逐条理由）：
+      * 只建 4 个原版按钮（INVENTORY/HEALTH/CRAFTING/MAP），真实版有 9~14 个。公共层的侧边栏入口
+        只依赖"接在最后一个按钮之后"（`self:getHeight() + 15`）与 `invBtn:getWidth()`，按钮个数无关；
+      * 不画任何东西：draw* 全是空实现（离线测试没有渲染）；
+      * `UIManager` 只记元素集合（AddUI / RemoveElement），够断言"窗口真的加进去/摘出来了"；
+      * 贴图桩默认**宽松**（任何路径都给一张假图）：橙子口味的入口是首页按钮，没有侧边栏图标。
+        YeseMarket 变体的 run.js 会调 `M.setIconFiles()` 把磁盘上真实存在的 Trade_*.png 注入进来，
+        从那以后 `getTexture` 变成"文件不在就 nil"，与引擎一致 —— "路径写错/漏生成一档"
+        于是在离线测试里就暴露成"按钮没有贴图"，而不是等进游戏。
+]]
+local function baseFields(x, y, width, height)
+    return {
         x = x or 0, y = y or 0, width = width or 1, height = height or 1,
         children = {}, visible = true, enabled = true,
     }
-    function panel:initialise() return self end
-    function panel:instantiate() return self end
-    function panel:addChild(child) self.children[#self.children + 1] = child return child end
-    function panel:removeChild(child)
-        for index, existing in ipairs(self.children) do
-            if existing == child then table.remove(self.children, index) break end
-        end
-    end
-    function panel:getX() return self.x end
-    function panel:getY() return self.y end
-    function panel:getWidth() return self.width end
-    function panel:getHeight() return self.height end
-    function panel:setX(value) self.x = value return self end
-    function panel:setY(value) self.y = value return self end
-    function panel:setWidth(value) self.width = value return self end
-    function panel:setHeight(value) self.height = value return self end
-    function panel:setVisible(value) self.visible = value == true return self end
-    function panel:isVisible() return self.visible end
-    function panel:setEnable(value) self.enabled = value == true return self end
-    function panel:isEnabled() return self.enabled end
-    function panel:setTitle(value) self.title = value return self end
-    function panel:getTitle() return self.title end
-    function panel:drawText(...) return self end
-    function panel:drawRect(...) return self end
-    function panel:drawTexture(...) return self end
-    function panel:bringToTop() return self end
-    function panel:setPage(pageId) self.pageId = pageId return self end
-    function panel:clampToScreen() return self end
-    return panel
 end
 
 ISPanel = {}
-function ISPanel:new(x, y, width, height)
-    local panel = basePanel(x, y, width, height)
-    panel.__index = ISPanel
-    return setmetatable(panel, { __index = ISPanel })
+ISPanel.Type = "ISPanel"
+-- [真实] ISUIElement:new(x, y, width, height) 把坐标尺寸交给 __construct
+ISPanel.__construct = function(instance, x, y, width, height)
+    instance.x, instance.y = x or 0, y or 0
+    instance.width, instance.height = width or 1, height or 1
 end
+
+function ISPanel:new(x, y, width, height)
+    local panel = baseFields(x, y, width, height)
+    if type(self.__construct) == "function" then self.__construct(panel, x, y, width, height) end
+    return setmetatable(panel, { __index = self })
+end
+
+-- [真实] ISBaseObject:derive(type)：子类的 __index 指回父类，Type / SuperType 记名字
 function ISPanel:derive(name)
-    -- 引擎里 ISPanel:derive 返回一个子类构造器；测试只需要"能调、返回表"
     local derived = setmetatable({}, { __index = self })
-    derived.__index = derived
     derived.Type = name
-    function derived:new(x, y, width, height)
-        local instance = basePanel(x, y, width, height)
+    derived.SuperType = self
+    derived.__index = derived
+    function derived:new(...)
+        local instance = baseFields(0, 0, 1, 1)
+        if type(derived.__construct) == "function" then derived.__construct(instance, ...) end
         return setmetatable(instance, { __index = derived })
     end
     return derived
 end
 
+function ISPanel:initialise()
+    -- [真实] ISUIElement:initialise 只重置子元素表（**不**调 createChildren）
+    self.children = {}
+    return self
+end
+
+function ISPanel:instantiate()
+    if self.javaObject == nil then
+        self.javaObject = { __element = self }
+        -- [真实] instantiate() 末尾调 createChildren()
+        if type(self.createChildren) == "function" then self:createChildren() end
+    end
+    return self.javaObject
+end
+function ISPanel:createChildren() end
+
+function ISPanel:addToUIManager()
+    if self.javaObject == nil then self:instantiate() end
+    UIManager.AddUI(self.javaObject)
+    return self
+end
+function ISPanel:removeFromUIManager()
+    if self.javaObject == nil then return self end
+    UIManager.RemoveElement(self.javaObject)
+    return self
+end
+function ISPanel:isInUIManager()
+    if self.javaObject == nil then return false end
+    return M.uiHas(self.javaObject)
+end
+
+function ISPanel:addChild(child)
+    if child ~= nil and child.javaObject == nil then child:instantiate() end
+    self.children[#self.children + 1] = child
+    if child ~= nil then child.parent = self end
+    return child
+end
+function ISPanel:removeChild(child)
+    for index, existing in ipairs(self.children) do
+        if existing == child then table.remove(self.children, index) break end
+    end
+    if child ~= nil and child.parent == self then child.parent = nil end
+    return child
+end
+function ISPanel:getChildren() return self.children end
+function ISPanel:numChildren() return #self.children end
+
+function ISPanel:getX() return self.x end
+function ISPanel:getY() return self.y end
+function ISPanel:getWidth() return self.width end
+function ISPanel:getHeight() return self.height end
+function ISPanel:setX(value) self.x = value return self end
+function ISPanel:setY(value) self.y = value return self end
+function ISPanel:setWidth(value) self.width = value return self end
+function ISPanel:setHeight(value) self.height = value return self end
+function ISPanel:getRight() return self.x + self.width end
+function ISPanel:getBottom() return self.y + self.height end
+function ISPanel:getLeft() return self.x end
+function ISPanel:getTop() return self.y end
+
+function ISPanel:setVisible(value) self.visible = value == true return self end
+function ISPanel:isVisible() return self.visible == true end
+function ISPanel:getIsVisible() return self.visible == true end
+function ISPanel:setEnable(value) self.enabled = value == true return self end
+function ISPanel:isEnabled() return self.enabled end
+function ISPanel:setTitle(value) self.title = value return self end
+function ISPanel:getTitle() return self.title end
+function ISPanel:setImage(value) self.image = value return self end
+function ISPanel:getImage() return self.image end
+function ISPanel:setDisplayBackground(value) self.displayBackground = value == true return self end
+function ISPanel:ignoreWidthChange() self.ignoreWidth = true return self end
+function ISPanel:ignoreHeightChange() self.ignoreHeight = true return self end
+function ISPanel:addMouseOverToolTipItem(item, text)
+    record("addMouseOverToolTipItem", { item = item, text = text })
+    return self
+end
+
+function ISPanel:drawText(...) return self end
+function ISPanel:drawRect(...) return self end
+function ISPanel:drawRectBorder(...) return self end
+function ISPanel:drawTexture(...) return self end
+function ISPanel:drawTextureScaledAspect(...) return self end
+function ISPanel:bringToTop() return self end
+function ISPanel:clampToScreen() return self end
+function ISPanel:setAlwaysOnTop() return self end
+function ISPanel:noBackground() return self end
+function ISPanel:setResizable(value) self.resizable = value == true return self end
+function ISPanel:setJoypadFocused(value) self.joyfocus = value == true return self end
+function ISPanel:setPage(pageId) self.pageId = pageId return self end
+function ISPanel:setAnchorLeft(value) self.anchorLeft = value return self end
+function ISPanel:setAnchorRight(value) self.anchorRight = value return self end
+function ISPanel:setAnchorTop(value) self.anchorTop = value return self end
+function ISPanel:setAnchorBottom(value) self.anchorBottom = value return self end
+
+-- 绘制/帧循环：离线测试不渲染，只记次数（断言"每帧刷新没有额外开销"要用）
+function ISPanel:render() self.renderCalls = (self.renderCalls or 0) + 1 end
+function ISPanel:update() self.updateCalls = (self.updateCalls or 0) + 1 end
+function ISPanel:prerender() self.prerenderCalls = (self.prerenderCalls or 0) + 1 end
+
 ISUIElement = ISPanel
+
 ISButton = ISPanel:derive("ISButton")
+ISButton.__construct = function(instance, x, y, width, height, title, target, onclick)
+    instance.x, instance.y = x or 0, y or 0
+    instance.width, instance.height = width or 0, height or 0
+    instance.title = title or ""
+    instance.target, instance.onclick = target, onclick
+    instance.displayBackground = true
+    -- [真实] ISButton:new 会把宽度撑到"标题宽 + 10"（getTextManager():MeasureStringX）
+    local needed = getTextManager():MeasureStringX(UIFont.Small, tostring(instance.title)) + 10
+    if (instance.width or 0) < needed then instance.width = needed end
+end
+-- [真实] 点击回调的签名是 onclick(target, button)（ISButton 的 mouse-up 路径）
+function ISButton:click()
+    if type(self.onclick) == "function" then return self.onclick(self.target, self) end
+end
+
 ISScrollingListBox = ISPanel:derive("ISScrollingListBox")
+
+-- ---------------------------------------------------------------- 原版 ISUI / 左侧侧边栏
+-- ---- UIManager：窗口"在不在屏幕上"的唯一权威
+UIManager = {}
+function UIManager.AddUI(element)
+    M.state.uiElements[#M.state.uiElements + 1] = element
+end
+function UIManager.RemoveElement(element)
+    for index, existing in ipairs(M.state.uiElements) do
+        if existing == element then table.remove(M.state.uiElements, index) return true end
+    end
+    return false
+end
+M.uiCount = function() return #M.state.uiElements end
+M.uiHas = function(element)
+    for _, existing in ipairs(M.state.uiElements) do
+        if existing == element then return true end
+    end
+    return false
+end
+
+--[[
+    贴图桩：默认宽松（返回 { __path = 路径 }），M.setIconFiles(list) 之后变成
+    "清单里没有就 nil"（= 引擎语义）。清单由 run.js 扫磁盘得到，见本段开头的说明。
+]]
+M.setIconFiles = function(files, sizes)
+    if files == nil then
+        M.state.iconFiles, M.state.iconSizes = nil, nil
+        return
+    end
+    local set = {}
+    for _, one in ipairs(files) do set[one] = true end
+    M.state.iconFiles = set
+    M.state.iconSizes = sizes
+end
+M.iconFilesStrict = function() return type(M.state.iconFiles) == "table" end
+--- 最近一次 getTexture 请求的路径（"请求了什么"与"桩给不给图"是两件事）
+M.lastTexturePath = function()
+    local calls = M.calls_named("getTexture")
+    local last = calls[#calls]
+    return last ~= nil and last.path or nil
+end
+getTexture = function(path)
+    local key = tostring(path)
+    local known = M.state.iconFiles
+    record("getTexture", { path = key, known = type(known) == "table" and known[key] == true or nil })
+    if type(known) == "table" and known[key] ~= true then
+        record("getTexture.missing", { path = key })
+        return nil
+    end
+    return { __path = key }
+end
+
+-- ---- 原版左侧竖排图标栏（ISEquippedItem）
+ISEquippedItem = ISPanel:derive("ISEquippedItem")
+
+-- [真实] ISEquippedItem.lua:972-984 的零参覆写版：**只统计 Type == "ISButton"** 的子元素
+function ISEquippedItem:shrinkWrap()
+    local xMax, yMax = 0, 0
+    for _, child in pairs(self:getChildren()) do
+        if child.Type == "ISButton" then
+            xMax = math.max(xMax, child:getRight())
+            yMax = math.max(yMax, child:getBottom())
+        end
+    end
+    self:setWidth(xMax)
+    self:setHeight(yMax)
+    self.shrinkWrapCalls = (self.shrinkWrapCalls or 0) + 1
+    record("ISEquippedItem.shrinkWrap", { panel = self, width = xMax, height = yMax })
+    return self
+end
+
+function ISEquippedItem:onOptionMouseDown(button, x, y)
+    record("ISEquippedItem.onOptionMouseDown", { button = button, x = x, y = y })
+end
+
+function ISEquippedItem:addVanillaButton(y, internal)
+    local width = self.textureWidth
+    local height = math.floor(width * 0.75)
+    local button = ISButton:new(0, y, width, height, "", self, ISEquippedItem.onOptionMouseDown)
+    button.internal = internal
+    button:initialise()
+    button:instantiate()
+    button:setImage({ __path = "vanilla/" .. tostring(internal) })
+    button:setDisplayBackground(false)
+    button:ignoreWidthChange()
+    button:ignoreHeightChange()
+    self:addChild(button)
+    return button
+end
+
+--[[
+    [真实] ISEquippedItem.lua:717-969：手/副手 -> 背包 -> 健康 -> 制作 -> 建造 -> 可移动
+    -> 搜索 -> 区域 -> 地图，按钮之间 +15，最后 `self:shrinkWrap()`。
+    [简化] 只建 4 个按钮，y 起点取报告 §2.1 对 48 档手算的 invBtn 值 114。
+    被测入口只依赖：最后一个按钮的 bottom（+15）与 invBtn 的宽（量尺寸档）。
+]]
+function ISEquippedItem:initialise()
+    ISPanel.initialise(self)
+    self.textureHeight = math.floor((self.textureWidth or 48) * 0.75)
+    self.invBtn, self.healthBtn, self.craftingBtn, self.mapBtn = nil, nil, nil, nil
+    if self.chr ~= nil and self.chr:getPlayerNum() == 0 then
+        local y = 114
+        self.invBtn = self:addVanillaButton(y, "INVENTORY")
+        y = self.invBtn:getBottom() + 15
+        self.healthBtn = self:addVanillaButton(y, "HEALTH")
+        y = self.healthBtn:getBottom() + 15
+        self.craftingBtn = self:addVanillaButton(y, "CRAFTING")
+        y = self.craftingBtn:getBottom() + 15
+        self.mapBtn = self:addVanillaButton(y, "MAP")
+        self.lastVanillaBottom = self.mapBtn:getBottom()
+    end
+    self:shrinkWrap()
+    return self
+end
+
+function ISEquippedItem:prerender()
+    -- [真实] 原版开头 `if self.invBtn == nil then return end`（ISEquippedItem.lua:27-30）
+    if self.invBtn == nil then return end
+    self.prerenderCalls = (self.prerenderCalls or 0) + 1
+end
+
+-- [真实] ISPlayerData.equipped：原版 launchEquippedItem 把面板挂在这里
+getPlayerData = function(playerNum)
+    local index = math.max(0, math.floor(tonumber(playerNum) or 0))
+    M.state.playerData[index] = M.state.playerData[index] or {}
+    return M.state.playerData[index]
+end
+
+--[[
+    造一个"已经 initialise 过"的原版侧边栏面板（等价于 launchEquippedItem(chr) 的结果）。
+    textureWidth 就是原版的 TEXTURE_WIDTH（48/64/80/96/128，由选项映射而来）。
+]]
+M.newSidebarPanel = function(playerNum, textureWidth)
+    local number = math.max(0, math.floor(tonumber(playerNum) or 0))
+    local width = tonumber(textureWidth) or 48
+    local panel = ISEquippedItem:new(0, 10, width, math.floor(width * 0.75))
+    panel.chr = (number == 0) and M.player or M.player2
+    panel.playerNum = number
+    panel.textureWidth = width
+    panel:initialise()
+    getPlayerData(number).equipped = panel
+    return panel
+end
 
 function instanceof(value, class)
     if type(value) ~= "table" then return false end

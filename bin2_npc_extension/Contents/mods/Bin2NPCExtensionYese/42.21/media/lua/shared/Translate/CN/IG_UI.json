@@ -1,6 +1,7 @@
 {
     "IGUI_Bin2NPCExtensionYese_PageTitle": "NPC 招募",
     "IGUI_Bin2NPCExtensionYese_EntryButton": "NPC 招募",
+    "IGUI_Bin2NPCExtensionYese_IconTooltip": "幸存者交易站：点一下开关交易站窗口（Ctrl+Alt+N 直接打开 NPC 招募）。",
     "IGUI_Bin2NPCExtensionYese_EntryTooltip": "用金币收编身边的 A-Life NPC，或者让 A-Life 派一名新人过来。快捷键 Ctrl+Alt+N。",
     "IGUI_Bin2NPCExtensionYese_TabRoster": "我的雇员",
     "IGUI_Bin2NPCExtensionYese_TabHire": "收编（附近）",

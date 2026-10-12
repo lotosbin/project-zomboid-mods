@@ -10,10 +10,13 @@
 //      "Bin2NPCExtensionCore/Config" -> <模组>/media/lua/<层>/Bin2NPCExtensionCore/Config.lua；
 //      同一文件只执行一次（引擎按绝对路径缓存，这里用 package.loaded 等价模拟），
 //      并用 package.searchers 计数器证明"没有任何文件需要被 require 二次加载"；
-//   3. 按引擎真实加载顺序执行被测的 19 个 Lua 文件（公共层 14 + 本口味 5）；
+//   3. 按引擎真实加载顺序执行被测的 20 个 Lua 文件（公共层 15 + 本口味 5）；
 //   4. 做一次**静态翻译检查**（不进 Lua VM）：扫源码里的 T("...") / Text.get("...")
 //      字面量，断言 CN/EN 的 IG_UI.json 里都有对应键且键集合一致；
-//   5. 执行 test_recruit.lua 的 40 条断言，用它的返回值当进程退出码。
+//   5. 做一次**静态图标检查**：media/ui/Sidebar/<尺寸>/Trade_{On,Off}_<尺寸>.png 必须都在、
+//      尺寸与 RGBA 正确，并把清单注入 Lua（MOCK.setIconFiles）—— mock 的 getTexture
+//      照引擎语义「文件不在就返回 nil」，于是「贴图路径写错 / 漏生成一档」在离线测试里就会红；
+//   6. 执行 test_recruit.lua 的 45 条断言，用它的返回值当进程退出码。
 //
 // 用法：node run.js            （通常由 run_lua_test.sh 调起）
 //      node run.js --verbose  （把每个被测文件的实际路径也打出来）
@@ -31,6 +34,10 @@ const MOD_VERSION_DIR = path.resolve(TEST_DIR, '..', '..', 'Contents', 'mods', '
 const BASE_VERSION_DIR = path.resolve(TEST_DIR, '..', '..', 'Contents', 'mods', 'Bin2NPCExtensionBase', '42.21');
 const MEDIA_LUA_DIR = path.join(MOD_VERSION_DIR, 'media', 'lua');
 const TRANSLATE_DIR = path.join(MEDIA_LUA_DIR, 'shared', 'Translate');
+/** 本口味的原版侧边栏图标：<模组>/media/ui/Sidebar/<尺寸>/Trade_{On,Off}_<尺寸>.png（tools/make_icons.py）。 */
+const SIDEBAR_DIR = path.join(MOD_VERSION_DIR, 'media', 'ui', 'Sidebar');
+const SIDEBAR_TEXTURE = 'Trade';
+const SIDEBAR_SIZES = [48, 64, 80, 96, 128];
 
 /** 语言 -> { 完整键: 文案 }。测试用 MOCK.useCnTranslations() 打开，就能断言真实文案。 */
 const textsByLanguage = {};
@@ -65,11 +72,11 @@ const SHARED = 'media/lua/shared';
 const SERVER = 'media/lua/server';
 const CLIENT = 'media/lua/client';
 
-// 公共层的 14 个文件（按 Namespace.bind 的依赖顺序）——它们全是 shared 层的不纯函数式工厂，
+// 公共层的 15 个文件（按 Namespace.bind 的依赖顺序）——它们全是 shared 层的不纯函数式工厂，
 // 加载时只定义工厂、不产生副作用，所以放 shared 是安全的（多人客户端也会加载，但什么也不做）。
 const CORE_MODULES = [
     'Namespace', 'Config', 'Text', 'Contracts', 'Store', 'Economy', 'Cash', 'Alife', 'Jimmy',
-    'Service', 'Maintain', 'Net', 'ServerBootstrap', 'ClientBootstrap',
+    'Service', 'Maintain', 'Net', 'Sidebar', 'ServerBootstrap', 'ClientBootstrap',
 ];
 
 // 本口味自己的 5 个 Lua 文件。加载顺序 = 引擎真实的层顺序：
@@ -102,7 +109,7 @@ const MOD_FILES = [
     })),
 ];
 
-// 去重后的模块名（本口味里 client/Bootstrap 与 server/Bootstrap 同名，共 17 个名字 18 个文件）
+// 去重后的模块名（本口味里 client/Bootstrap 与 server/Bootstrap 同名，共 18 个名字 19 个文件）
 const REQUIRE_NAMES = [...new Set(MOD_FILES.map((file) => file.module))];
 
 // 语言包
@@ -402,11 +409,68 @@ function loadTranslations() {
     return result;
 }
 
+// ------------------------------------------------------------------ 静态图标检查
+/**
+ * 读 PNG 头（8 字节签名 + IHDR：宽/高/位深/色彩类型）。
+ * 这就是 tools/make_icons.py --check 的等价检查：尺寸必须是 <尺寸> x <尺寸>*0.75、
+ * 必须是 RGBA（色型 6）—— 侧边栏图标要透明背景，否则会糊住原版面板。
+ */
+function readPngHeader(file) {
+    const buffer = fs.readFileSync(file);
+    if (buffer.length < 33) return null;
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    if (!buffer.subarray(0, 8).equals(signature)) return null;
+    if (buffer.toString('ascii', 12, 16) !== 'IHDR') return null;
+    return {
+        width: buffer.readUInt32BE(16),
+        height: buffer.readUInt32BE(20),
+        bitDepth: buffer[24],
+        colorType: buffer[25],
+    };
+}
+
+/** 5 档 x 2 态的侧边栏图标必须在磁盘上、且尺寸/色型正确。返回可注入 Lua 的清单。 */
+function checkSidebarIcons() {
+    const verified = {};
+    const problems = [];
+    for (const size of SIDEBAR_SIZES) {
+        const height = Math.round(size * 0.75);
+        for (const state of ['Off', 'On']) {
+            const rel = `media/ui/Sidebar/${size}/${SIDEBAR_TEXTURE}_${state}_${size}.png`;
+            const absolute = path.join(MOD_VERSION_DIR, rel);
+            if (!fs.existsSync(absolute)) {
+                problems.push(`missing ${rel}`);
+                continue;
+            }
+            const header = readPngHeader(absolute);
+            if (header === null) {
+                problems.push(`${rel}: not a PNG`);
+                continue;
+            }
+            if (header.width !== size || header.height !== height) {
+                problems.push(`${rel}: ${header.width}x${header.height}, want ${size}x${height}`);
+                continue;
+            }
+            if (header.colorType !== 6) {
+                problems.push(`${rel}: PNG color type ${header.colorType}, want 6 (RGBA)`);
+                continue;
+            }
+            verified[rel] = true;
+        }
+    }
+    if (problems.length > 0) {
+        die('sidebar icons are broken: ' + problems.join(' | '));
+    }
+    return verified;
+}
+
 /** 把收集到的键注入 Lua：Config.__sourceKeys / __cnKeys / __enKeys */
 function installStaticKeys(L) {
     const scan = extractLiteralKeys(TRANSLATION_SOURCES);
     const translations = loadTranslations();
     const all = new Set([...scan.callKeys, ...scan.mappingKeys]);
+    // 侧边栏图标：这份清单同时喂给 mock 的 getTexture（引擎语义：文件不在就 nil）
+    const iconFiles = checkSidebarIcons();
 
     const luaArray = (values) => `{ ${[...values].sort().map((v) => `"${v}"`).join(', ')} }`;
     const luaSet = (values) => `{ ${[...values].map((v) => `["${v}"] = true`).join(', ')} }`;
@@ -424,6 +488,9 @@ Bin2NPCExtensionYese.__loadedCount = ${MOD_FILES.length}
 Bin2NPCExtensionYese.__requireNames = ${luaArray(REQUIRE_NAMES)}
 Bin2NPCExtensionYese.__coreModules = ${luaArray(CORE_MODULES.map((n) => `Bin2NPCExtensionCore/${n}`))}
 Bin2NPCExtensionYese.__moduleFileCount = ${MOD_FILES.length}
+-- 磁盘上真实存在的侧边栏图标（run.js 校验过尺寸与 RGBA）；mock 的 getTexture 用它当「文件系统」，
+-- 于是「贴图路径写错 / 漏生成一档」在离线测试里就暴露成「按钮没有贴图」。
+MOCK.setIconFiles(${luaArray(Object.keys(iconFiles))}, ${luaArray(SIDEBAR_SIZES)})
 `;
     if (lauxlib.luaL_loadstring(L, to_luastring(code)) !== lua.LUA_OK || lua.lua_pcall(L, 0, 0, 0) !== lua.LUA_OK) {
         throw new Error(`install static keys: ${readLuaError(L)}`);

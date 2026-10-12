@@ -25,8 +25,8 @@ end
 
 local NS = Core.namespace({
     module = "Bin2NPCExtension",
-    version = "0.4.0",
-    coreApi = 2,
+    version = "0.5.0",
+    coreApi = 3,
 
     -- 存档与沙盒：三个口味各一套，互不串档、互不覆盖对方的选项
     tag = "Bin2NPCExtension.Contracts.v1",

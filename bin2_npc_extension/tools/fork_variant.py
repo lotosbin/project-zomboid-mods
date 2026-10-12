@@ -61,16 +61,43 @@ GLOBAL_SUBS = [
 # key 是相对模组版本目录的路径
 # ---------------------------------------------------------------------------
 FILE_PATCHES = {
+    # 两个入口都要在描述里说清楚（左侧导航栏一行 + 原版图标栏一格）
     "mod.info": [
-        # 标题/描述要人写清楚，不能靠替换拼出来
         ("name=Project A-Life NPC招募 (bin2_npc_extension)(YeseMarket)",
          "name=YeseMarket NPC 招募 (bin2_npc_extension)(A-Life/Jeem)"),
         ("description=在「YeseMarket」里开一家佣兵中介",
          "description=在「YeseMarket / 夜市市场」里开一家佣兵中介"),
+        ("description=<LINE>雇员可以跟随你、守点，或者交给 Jeem Extension 的居民系统去守营地；日薪、名额、价格都可以在沙盒里调。",
+         "description=<LINE>雇员可以跟随你、守点，或者交给 Jeem Extension 的居民系统去守营地；日薪、名额、价格都可以在沙盒里调。"
+         "\ndescription=<LINE>入口有两个：YeseMarket 左侧导航栏最后一行「NPC 招募」，以及**原版左侧图标栏最下面**的交易站图标"
+         "（点一下开关幸存者交易站窗口，悬停有提示；招募页就在交易站的侧栏里）。"),
+    ],
+    # 入口装不上时的排障提示：本口味的两块（交易站导航 + 原版侧边栏）都可能缺席
+    "media/lua/shared/Bin2NPCExtension/Profile.lua": [
+        ('    uiHint = "is YeseMarket enabled?",',
+         '    uiHint = "is YeseMarket enabled (and is the vanilla sidebar still there)?",'),
     ],
     # 简体中文里"金币"更自然（YeseMarket 自己的 UI 也是这么写的）
     "media/lua/shared/Translate/CN/IG_UI.json": [
         ("金币：%1", "金币：%1"),
+        # 侧边栏图标的悬停提示（键名 = 翻译前缀 + IconTooltip，由公共层 Sidebar 的 spec 取用）
+        ('    "IGUI_Bin2NPCExtensionYese_EntryTooltip":',
+         '    "IGUI_Bin2NPCExtensionYese_IconTooltip": "幸存者交易站：点一下开关交易站窗口（Ctrl+Alt+N 直接打开 NPC 招募）。",\n'
+         '    "IGUI_Bin2NPCExtensionYese_EntryTooltip":'),
+    ],
+    # 英文那份当初是照橙子口味逐字翻的，YeseMarket 的货币是金币：顺手改掉"community currency"
+    "media/lua/shared/Translate/EN/IG_UI.json": [
+        ("Hire nearby A-Life NPCs with community currency, or have A-Life send a fresh one.",
+         "Hire nearby A-Life NPCs with coins, or have A-Life send a fresh one."),
+        ('    "IGUI_Bin2NPCExtensionYese_EntryTooltip":',
+         '    "IGUI_Bin2NPCExtensionYese_IconTooltip": "Survivor trading station: click to open or close it (Ctrl+Alt+N opens NPC recruitment).",\n'
+         '    "IGUI_Bin2NPCExtensionYese_EntryTooltip":'),
+    ],
+    # 变体套件里 IG_UI.json 多了一条 IconTooltip，键数断言要跟着走
+    "test_recruit.lua": [
+        ('    M.assert_eq(cnCount, 92, "expected 92 translated keys in IG_UI.json")',
+         '    -- 92 = 橙子口味的键数；+1 是本变体自己的 IconTooltip（原版侧边栏图标的悬停提示）\n'
+         '    M.assert_eq(cnCount, 93, "expected 93 translated keys in IG_UI.json")'),
     ],
 }
 
@@ -616,7 +643,12 @@ return Page
         这正是导航按钮回调要做的事（`self:setPage(button.pageId)`）。
       * 打开窗口：`YeseMarket.Open(playerNum)` **只接一个参数**（不像橙子经济的 `Open(n, pageId)`），
         所以入口是"先开窗 → 再 `YeseMarket.Window:setPage(我们的 id)`"。
-      * 兜底：**Ctrl+Alt+N 永远可用**。万一上游把导航字段改名，按钮会静默消失，但热键照开。
+      * 入口有两个（分工不同，见下面「侧边栏图标」一段）：
+        ① YeseMarket 左侧导航栏最后一行「NPC 招募」——进我们的页面；
+        ② **原版左侧竖排图标栏**最下面一个交易站图标 —— 点一下开关**幸存者交易站窗口**
+           （YeseMarket 全库没有任何按键绑定，交易站本身没有快捷入口）。
+      * 兜底：**Ctrl+Alt+N 永远可用**，而且它直达①的招募页 —— 万一上游把导航字段改名、
+        或原版侧边栏被别的模组换掉，热键照开。
 ]]
 
 -- 公共层（Bin2NPCExtensionBase）在 shared 层已经实例化好了命名空间；这里 require 是
@@ -632,6 +664,72 @@ local Entry = {}
 Config.Entry = Entry
 
 Entry.NAV_ID = Config.RecruitPage.ID
+
+-- ---------------------------------------------------------------- 侧边栏图标
+
+--[[
+    入口②：把**幸存者交易站**挂到原版左侧竖排图标栏（ISEquippedItem —— 心/背包/建造那一列）
+    的最下面。挂接的实现与全部引擎侧约束在公共层 `Bin2NPCExtensionCore/Sidebar.lua`
+    （另见 docs/research/vanilla-sidebar-entry.md §2），这里只交本口味的一张 spec。
+
+    为什么这一格是"交易站"而不是"招募页"：
+      * YeseMarket 全库没有任何按键绑定 —— 它自己的入口只有右击菜单里的「打开幸存者交易站」，
+        最常用的那一屏反而没有快捷入口；
+      * 这一列图标的语义就是"打开某个窗口"（心 → 健康、背包、建造、地图）。玩家点它是想进
+        交易站，所以点一下开关**交易站窗口**（标题就是 IGUI_YeseMarket_Title = 幸存者交易站）；
+        我们的招募页在交易站的左侧导航里一行就能点到；
+      * **Ctrl+Alt+N 仍然直达招募页**（Entry.open）：热键与图标各司其职，谁坏了都不影响另一个。
+]]
+
+--- 交易站窗口（YeseMarket.Window 是它唯一的窗口句柄；close() 会把它置回 nil）
+local function marketWindow()
+    local ui = Config.economy()
+    local window = ui ~= nil and ui.Window or nil
+    if window ~= nil and type(window.getIsVisible) == "function" then
+        local ok, visible = pcall(window.getIsVisible, window)
+        if ok and visible == true then return window end
+    end
+    return nil
+end
+
+--- 交易站窗口开着吗（侧边栏图标的两态贴图、以及"这一下是开还是关"都看它）
+function Entry.isMarketOpen()
+    return marketWindow() ~= nil
+end
+
+--[[
+    开关交易站（侧边栏图标点一下走这里）：开着就关，关着就开。
+
+    关：`UIShell:close()` 会 setVisible(false) + removeFromUIManager + `YeseMarket.Window = nil`
+        （client/ui/shell.lua:991-1029），所以下一次点击会走"开"的分支。
+    开：`YeseMarket.Open(playerNumber)` 只吃一个参数、不返回窗口
+        （client/event_handlers.lua:299），窗口句柄只能从 `ui.Window` 上取。
+]]
+function Entry.toggleMarket(playerNumber)
+    local window = marketWindow()
+    if window ~= nil then
+        return (pcall(function() window:close() end))
+    end
+    local ui = Config.economy()
+    if ui == nil or type(ui.Open) ~= "function" then return false end
+    local number = math.max(0, math.floor(tonumber(playerNumber) or 0))
+    return (pcall(ui.Open, number))
+end
+
+--[[
+    交给公共层的那张 spec。
+    * 贴图名 `Trade`：10 张两态图标（五档 x On/Off），装在本口味自己的 media/ui/Sidebar/ 下，
+      由 tools/make_icons.py 生成（画的是遮阳篷 + 柜台 + 金币的交易摊位）。
+    * `id` 是按钮的 internal（点击守卫）：公共层按它把按钮存在面板上，两个口味同时启用也不撞。
+]]
+local MARKET_SPEC = {
+    id = "BIN2NPCTRADE",
+    texture = "Trade",
+    tooltip = T("IconTooltip"),
+    log = "sidebar icon hooked into ISEquippedItem (opens the YeseMarket trading station)",
+    isOpen = function() return Entry.isMarketOpen() end,
+    toggle = function(playerNumber) return Entry.toggleMarket(playerNumber) end,
+}
 
 -- ---------------------------------------------------------------- 打开面板
 
@@ -737,7 +835,9 @@ end
 -- ---------------------------------------------------------------- 安装
 
 --[[
-    注册页面 + 插导航行。返回 true 表示两边都装好了；false 表示 YeseMarket 还没就绪（稍后重试）。
+    注册页面 + 插导航行 + 装侧边栏图标。返回 true 表示三件事都装好了；
+    false 表示还没就绪（YeseMarket 或原版侧边栏比我们晚）—— 调用方（公共层 ClientBootstrap）
+    会按秒重试，试满之后打印口味自己的 uiHint。
 ]]
 function Entry.install()
     local ui = Config.economy()
@@ -757,10 +857,21 @@ function Entry.install()
         return false
     end
 
-    if Entry.navInstalled == true then return true end
+    --[[
+        侧边栏图标**不依赖 YeseMarket**（原版那一列随时都在），但它跟导航行一起算作"入口装完"：
+        返回 false 会让公共层继续重试。万一原版侧边栏被别的模组换掉（HUD 替换），这条
+        WARN 会明确写出来，而 Ctrl+Alt+N 照常可用（热键不经过这里）。
+    ]]
+    local sidebarReady = Config.Sidebar.install(MARKET_SPEC) == true
+    if sidebarReady ~= true and Entry.sidebarWarned ~= true then
+        Entry.sidebarWarned = true
+        Config.warn("the vanilla sidebar is not ready yet; the trading-station icon is not installed")
+    end
+
+    if Entry.navInstalled == true then return sidebarReady end
     if installNavRow(ui) then
-        Config.always("recruit page registered; YeseMarket navigation row installed")
-        return true
+        Config.always("recruit page registered; YeseMarket navigation row and sidebar icon installed")
+        return sidebarReady
     end
     return false
 end
@@ -881,7 +992,16 @@ TEXT_EXT = (".lua", ".json", ".txt", ".info", ".md", ".js", ".sh")
 #   poster.png —— 三个口味的海报各有强调色/依赖/入口文案，由 tools/make_images.py 生成。
 #   以前它是"从橙子版复制一份"，所以生成器顺手 copy 了它；现在海报是独立产物，
 #   再 copy 就会把 YeseMarket/原版那张覆盖掉，--check 也会永远报"内容不一致"。
-GENERATED_ELSEWHERE = ("poster.png",)
+#   media/ui/Sidebar/<档>/Trade_{On,Off}_<档>.png —— YeseMarket 口味的侧边栏图标，
+#   由 tools/make_icons.py 生成（源口味没有侧边栏入口，机械替换产不出这 10 张图）。
+GENERATED_ELSEWHERE = (
+    "poster.png",
+    "Trade_On_48.png", "Trade_Off_48.png",
+    "Trade_On_64.png", "Trade_Off_64.png",
+    "Trade_On_80.png", "Trade_Off_80.png",
+    "Trade_On_96.png", "Trade_Off_96.png",
+    "Trade_On_128.png", "Trade_Off_128.png",
+)
 
 # test 19 的入口断言按 flavour 不同（见文件末尾的 REGION_PATCHES 填充）
 
@@ -978,7 +1098,7 @@ REGION_PATCHES["mock_env.lua"] = [
     (
         "    YeseMarketServer.EconomyLoaded = true",
         "M.setBalance = function(value)",
-        '    YeseMarketServer.EconomyLoaded = true\n\n    -- ===== YeseMarket 版专有：Open(playerNum) + Window:setPage(id) + UIShell 导航钩子 =====\n    -- 这三件事与橙子版的差异见 docs/research/yese-integration-hooks.md：\n    --   * Open(playerNum) 只吃一个参数、不返回窗口（client/event_handlers.lua:299）\n    --   * 切页要自己 YeseMarket.Window:setPage(id)（client/ui/shell.lua:726；未进 NAVIGATION 的 id 默认放行）\n    --   * 导航由 shell.lua:32 的 local NAVIGATION 构建，第三方加不进去 ——\n    --     但壳把按钮与度量放在实例字段上，所以我们包 buildNavigation / layoutNavigationItems 插一行\n    YeseMarket.UIPrimitives = YeseMarket.UIPrimitives or {}\n    if type(YeseMarket.UIPrimitives.CreateButton) ~= "function" then\n        function YeseMarket.UIPrimitives.CreateButton(x, y, width, height, title, target, callback, variant)\n            local button = ISButton:new(x, y, width, height)\n            button.title, button.target = title, target\n            button.callback, button.variant = callback, variant\n            function button:click()\n                if type(self.callback) == "function" then return self.callback(self.target, self) end\n            end\n            return button\n        end\n    end\n\n    -- 重建一个干净的假壳（每个用例开头调一次，避免上一轮的包装残留）\n    function M.resetShell()\n        YeseMarket.Window = nil\n        local Shell = {}\n        function Shell:buildNavigation()\n            local viewport = { width = 220, height = 400, children = {} }\n            function viewport:addChild(child) self.children[#self.children + 1] = child end\n            function viewport:setScrollHeight(value) self.scrollHeight = value end\n            function viewport:setYScroll(value) self.yScroll = value end\n            function viewport:getYScroll() return 0 end\n            self.navigationViewport = viewport\n            self.navButtons = {}\n            self.navigationButtonHeight = 30\n            self.navigationGap = 5\n            self.navigationContentHeight = 0\n            return true\n        end\n        function Shell:layoutNavigationItems() self.layoutCalls = (self.layoutCalls or 0) + 1 end\n        function Shell:setPage(pageId)\n            record("UIShell.setPage", { pageId = tostring(pageId or "") })\n            self.activePageId = tostring(pageId or "")\n            return true\n        end\n        YeseMarket.UIShell = Shell\n        return Shell\n    end\n    M.resetShell()\n\n    function YeseMarket.Open(playerNum)\n        record("YeseMarket.Open", { number = tonumber(playerNum) or 0 })\n        local window = {}\n        function window:getIsVisible() return self.visible == true end\n        function window:setPage(pageId)\n            record("YeseMarket.Window.setPage", { pageId = tostring(pageId or "") })\n            self.activePageId = tostring(pageId or "")\n            M.state.opened[#M.state.opened + 1] = { number = tonumber(playerNum) or 0,\n                pageId = tostring(pageId or "") }\n            return true\n        end\n        function window:bringToTop() return self end\n        function window:clampToScreen() return self end\n        window.visible = true\n        YeseMarket.Window = window\n        return window\n    end\nend\n\n',
+        '    YeseMarketServer.EconomyLoaded = true\n\n    -- ===== YeseMarket 版专有：Open(playerNum) + Window:setPage(id) + UIShell 导航钩子 =====\n    -- 这三件事与橙子版的差异见 docs/research/yese-integration-hooks.md：\n    --   * Open(playerNum) 只吃一个参数、不返回窗口（client/event_handlers.lua:299）\n    --   * 切页要自己 YeseMarket.Window:setPage(id)（client/ui/shell.lua:726；未进 NAVIGATION 的 id 默认放行）\n    --   * 导航由 shell.lua:32 的 local NAVIGATION 构建，第三方加不进去 ——\n    --     但壳把按钮与度量放在实例字段上，所以我们包 buildNavigation / layoutNavigationItems 插一行\n    YeseMarket.UIPrimitives = YeseMarket.UIPrimitives or {}\n    if type(YeseMarket.UIPrimitives.CreateButton) ~= "function" then\n        function YeseMarket.UIPrimitives.CreateButton(x, y, width, height, title, target, callback, variant)\n            local button = ISButton:new(x, y, width, height)\n            button.title, button.target = title, target\n            button.callback, button.variant = callback, variant\n            function button:click()\n                if type(self.callback) == "function" then return self.callback(self.target, self) end\n            end\n            return button\n        end\n    end\n\n    -- 重建一个干净的假壳（每个用例开头调一次，避免上一轮的包装残留）\n    function M.resetShell()\n        YeseMarket.Window = nil\n        local Shell = {}\n        function Shell:buildNavigation()\n            local viewport = { width = 220, height = 400, children = {} }\n            function viewport:addChild(child) self.children[#self.children + 1] = child end\n            function viewport:setScrollHeight(value) self.scrollHeight = value end\n            function viewport:setYScroll(value) self.yScroll = value end\n            function viewport:getYScroll() return 0 end\n            self.navigationViewport = viewport\n            self.navButtons = {}\n            self.navigationButtonHeight = 30\n            self.navigationGap = 5\n            self.navigationContentHeight = 0\n            return true\n        end\n        function Shell:layoutNavigationItems() self.layoutCalls = (self.layoutCalls or 0) + 1 end\n        function Shell:setPage(pageId)\n            record("UIShell.setPage", { pageId = tostring(pageId or "") })\n            self.activePageId = tostring(pageId or "")\n            return true\n        end\n        YeseMarket.UIShell = Shell\n        return Shell\n    end\n    M.resetShell()\n\n    function YeseMarket.Open(playerNum)\n        record("YeseMarket.Open", { number = tonumber(playerNum) or 0 })\n        local window = {}\n        function window:getIsVisible() return self.visible == true end\n        function window:setPage(pageId)\n            record("YeseMarket.Window.setPage", { pageId = tostring(pageId or "") })\n            self.activePageId = tostring(pageId or "")\n            M.state.opened[#M.state.opened + 1] = { number = tonumber(playerNum) or 0,\n                pageId = tostring(pageId or "") }\n            return true\n        end\n        function window:bringToTop() return self end\n        function window:clampToScreen() return self end\n        function window:setVisible(value) self.visible = value == true return self end\n        function window:removeFromUIManager() self.removed = true return self end\n        -- [真实] UIShell:close()（client/ui/shell.lua:991-1029）：setVisible(false) +\n        -- removeFromUIManager + 把 YeseMarket.Window 置回 nil —— 侧边栏图标「再点一下关窗」\n        -- 走的就是这条路径；缺了它整块会静默失效（pcall 会把 nil 调用错误吞掉）。\n        function window:close()\n            self:setVisible(false)\n            self:removeFromUIManager()\n            YeseMarket.Window = nil\n            record("YeseMarket.Window.close", {})\n            return true\n        end\n        window.visible = true\n        YeseMarket.Window = window\n        return window\n    end\nend\n\n',
     ),
 ]
 
@@ -986,7 +1106,7 @@ REGION_PATCHES["test_recruit.lua"] = [
     (
         '    -- 重置成"橙子经济刚加载完"的样子，再重新装一次入口',
         "    local primitives = {}",
-        '    --[[\n        YeseMarket 版的入口策略是**导航栏插一行**（橙子版才是包首页工厂 `factories.index`），\n        所以这里换成对应断言：钩子把按钮塞进 `self.navButtons`，点它走 `self:setPage(我们的 id)`；\n        另外 `Entry.open()` 走"`Open(number)` → `Window:setPage(id)`"两步（YeseMarket 的 Open 只吃一个参数）。\n    ]]\n    registry.factories = {}\n    registry.order = {}\n    Config.Entry.installed = false\n    Config.Entry.navInstalled = false\n    M.resetShell()\n\n    local installed = Config.Entry.install()\n    M.assert_eq(installed, true, "Entry.install() returned true")\n    M.assert_eq(registry.Has("bin2NpcRecruit"), true, "UIPageRegistry.Has(\'bin2NpcRecruit\')")\n    local ids, idCount = {}, 0\n    for _, id in ipairs(registry.Ids()) do ids[id] = (ids[id] or 0) + 1 idCount = idCount + 1 end\n    M.assert_eq(ids.bin2NpcRecruit, 1, "the recruit page was registered exactly once")\n    M.assert_eq(idCount, 1, "only the recruit page was registered by Entry.install")\n    local ok, err = pcall(registry.Register, "bin2NpcRecruit", function() end)\n    M.assert_eq(ok, false, "registering the same page twice raises (idempotence relies on Has)")\n\n    -- 包了 YeseMarket.UIShell 的 buildNavigation / layoutNavigationItems\n    local shell = ui.UIShell\n    M.assert_truthy(type(shell) == "table", "YeseMarket.UIShell present")\n    M.assert_truthy(type(shell.buildNavigation) == "function", "buildNavigation is hooked")\n    local instance = setmetatable({}, { __index = shell })\n    instance:buildNavigation()\n    M.assert_truthy(type(instance.navButtons) == "table", "mock shell built its navButtons")\n    local navButton = instance.navButtons["bin2NpcRecruit"]\n    M.assert_truthy(navButton ~= nil, "the recruit page got its own navigation row")\n    M.assert_eq(navButton and navButton.pageId, "bin2NpcRecruit", "nav button carries the page id")\n    instance:layoutNavigationItems()\n    M.assert_truthy(navButton and tonumber(navButton.y) ~= nil and navButton.y >= 0,\n        "the injected nav row is positioned by layoutNavigationItems")\n\n    -- 幂等：再调一次 buildNavigation 不会插第二行\n    local rowsBefore = 0\n    for _, child in ipairs(instance.navigationViewport.children) do\n        if child.ymNavId == "bin2NpcRecruit" then rowsBefore = rowsBefore + 1 end\n    end\n    instance:buildNavigation()\n    local rowsAfter = 0\n    for _, child in ipairs(instance.navigationViewport.children) do\n        if child.ymNavId == "bin2NpcRecruit" then rowsAfter = rowsAfter + 1 end\n    end\n    M.assert_eq(rowsAfter, rowsBefore, "the nav row is not injected twice")\n\n    -- 点击导航行 -> shell 切到我们的页面\n    M.state.opened = {}\n    navButton:click()\n    local switched = M.calls_named("UIShell.setPage")\n    M.assert_truthy(#switched >= 1, "clicking the nav row calls shell:setPage")\n    M.assert_eq(switched[#switched] and switched[#switched].pageId, "bin2NpcRecruit",\n        "…with our page id")\n\n    -- Entry.open：窗口没开时先 Open(number) 再切页；已开则只切页\n    ui.Window = nil\n    M.state.opened = {}\n    local opensBefore = M.count_calls("YeseMarket.Open")\n    M.assert_eq(Config.Entry.open(0), true, "Entry.open() with no window open returns true")\n    M.assert_truthy(M.count_calls("YeseMarket.Window.setPage") >= 1, "Entry.open switched the window with Window:setPage")\n    M.assert_eq(M.count_calls("YeseMarket.Open"), opensBefore + 1, "…and it called Open(playerNum)")\n    local openCall = M.calls_named("YeseMarket.Open")\n    M.assert_eq(openCall[#openCall] and openCall[#openCall].number, 0, "Open got the player number")\n    M.assert_eq(Config.Entry.open(0), true, "Entry.open() on an already-open window returns true")\n    M.assert_eq(M.count_calls("YeseMarket.Open"), opensBefore + 1,\n        "…and it did NOT open a second window (only setPage)")\n\n',
+        '    --[[\n        YeseMarket 版的入口策略是**导航栏插一行**（橙子版才是包首页工厂 `factories.index`），\n        所以这里换成对应断言：钩子把按钮塞进 `self.navButtons`，点它走 `self:setPage(我们的 id)`；\n        另外 `Entry.open()` 走"`Open(number)` → `Window:setPage(id)`"两步（YeseMarket 的 Open 只吃一个参数）。\n    ]]\n    registry.factories = {}\n    registry.order = {}\n    Config.Entry.installed = false\n    Config.Entry.navInstalled = false\n    M.resetShell()\n\n    local installed = Config.Entry.install()\n    M.assert_eq(installed, true, "Entry.install() returned true")\n    M.assert_eq(registry.Has("bin2NpcRecruit"), true, "UIPageRegistry.Has(\'bin2NpcRecruit\')")\n    local ids, idCount = {}, 0\n    for _, id in ipairs(registry.Ids()) do ids[id] = (ids[id] or 0) + 1 idCount = idCount + 1 end\n    M.assert_eq(ids.bin2NpcRecruit, 1, "the recruit page was registered exactly once")\n    M.assert_eq(idCount, 1, "only the recruit page was registered by Entry.install")\n    local ok, err = pcall(registry.Register, "bin2NpcRecruit", function() end)\n    M.assert_eq(ok, false, "registering the same page twice raises (idempotence relies on Has)")\n\n    -- 包了 YeseMarket.UIShell 的 buildNavigation / layoutNavigationItems\n    local shell = ui.UIShell\n    M.assert_truthy(type(shell) == "table", "YeseMarket.UIShell present")\n    M.assert_truthy(type(shell.buildNavigation) == "function", "buildNavigation is hooked")\n    local instance = setmetatable({}, { __index = shell })\n    instance:buildNavigation()\n    M.assert_truthy(type(instance.navButtons) == "table", "mock shell built its navButtons")\n    local navButton = instance.navButtons["bin2NpcRecruit"]\n    M.assert_truthy(navButton ~= nil, "the recruit page got its own navigation row")\n    M.assert_eq(navButton and navButton.pageId, "bin2NpcRecruit", "nav button carries the page id")\n    instance:layoutNavigationItems()\n    M.assert_truthy(navButton and tonumber(navButton.y) ~= nil and navButton.y >= 0,\n        "the injected nav row is positioned by layoutNavigationItems")\n\n    -- 幂等：再调一次 buildNavigation 不会插第二行\n    local rowsBefore = 0\n    for _, child in ipairs(instance.navigationViewport.children) do\n        if child.ymNavId == "bin2NpcRecruit" then rowsBefore = rowsBefore + 1 end\n    end\n    instance:buildNavigation()\n    local rowsAfter = 0\n    for _, child in ipairs(instance.navigationViewport.children) do\n        if child.ymNavId == "bin2NpcRecruit" then rowsAfter = rowsAfter + 1 end\n    end\n    M.assert_eq(rowsAfter, rowsBefore, "the nav row is not injected twice")\n\n    -- ===== 侧边栏图标（原版左侧竖排图标栏最下面）：点一下开关幸存者交易站 =====\n    M.assert_truthy(Config.Sidebar.hooked == ISEquippedItem,\n        "the public sidebar hook is installed on ISEquippedItem")\n    local sidebarPanel = M.newSidebarPanel(0, 48)\n    local sidebarEntry = sidebarPanel.bin2NpcSidebar and sidebarPanel.bin2NpcSidebar.BIN2NPCTRADE or nil\n    local sidebarIcon = type(sidebarEntry) == "table" and sidebarEntry.button or nil\n    M.assert_truthy(sidebarIcon ~= nil, "the trading-station icon sits on the vanilla column")\n    M.assert_eq(sidebarIcon and sidebarIcon:getY(), sidebarPanel.mapBtn:getBottom() + 15,\n        "…15px below the last vanilla button")\n    M.assert_eq(M.lastTexturePath(), "media/ui/Sidebar/48/Trade_Off_48.png",\n        "…and it asks for the 48px Trade texture (run.js verified the file exists on disk)")\n    M.assert_truthy(sidebarIcon and sidebarIcon.image ~= nil,\n        "the texture resolved, so the icon is not an invisible button")\n\n    -- 交易站关着 -> 点一下 YeseMarket.Open(playerNum) 开窗，图标变 On\n    ui.Window = nil\n    M.state.opened = {}\n    local opensSoFar = M.count_calls("YeseMarket.Open")\n    sidebarIcon:click()\n    M.assert_eq(M.count_calls("YeseMarket.Open"), opensSoFar + 1, "the click opened the trading station")\n    local marketOpenCall = M.calls_named("YeseMarket.Open")\n    M.assert_eq(marketOpenCall[#marketOpenCall] and marketOpenCall[#marketOpenCall].number, 0,\n        "…with the player number of the panel")\n    M.assert_eq(Config.Entry.isMarketOpen(), true, "Entry.isMarketOpen() sees the window")\n    M.assert_eq(M.lastTexturePath(), "media/ui/Sidebar/48/Trade_On_48.png", "…and the icon switched to On")\n\n    -- 交易站开着 -> 再点一下关窗（UIShell:close 会把 YeseMarket.Window 置回 nil），图标变 Off\n    sidebarIcon:click()\n    M.assert_eq(M.count_calls("YeseMarket.Open"), opensSoFar + 1, "the second click did not call Open again")\n    M.assert_eq(M.count_calls("YeseMarket.Window.close"), 1, "…it called close() on the window instead of Open")\n    M.assert_eq(YeseMarket.Window, nil, "…and close() cleared the handle (UIShell:close)")\n    M.assert_eq(Config.Entry.isMarketOpen(), false, "Entry.isMarketOpen() is false again")\n    M.assert_eq(M.lastTexturePath(), "media/ui/Sidebar/48/Trade_Off_48.png", "icon back to Off")\n\n    -- Ctrl+Alt+N（Entry.open）仍然直达招募页：开窗 + setPage(我们的 id)\n    M.state.opened = {}\n    M.assert_eq(Config.Entry.open(0), true, "Entry.open() still opens the window")\n    M.assert_eq(YeseMarket.Window ~= nil and YeseMarket.Window.activePageId, "bin2NpcRecruit",\n        "…and switches to the recruit page (the hotkey keeps its own job)")\n\n    -- 点击导航行 -> shell 切到我们的页面\n    M.state.opened = {}\n    navButton:click()\n    local switched = M.calls_named("UIShell.setPage")\n    M.assert_truthy(#switched >= 1, "clicking the nav row calls shell:setPage")\n    M.assert_eq(switched[#switched] and switched[#switched].pageId, "bin2NpcRecruit",\n        "…with our page id")\n\n    -- Entry.open：窗口没开时先 Open(number) 再切页；已开则只切页\n    ui.Window = nil\n    M.state.opened = {}\n    local opensBefore = M.count_calls("YeseMarket.Open")\n    M.assert_eq(Config.Entry.open(0), true, "Entry.open() with no window open returns true")\n    M.assert_truthy(M.count_calls("YeseMarket.Window.setPage") >= 1, "Entry.open switched the window with Window:setPage")\n    M.assert_eq(M.count_calls("YeseMarket.Open"), opensBefore + 1, "…and it called Open(playerNum)")\n    local openCall = M.calls_named("YeseMarket.Open")\n    M.assert_eq(openCall[#openCall] and openCall[#openCall].number, 0, "Open got the player number")\n    M.assert_eq(Config.Entry.open(0), true, "Entry.open() on an already-open window returns true")\n    M.assert_eq(M.count_calls("YeseMarket.Open"), opensBefore + 1,\n        "…and it did NOT open a second window (only setPage)")\n\n',
     ),
 ]
 
@@ -1001,6 +1121,98 @@ REGION_PATCHES["test_recruit.lua"].append(
 
 
 # ==== Yese 变体：mock 必须忠实于 YeseMarket 的真实 UI 原语（见脚本注释）====
+# ==== Yese 变体的 run.js：侧边栏图标的静态检查（源口味没有这个入口，整套靠补丁加进去）====
+FILE_PATCHES.setdefault("run.js", []).extend([
+    (
+        "//   5. 执行 test_recruit.lua 的 45 条断言，用它的返回值当进程退出码。",
+        """//   5. 做一次**静态图标检查**：media/ui/Sidebar/<尺寸>/Trade_{On,Off}_<尺寸>.png 必须都在、
+//      尺寸与 RGBA 正确，并把清单注入 Lua（MOCK.setIconFiles）—— mock 的 getTexture
+//      照引擎语义「文件不在就返回 nil」，于是「贴图路径写错 / 漏生成一档」在离线测试里就会红；
+//   6. 执行 test_recruit.lua 的 45 条断言，用它的返回值当进程退出码。""",
+    ),
+    (
+        "const TRANSLATE_DIR = path.join(MEDIA_LUA_DIR, 'shared', 'Translate');",
+        """const TRANSLATE_DIR = path.join(MEDIA_LUA_DIR, 'shared', 'Translate');
+/** 本口味的原版侧边栏图标：<模组>/media/ui/Sidebar/<尺寸>/Trade_{On,Off}_<尺寸>.png（tools/make_icons.py）。 */
+const SIDEBAR_DIR = path.join(MOD_VERSION_DIR, 'media', 'ui', 'Sidebar');
+const SIDEBAR_TEXTURE = 'Trade';
+const SIDEBAR_SIZES = [48, 64, 80, 96, 128];""",
+    ),
+    (
+        "/** 把收集到的键注入 Lua：Config.__sourceKeys / __cnKeys / __enKeys */",
+        """// ------------------------------------------------------------------ 静态图标检查
+/**
+ * 读 PNG 头（8 字节签名 + IHDR：宽/高/位深/色彩类型）。
+ * 这就是 tools/make_icons.py --check 的等价检查：尺寸必须是 <尺寸> x <尺寸>*0.75、
+ * 必须是 RGBA（色型 6）—— 侧边栏图标要透明背景，否则会糊住原版面板。
+ */
+function readPngHeader(file) {
+    const buffer = fs.readFileSync(file);
+    if (buffer.length < 33) return null;
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    if (!buffer.subarray(0, 8).equals(signature)) return null;
+    if (buffer.toString('ascii', 12, 16) !== 'IHDR') return null;
+    return {
+        width: buffer.readUInt32BE(16),
+        height: buffer.readUInt32BE(20),
+        bitDepth: buffer[24],
+        colorType: buffer[25],
+    };
+}
+
+/** 5 档 x 2 态的侧边栏图标必须在磁盘上、且尺寸/色型正确。返回可注入 Lua 的清单。 */
+function checkSidebarIcons() {
+    const verified = {};
+    const problems = [];
+    for (const size of SIDEBAR_SIZES) {
+        const height = Math.round(size * 0.75);
+        for (const state of ['Off', 'On']) {
+            const rel = `media/ui/Sidebar/${size}/${SIDEBAR_TEXTURE}_${state}_${size}.png`;
+            const absolute = path.join(MOD_VERSION_DIR, rel);
+            if (!fs.existsSync(absolute)) {
+                problems.push(`missing ${rel}`);
+                continue;
+            }
+            const header = readPngHeader(absolute);
+            if (header === null) {
+                problems.push(`${rel}: not a PNG`);
+                continue;
+            }
+            if (header.width !== size || header.height !== height) {
+                problems.push(`${rel}: ${header.width}x${header.height}, want ${size}x${height}`);
+                continue;
+            }
+            if (header.colorType !== 6) {
+                problems.push(`${rel}: PNG color type ${header.colorType}, want 6 (RGBA)`);
+                continue;
+            }
+            verified[rel] = true;
+        }
+    }
+    if (problems.length > 0) {
+        die('sidebar icons are broken: ' + problems.join(' | '));
+    }
+    return verified;
+}
+
+/** 把收集到的键注入 Lua：Config.__sourceKeys / __cnKeys / __enKeys */""",
+    ),
+    (
+        "    const all = new Set([...scan.callKeys, ...scan.mappingKeys]);",
+        """    const all = new Set([...scan.callKeys, ...scan.mappingKeys]);
+    // 侧边栏图标：这份清单同时喂给 mock 的 getTexture（引擎语义：文件不在就 nil）
+    const iconFiles = checkSidebarIcons();""",
+    ),
+    (
+        "Bin2NPCExtensionYese.__moduleFileCount = ${MOD_FILES.length}",
+        """Bin2NPCExtensionYese.__moduleFileCount = ${MOD_FILES.length}
+-- 磁盘上真实存在的侧边栏图标（run.js 校验过尺寸与 RGBA）；mock 的 getTexture 用它当「文件系统」，
+-- 于是「贴图路径写错 / 漏生成一档」在离线测试里就暴露成「按钮没有贴图」。
+MOCK.setIconFiles(${luaArray(Object.keys(iconFiles))}, ${luaArray(SIDEBAR_SIZES)})""",
+    ),
+])
+
+
 FILE_PATCHES.setdefault("test_recruit.lua", []).extend([
     (
         '    function primitives.GetDensityMetrics(font)\n        return { lineHeight = 21, buttonHeight = 34, fontHeight = 16 }\n    end\n',

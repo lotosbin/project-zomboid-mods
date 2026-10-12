@@ -13,7 +13,7 @@
 //      "Bin2NPCExtensionCore/Config" -> <模组>/media/lua/<层>/Bin2NPCExtensionCore/Config.lua；
 //      同一文件只执行一次（引擎按绝对路径缓存，这里用 package.loaded 等价模拟），
 //      并用 package.searchers 计数器证明"没有任何文件需要被 require 二次加载"；
-//   3. 按引擎真实加载顺序执行被测的 19 个 Lua 文件（公共层 14 + 本口味 5）；
+//   3. 按引擎真实加载顺序执行被测的 20 个 Lua 文件（公共层 15 + 本口味 5）；
 //   4. 做一次**静态翻译检查**（不进 Lua VM）：扫源码里的 T("...") / Text.get("...")
 //      字面量（含 `T(cond and "A" or "B")` 这种条件键），断言 CN/EN 的 IG_UI.json
 //      里都有对应键且键集合一致；
@@ -84,7 +84,7 @@ const CLIENT = 'media/lua/client';
 // 加载时只定义工厂、不产生副作用，所以放 shared 是安全的（多人客户端也会加载，但什么也不做）。
 const CORE_MODULES = [
     'Namespace', 'Config', 'Text', 'Contracts', 'Store', 'Economy', 'Cash', 'Alife', 'Jimmy',
-    'Service', 'Maintain', 'Net', 'ServerBootstrap', 'ClientBootstrap',
+    'Service', 'Maintain', 'Net', 'Sidebar', 'ServerBootstrap', 'ClientBootstrap',
 ];
 
 // 本口味自己的 5 个 Lua 文件。加载顺序 = 引擎真实的层顺序：
@@ -121,7 +121,7 @@ const MOD_FILES = [
     })),
 ];
 
-// 去重后的模块名（本口味里 client/Bootstrap 与 server/Bootstrap 同名，共 18 个名字 19 个文件）
+// 去重后的模块名（本口味里 client/Bootstrap 与 server/Bootstrap 同名，共 19 个名字 20 个文件）
 const REQUIRE_NAMES = [...new Set(MOD_FILES.map((file) => file.module))];
 
 // 语言包

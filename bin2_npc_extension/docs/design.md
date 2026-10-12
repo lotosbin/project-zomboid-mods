@@ -5,7 +5,7 @@
 > 依赖：公共层零依赖；三个口味都要 `ProjectALifeNPCs`（需要）与 `ProjectALifeJimmy`（可选）；
 > 橙子口味另需 `OrangeCommunityEconomy`，YeseMarket 口味另需 `YeseMarket`，
 > **原版钞票口味（§13）不需要任何经济模组**
-> 版本：0.4.0（2026-10-06）｜ 工坊 id：3813914438（已发布，public）
+> 版本：0.5.0（2026-10-12）｜ 工坊 id：3813914438（已发布，public）
 > 状态：橙子口味已进游戏跑通基础流程；**YeseMarket 与 原版钞票 口味尚未进游戏验证**；
 > 完整清单（`docs/test-plan.md`）未跑完
 
@@ -486,8 +486,8 @@ follow   → Alife.orderFollow(player, uid, quiet)
 
 | 进公共层（`Bin2NPCExtensionBase/media/lua/shared/Bin2NPCExtensionCore/`） | 留口味 |
 | --- | --- |
-| `Config` `Text` `Contracts` `Store` `Economy` `Alife` `Jimmy` `Service` `Maintain` `Net` `ServerBootstrap` `ClientBootstrap` | `Profile`（身份 spec） |
-| 手写的 `Namespace`（`Core.API` / `namespace(spec)` / `bind(NS)`） | `ui/Entry` + `ui/Page`（UI 容器：两家原语不同） |
+| `Config` `Text` `Contracts` `Store` `Economy` `Alife` `Jimmy` `Service` `Maintain` `Net` `Sidebar` `ServerBootstrap` `ClientBootstrap` | `Profile`（身份 spec） |
+| 手写的 `Namespace`（`Core.API` / `namespace(spec)` / `bind(NS)`）与 `Cash` / `Sidebar`（不由 `extract_base.py` 产出） | `ui/Entry`（怎么挂进对方界面）+ `ui/Page`（用对方原语画的列表）+ Vanilla 的 `ui/Icon`（一张 spec）/ `ui/Panel`（原版 ISUI 窗口） |
 | —— | `mod.info` / `Translate/*.json` / `sandbox-options.txt` / `poster.png` |
 
 判断标准只有一条：**这段代码里有没有出现"口味身份"**。身份 = mod id、ModData 表名、
@@ -504,12 +504,12 @@ follow   → Alife.orderFollow(player, uid, quiet)
 local Core = require "Bin2NPCExtensionCore/Namespace"
 local NS = Core.namespace({ module = "Bin2NPCExtension", coreApi = 1, tag = "…",
     economyGlobal = "OrangeTradingMod", … })
-Core.bind(NS)            -- 按依赖顺序把 12 个模块实例化成 NS 上的字段
+Core.bind(NS)            -- 按依赖顺序把 13 个模块实例化成 NS 上的字段
 Bin2NPCExtension = NS
 ```
 
 * `Core.bind` 的顺序（Config → Text → Contracts → Store → Economy → Alife → Jimmy →
-  Service → Maintain → Net → ServerBootstrap → ClientBootstrap）是**有意义的**：
+  Service → Maintain → Net → Sidebar → ServerBootstrap → ClientBootstrap）是**有意义的**：
   `Jimmy` 在实例化时就 `local Alife = Config.Alife` 抓住了兄弟模块的引用。
   顺序只有一处真相（`Namespace.lua`），口味不用重复声明。
 * 事件注册（`Events.OnClientCommand` / `OnServerCommand` / `OnTick` / `OnKeyPressed`）
@@ -608,7 +608,7 @@ Bin2NPCExtension = NS
 
 ```lua
 -- Bin2NPCExtensionCore/Namespace.lua
-Core.API = 2
+Core.API = 3
 Core.MONEY_PROVIDERS = { upstream = "Economy", cash = "Cash" }
 -- Core.bind 里：NS.Economy = require("Bin2NPCExtensionCore/" .. Core.MONEY_PROVIDERS[NS.MONEY_KIND])(NS)
 ```
@@ -635,6 +635,10 @@ Core.MONEY_PROVIDERS = { upstream = "Economy", cash = "Cash" }
 * **认不出的 `money` 直接拒绝建命名空间**，而不是 `pcall` 兜底成 `upstream`：
   `Core.namespace` 遇到 `Core.MONEY_PROVIDERS[kind] == nil` 会打
   `unknown money provider %q (this public layer supports: …)` 并返回 nil。
+* **`Core.API` 从 2 升到 3（v0.5.0）**：加的是"原版侧边栏入口"这个模块（`NS.Sidebar`，见 §13.4）。
+  同样是加字段，但新版口味在**文件加载期**就会调 `Config.Sidebar.install(...)` ——
+  旧公共层上没有这个字段，口味自己的 client 层会当场报错，然后被 `ClientBootstrap` 的 `pcall`
+  吃掉并**放弃安装整个入口**（连原有入口一起没了）。所以照旧 +1，让"只更新了一半"变回一条明确的日志。
 
 ### 13.3 原版钞票的三条引擎事实
 
@@ -718,9 +722,25 @@ sendAddItemsToContainer(container, addedList)          -- 发了钱之后（退�
 `ISShovelGround.lua`。非服务器进程里这两个调用是**精确 no-op**
 （`INetworkPacket.send` 首指令就判 `GameServer.server`），所以单机/主机下照调不误。
 
-### 13.4 入口：挂进原版左侧竖排图标栏（`ISEquippedItem`）
+### 13.4 入口（一）：挂进原版左侧竖排图标栏 —— 实现在公共层
 
-`ISEquippedItem` 就是屏幕上那一列「心/背包/建造/家具/地图」。挂接方式（证据：`vanilla-sidebar-entry.md` §2.1）：
+`ISEquippedItem` 就是屏幕上那一列「心/背包/建造/家具/地图」。**挂接代码住在公共层**
+（`Bin2NPCExtensionCore/Sidebar.lua`，手写文件），因为两个口味都要它：
+
+| 口味 | 交给公共层的 `spec` | 点一下做什么 |
+| --- | --- | --- |
+| `Bin2NPCExtensionVanilla`（§13） | `texture = "NPC"`、`tooltip = T("IconTooltip")` | 开关**招募窗口**（这一格就是它的全部入口） |
+| `Bin2NPCExtensionYese`（§11 + §13.4.1） | `texture = "Trade"`、同上 | 开关 **YeseMarket 的幸存者交易站窗口** |
+
+```lua
+-- 口味的 ui 层只交一张 spec（公共层不认识任何翻译前缀，tooltip 给的是查好的文案）
+local SPEC = { id = "BIN2NPCRECRUIT", texture = "NPC", tooltip = T("IconTooltip"),
+    isOpen = function() … end, toggle = function(playerNumber) … end }
+function Icon.install() return Config.Sidebar.install(SPEC) end
+```
+
+`Sidebar.install(spec)` 返回 `true` = 入口已在（或这个面板不需要装），`false` = 原版侧边栏还没就绪
+（调用方重试）。**引擎侧的每一条约束都写在那个文件的注释里**，摘要（证据：`vanilla-sidebar-entry.md` §2.1）：
 
 * **后置 hook `ISEquippedItem:initialise`**：跑完原版 `initialise` → `attach(self)` 追加自己的
   `ISButton` → 再调一次 `self:shrinkWrap()`。
@@ -740,16 +760,47 @@ sendAddItemsToContainer(container, addedList)          -- 发了钱之后（退�
   的分支，复刻容易错）。
 * **改"侧边栏尺寸"时原版会整体重建面板**：`prerender` 第一行 `checkSidebarSizeOption()`
   发现选项变了就 `setVisible(false)` + `removeFromUIManager()` + `launchEquippedItem()` 换一个新实例
-  （`:1059-1068`）。所以**按钮引用只能挂在面板自己身上**（`panel.bin2NpcIcon`），挂模块级全局会指向
-  已经死掉的那个面板。副作用是正面的：面板重建 → `initialise` 重跑 → 我们的按钮自动以新尺寸重生。
-* 两态贴图跟着窗口开关走（开着用 `On`）：hook `prerender` 里 `refreshIcon(self)`，同时在
-  `panel.bin2NpcIcon == nil` 时补一次 `attach`（重载 Lua / 重进世界时原版面板可能已经建好了）。
-* 幂等/防 Reset Lua 的判据是**类表的身份**（`Icon.hooked ~= class`），与 §12 里 `Events` 表身份的写法同源。
-* `Icon.install()` 在 `ISEquippedItem` 缺失或被别的模组换成非函数时**如实返回 false**，
+  （`:1059-1068`）。所以**按钮引用只能挂在面板自己身上**，挂模块级全局会指向已经死掉的那个面板。
+  副作用是正面的：面板重建 → `initialise` 重跑 → 我们的按钮自动以新尺寸重生。
+* **面板上的存放方式是"一个通用字段 + 按 `spec.id` 分一层"**：`panel.bin2NpcSidebar[spec.id].button`
+  （按钮上 `bin2SidebarSize` 记着量到的档）。为什么不是一个口味一个字段名：三个口味可以同时启用，
+  其中两个都会往同一个面板追加图标，用"一个面板一个字段"时第二个口味会看见字段非空而以为自己装过了。
+* 两态贴图跟着窗口开关走（开着用 `On`）：hook `prerender` 里刷新一次，同时在
+  该 `spec.id` 还没有按钮时补一次 `attach`（重载 Lua / 重进世界时原版面板可能已经建好了）。
+* 点击回调的签名是 `onclick(target, button)` —— **第一个参数是注册时的 target（面板）**，
+  第二个才是按钮（原版把它叫 button 是因为它是以面板为 self 的方法）。所以 `attach` 里存了
+  `button.internal = spec.id`，收到不属于自己的 `internal` 就返回，并且 `spec.toggle(playerNumber)`
+  拿到的玩家号从 `panel.chr:getPlayerNum()` 取。
+* 幂等/防 Reset Lua 的判据是**类表的身份**（`Config.Sidebar.hooked ~= class`），与 §12 里
+  `Events` 表身份的写法同源；每个 `NS` 只认**第一张** spec（hook 已经闭包住了它）。
+* `Sidebar.install()` 在 `ISEquippedItem` 缺失或被别的模组换成非函数时**如实返回 false**，
   由公共层的 `ClientBootstrap` 继续重试并在试满 `Config.UI_RETRY_MAX` 次后打印口味自己的
   `spec.uiHint`（公共层不猜入口为什么装不上 —— 三个口味的入口形态完全不同）。
-* 热键与图标走同一条路：`Icon.open()` → `Config.RecruitPanel.toggle(player)`；**Ctrl+Alt+N 永远可用**，
+* 热键与图标是两条路：Ctrl+Alt+N → `Config.Entry.open(playerNumber)`；**热键永远可用**，
   即使侧边栏图标没装上（翻译文案里承诺了它）。
+
+### 13.4.1 第二个消费者：YeseMarket 味口的「幸存者交易站」图标
+
+YeseMarket 版原本只有导航栏插一行（§11.2）。v0.5.0 给它加了第二个入口，**做法与动机**：
+
+* **为什么这一格是"交易站"而不是"招募页"**：YeseMarket 全库**没有任何按键绑定** ——
+  它自己的入口只有右击菜单里的「打开幸存者交易站」，而这是玩家最常用的那一屏，却没有快捷入口。
+  这一列图标的语义本来就是"打开某个窗口"（心 → 健康、背包、建造、地图），所以点它开关
+  **交易站窗口**（标题 `IGUI_YeseMarket_Title` = 幸存者交易站）；我们的招募页在交易站的左侧导航里
+  一行就能点到。**Ctrl+Alt+N 仍然直达招募页**，热键与图标各司其职。
+* **开关的实现**（`ui/Entry.lua`，变体里的手写文件）：
+  * 开着吗：`YeseMarket.Window` 是它唯一的窗口句柄，`getIsVisible() == true` 即开着；
+  * 关：`UIShell:close()`（`client/ui/shell.lua:991-1029`）会 `setVisible(false)` +
+    `removeFromUIManager()` + 把 `YeseMarket.Window` 置回 `nil`；
+  * 开：`YeseMarket.Open(playerNumber)`（`client/event_handlers.lua:299`，只吃一个参数、不返回窗口），
+    窗口句柄只能从 `ui.Window` 上取。
+* **`Entry.install()` 现在要三件事都就绪**（注册页面 + 插导航行 + 装侧边栏图标）才算成功，
+  否则返回 false 让公共层继续重试；侧边栏那一条失败会打一行 WARN，而热键照常可用。
+* 贴图是 `media/ui/Sidebar/<档>/Trade_{On,Off}_<档>.png`（10 张，`tools/make_icons.py` 生成：
+  遮阳篷 + 两根柱子 + 柜台 + 一枚金币；Off 偏灰、On 更亮）。这一套**不在生成器的机械产出里**
+  （源口味没有侧边栏入口，替换产不出它们），所以登记在 `fork_variant.py` 的 `GENERATED_ELSEWHERE`。
+* 变体套件的 `run.js` 会扫这些图（存在性 + 尺寸 + RGBA）并把清单交给 mock 的 `getTexture`，
+  于是"贴图路径写错 / 漏生成一档"在离线测试里就暴露成"按钮没有贴图"。
 
 ### 13.5 贴图与版本目录：`42.21/media` 里的资产引擎找得到
 
@@ -777,8 +828,11 @@ ALL PATHS RESOLVED
 
 ⇒ **放在版本目录里的贴图能被找到**（10 个路径全部由 `media.version` 解析）。
 尺寸由 `tools/make_icons.py` 生成并自检（`--check`：48x36 / 64x48 / 80x60 / 96x72 / 128x96，RGBA）。
+同一个脚本现在管**两个口味的两套图标**（`--only NPC` / `--only Trade`，共 2 x 5 档 x 2 态 = 20 张）——
+YeseMarket 那套见 §13.4.1。
 同一档的两态与原版图标摆在一起的对照图：`docs/assets/sidebar-icons.png`
-（每行 = 48 / 96 / 128 三档，左边两个是 Off/On，最右边是原版的背包图标）。
+（每行 = 48 / 96 / 128 三档，左边两个是 Off/On，最右边是原版的背包图标）；
+YeseMarket 的交易站图标对照图：`docs/assets/yese-sidebar-icons.png`。
 
 > **未证实**：这是"引擎的 media 目录解析"这一层的证据，**不等于**实机 `getTexture` 一定拿到图
 > （纹理走的是 texture pack 那条链，见 `vanilla-sidebar-entry.md` §3.5）。验证方法：进游戏后看
@@ -850,7 +904,9 @@ defaults = { SignPrice = 50, SpawnPrice = 200, DailyWage = 5 },
 | `42.21/media/ui/...` 实机加载成功 | 引擎目录解析已证，`getTexture` 未证 | 看 `console.txt` 缺图告警 / Texture Viewer（§13.5） |
 | 128 档侧边栏下图标是否超出屏幕底部 | 源码手算：原版面板高 ≈ `8W+135`，128 档 ≈1159，追加按钮后 ≈1270（1080p 越界） | 游戏内把侧边栏尺寸切到 128，打印 `getPlayerData(0).equipped:getHeight()`（`vanilla-sidebar-entry.md` §2.1） |
 | 分屏 player 1 真的看不到按钮列 | 源码级结论（按钮列只给 player 0 建） | 2 人分屏，看 2P 屏幕左侧是否只有两只手 |
-| 离线测试套件（`tools/test-vanilla`） | 目录已落地但**本文写作时尚未跑绿**：`ui/Panel.lua` 加载时缺 mock 全局 `ISCollapsableWindowJoypad` | 跑 `tools/test-vanilla/run_lua_test.sh --quick`，补齐 mock 后由该套件自己给出数字 |
+| YeseMarket 交易站图标的**开关行为** | **完全未进游戏验证**（离线断言只覆盖到 mock 的 `Open` / `UIShell:close` 形状） | 进游戏点一下那个图标：交易站窗口应当开/关，图标在 On/Off 之间切换，`console.txt` 里没有缺图告警（§13.4.1） |
+| 原版钞票口味的侧边栏入口改走公共层后是否依旧 | 离线套件 50 条全绿（`tools/test-vanilla`），实机未复测 | 进游戏看图标还在、点一下还能开关招募窗口 |
+| 离线测试套件 | ✅ 三套都跑绿：`tools/test`（45）、`tools/test-yese`（45）、`tools/test-vanilla`（50） | `./tools/<suite>/run_lua_test.sh --quick` |
 
 ### 13.9 沉淀的判断
 

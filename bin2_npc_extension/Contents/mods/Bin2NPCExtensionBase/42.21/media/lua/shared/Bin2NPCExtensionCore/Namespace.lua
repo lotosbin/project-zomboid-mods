@@ -49,7 +49,12 @@ local Core = Bin2NPCExtensionCore
 --     这一版是**加字段**，老口味不加也能跑；但"只更新了一半的工坊物品"必须被拦下来
 --     （新口味要的 Cash.lua 在旧公共层里不存在 → 会静默变成"没有经济模组"，正是最坏的降级），
 --     所以仍然按接口变更处理：+1。
-Core.API = 2
+-- 3 = 2 + 原版左侧竖排图标栏的入口模块（NS.Sidebar，Sidebar.lua）。
+--     同样是"加字段"，但新版口味会**在文件加载期**就去调 `Config.Sidebar.install(...)`：
+--     旧公共层上没有这个字段 ⇒ 口味自己的 client 层会当场报错，随后被 ClientBootstrap 的
+--     pcall 吃掉并**放弃安装整个入口**（那是最坏的静默降级：连原来的入口也没了）。
+--     所以照旧 +1，让"只更新了一半"变成一条明确的 coreApi 日志。
+Core.API = 3
 
 -- 钱的两个实现，名字 -> 公共层文件名（Core.bind 按 NS.MONEY_KIND 取）。
 -- 新增一种收钱方式就在这里加一行，并在下面 spec 文档里写清它的语义。
@@ -171,7 +176,7 @@ function Core.moneyProviderNames()
 end
 
 --[[
-    按依赖顺序把公共层的 12 个模块实例化到这个 NS 上。
+    按依赖顺序把公共层的 13 个模块实例化到这个 NS 上。
 
     顺序是有意义的：Jimmy 在实例化时就 `local Alife = Config.Alife` 抓住兄弟模块的引用，
     所以 Alife 必须先于 Jimmy、Store 必须先于 Service，以此类推。顺序写在这里（而不是散在
@@ -193,6 +198,8 @@ function Core.bind(NS)
     NS.Service = require("Bin2NPCExtensionCore/Service")(NS)
     NS.Maintain = require("Bin2NPCExtensionCore/Maintain")(NS)
     NS.Net = require("Bin2NPCExtensionCore/Net")(NS)
+    -- 原版左侧竖排图标栏的入口（手写模块；纯原版口味与挂在经济模组里的口味都用得上）
+    NS.Sidebar = require("Bin2NPCExtensionCore/Sidebar")(NS)
     NS.ServerBootstrap = require("Bin2NPCExtensionCore/ServerBootstrap")(NS)
     NS.ClientBootstrap = require("Bin2NPCExtensionCore/ClientBootstrap")(NS)
     return NS

@@ -3284,3 +3284,103 @@ CN 翻译键是**裸配方 id**（原版 `Translate/CN/Recipes.json` 同样是�
 读成"有产出",结论正好反掉。规矩:**物品 ID 精确匹配**(边界断言 `ID(?=[\s,;\]\n]|$)`),
 不用 `in`/子串。`scan_recipe_gaps.py` 按 ID 建索引,本身不受影响;写进
 `docs/craft-recipe-study.md` 14.9 节与 `tools/recipe_gap/README.md` 的坑列表。
+
+
+## 2026-10-12 · `bin2_npc_extension` v0.5.0：YeseMarket 版的原版侧边栏多一个「幸存者交易站」快捷入口
+
+**需求**：`Bin2NPCExtensionYese` 要在**游戏原版左侧竖排侧边栏**（心/背包/建造那一列，`ISEquippedItem`）
+加一个 YeseMarket 交易站的快捷入口。
+
+### 先证明"这个入口确实不存在"，再动手
+
+把 YeseMarket 全库过了一遍：**没有任何按键绑定**（`getKeyBindings` 之类一处都没有），
+打开交易站唯一的原生路径是**右击菜单**里那一项。也就是说交易站本身没有快捷入口 ——
+这个需求不是"再做一个已有入口"，而是补一个真的缺口。（我们自己的 `Ctrl+Alt+N` 直达的是**招募页**，
+不是交易站，两件事。）
+
+### 决策：不复制那段挂接，把它抽到公共层（`Core.API` 2 → 3）
+
+Vanilla 口味在 v0.4.0 已经做过"往原版图标栏追加图标"这件事。第二个口味再抄一份会立刻出现两处身份：
+公共层零身份的守卫（`tools/check_base.py`）要求公共层里不出现任何口味名，而图标挂接又天然要读各口味的
+`Config`（贴图名、tooltip、点一下干什么）。所以把它变成公共层的模块 `Bin2NPCExtensionCore/Sidebar.lua`，
+口味只交一份 spec。
+
+**为什么必须抬 API 号**：新版口味在**文件加载期**就会调 `Config.Sidebar.install(...)`。
+老公共层没有 `Sidebar` 这个字段，那一刻就是 `attempt to index a nil value` —— 而这个错误会被
+`ClientBootstrap` 的 `pcall` 吞掉，玩家看到的是**整个入口静默消失**，日志里也没有一行 ERROR。
+`Core.API = 3` 让"只更新了一半"变成启动时一句明确的 `public layer mismatch`。
+
+契约（写进 `docs/design.md` §13.4）：`Sidebar.install(spec)` 返回 `true` = 装好或不需要，
+`false` = 原版侧边栏还没就绪、**调用方自己重试**；`spec = { id(必填、internal、同一面板内唯一),
+texture(必填), toggle(必填 function(playerNumber)), isOpen?, tooltip?(**已翻译好的文案**), log? }`；
+按钮引用挂在面板自己身上（`panel.bin2NpcSidebar[spec.id].button`），因为原版改侧边栏尺寸会
+**整体重建**面板，挂到模块上就会变成第二个图标；幂等判据是"这个面板类已经被 hook 过"；
+每个命名空间只认第一张 spec；只给 player 0 装。
+
+**一个细节值得单独记**：`tooltip` 收的是**已经翻译好的文本**，不是翻译键。理由有两条 ——
+公共层不认识任何翻译前缀（认识就等于认识口味身份），以及 `tools/test/run.js` 的翻译键扫描器
+只认源文件里的 `T("IconTooltip")` 字面量；如果公共层自己去查键，Vanilla 套件那条
+"83 条字面量键"的断言会掉到 82，**测试会替我们把这条设计约束钉住**。
+
+### 每个口味各交什么
+
+* Yese：`id="BIN2NPCTRADE"`、`texture="Trade"`、`tooltip=T("IconTooltip")`、
+  `isOpen=Entry.isMarketOpen`、`toggle=Entry.toggleMarket`（`YeseMarket.Open(playerNum)` 只吃一个参数、
+  不返回窗口，句柄只认 `YeseMarket.Window`，`UIShell:close()` 会把它置 nil —— 所以 `isOpen` 必须现算）。
+  `Entry.install()` 改成返回 `marketReady and sidebarReady`：侧边栏没就绪就返回 false 让公共层重试，
+  只 WARN 一次；**热键路径 `Entry.open` 完全独立**，上游界面坏了它也照常可用。
+* Vanilla：行为不变，`Icon.lua` 从"自己 hook"瘦成"一份 spec + 委托 + `Icon.open()`"。
+* 图标：`tools/make_icons.py` 参数化成两套（`NPC` / `Trade`），新增 10 张 `Trade_{On,Off}_<W>.png`；
+  原先那 10 张 `NPC_*` 重新生成后 **byte-identical**（`git status` 干净）。
+
+### 测试套件跟着升级（这是本轮最花时间的部分）
+
+公共层的模块要有自己的用例，但用例**不能认识任何口味**。做法是新增 5 条（41–45）spec 无关的用例：
+用 `activeSpec()` / `iconOf(panel, id)` / `countIcons(panel)` / `expectedTexture()` 这几个探针，
+并且**就地把 `spec.toggle` / `spec.isOpen` 换成自己的函数**来观察公共层有没有老实调用它们
+（而不是去猜某个口味的实现）。同时把源套件的 mock 升级成 Vanilla 那份忠实版：
+真的 `ISEquippedItem` 类表、`ISButton`、`panel:addToUIManager()`、`getPlayerData`、改尺寸会重建面板。
+
+**踩到的坑**：那份 mock 的 UI 底座原本把方法挂在**实例**上，于是 hook 到类表上的包装方法永远被实例方法遮蔽，
+"面板重建后会重新 attach"这条断言**永远绿**——假绿。改成方法挂**类表**（`ISPanel.initialise(self)`
+这种调用才是原版真实的形状）之后才真的能失败。
+
+### 验证（本轮实测，全部本机跑过）
+
+* `tools/test/run_lua_test.sh --quick` → `45/45 passed, ALL PASS`（原 40 条 + 新 5 条）
+* `tools/test-yese/run_lua_test.sh --quick` → `45/45 passed, ALL PASS`（生成物）
+* `tools/test-vanilla/run_lua_test.sh --quick` → `50/50 passed, 0 failed, ALL PASS`
+* `python3 tools/fork_variant.py --check` → `变体与生成器一致（mod 11 文件 / test 5 文件）`
+* `python3 tools/check_base.py` → `公共层零身份 + 3 个口味互不撞车：OK`（`Core.API = 3`，`money=cash,upstream`）
+* `python3 tools/extract_base.py --from-git 33f24e3` → `公共层 12 个文件与机械搬移结果一致`（改动 379 行；
+  手写的 `Namespace` / `Cash` / `Sidebar` 不在那 12 个里）
+* `tools/make_icons.py --check` → `图标齐全且尺寸正确（2 套 x 5 档 x 2 态 = 20 张）`
+* `node tools/lua_syntax_check.mjs <四个模组> tools/test tools/test-yese tools/test-vanilla` → `files=36 failed=0`
+* `tools/modinfo_probe/run.sh`（用游戏自带 `projectzomboid.jar` 解析）→ 两段 `ALL PATHS RESOLVED`，
+  Vanilla 的 `NPC_*` 与 Yese 的 `Trade_*` 共 **20 张**图全部由 `media.version`（`<mod>/42.21/media`）解析
+
+### 顺手修的：工坊简介超了 Steam 上限
+
+加完 v0.5.0 的说明后，`workshop.txt` 的 `submitDescription` 变成 **8608 字节 > 8000**（Steam 上限）。
+仓库级 `bin2_workshop_upload_fix/tools/pz_workshop_probe/check_all.sh` 会报这一条 —— 它是拿游戏自己的
+`SteamWorkshopItem` 解析出来的数字，不是我们自己数的。按要求删掉名词解释性的重复与可推断细节
+（版本历史细节本来就在 `changelog.txt` 里），回到 **7893 字节 / 提交 7918 字节**。
+教训：工坊简介是**有硬上限的对外文案**，每次加段落都要让探针过一遍，别等上传时才发现。
+
+### 未验证（文档与工坊描述里都如实写了，没有美化）
+
+* 交易站开关的实际观感（窗口开合、两态图标切换）**没进过游戏**，代码只有离线 mock 覆盖。
+* 实机 `getTexture` 是否真拿到那 20 张图 —— 探针证明的只是"路径能被 `media.version` 解析"。
+* 侧边栏尺寸调到 128 档时，图标会不会超出屏幕底部（手算是 `8W+135`，没实测）。
+* 原版图标栏**没有手柄导航**，所以这个新入口只能用鼠标点（或键盘 `Ctrl+Alt+N` 走招募页）。
+
+**扫描器静默少算(2026-10-13 修)**:运营复核小红书「制盐」笔记时,按配方名手数出"7 条配方消耗盐",
+而 `scan_recipe_gaps.py` 报 6 条 —— **是脚本错了**。两个解析 bug:① `ITEMREF_RE` 写的是 `item\s+(\d+)`,
+原版有 3 行数量写成小数(`item 1.0` / `2.0` / `5.0`,`recipes_jarring.txt:49-50` 的 `MakeJar` 就在其中),
+整行被跳过;② `BRACKET_RE` 取"第一个方括号",而 `tags[...]`/`flags[...]`/`mappers[...]` 也是方括号 ——
+`item 1 tags[base:glass] flags[ItemCount]` 解析出假物品 `ItemCount`,更糟的是
+`item 1 Base.HandScytheBlade flags[IsBlunt]` 解析出 `IsBlunt` 而**漏掉真物品**(假阴性)。
+修后:消耗 1909→1800、工具 1218→1101、产出 1614→1622、真缺口 389→379。
+**已派生的用户可见数字(螺母螺栓 33 / 圆锯片 11 / 螺丝 10 / 胶水 9 / 手锯条 3)复查后不变**,
+因为那 5 个物品恰好都没踩到这两种写法。教训:读半结构化文本的正则宽松一点就只少算、不报错,
+所以每个数字都要有一条独立于脚本的交叉验证;写进 `docs/craft-recipe-study.md` 14.10 与工具 README。

@@ -53,11 +53,15 @@ cd "$JAVA_DIR"
 # 原版侧边栏图标的 5 档 x 2 态：引擎必须能从 **42.21/media** 里找到它们
 # （TextureProbe 会打印 ChooseGameInfo$Mod 的 media.version 目录，再用 File 确认存在；
 #  tools/make_icons.py 生成这些图）
-TEXTURES=()
-for size in 48 64 80 96 128; do
-  for state in Off On; do
-    TEXTURES+=("ui/Sidebar/$size/NPC_${state}_$size.png")
+for flavour in "Bin2NPCExtensionVanilla NPC" "Bin2NPCExtensionYese Trade"; do
+  set -- $flavour
+  MOD="$1"; TEXTURE="$2"
+  TEXTURES=()
+  for size in 48 64 80 96 128; do
+    for state in Off On; do
+      TEXTURES+=("ui/Sidebar/$size/${TEXTURE}_${state}_$size.png")
+    done
   done
+  "$JAVA" -Djava.awt.headless=true -cp "$OUT:$JAVA_DIR/projectzomboid.jar" \
+          TextureProbe "$MOD" "${TEXTURES[@]}"
 done
-"$JAVA" -Djava.awt.headless=true -cp "$OUT:$JAVA_DIR/projectzomboid.jar" \
-        TextureProbe Bin2NPCExtensionVanilla "${TEXTURES[@]}"

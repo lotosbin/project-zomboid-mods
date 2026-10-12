@@ -5,7 +5,7 @@
 -- 环境由 run.js + mock_env.lua 准备好：
 --   * MOCK        —— 引擎桩 / 依赖 mock / 调用记录 / 时间推进 / 断言框架
 --   * Bin2NPCExtension / Bin2NPCExtensionCore / ProjectALife / ProjectALifeJimmy / OrangeTradingMod*
---     —— 被测的 18 个文件（公共层 13 + 本口味 5）跑完后的产物
+--     —— 被测的 20 个文件（公共层 15 + 本口味 5）跑完后的产物
 --
 -- 返回失败条数（run.js 用它当退出码：0 = ALL PASS）。
 -- ===========================================================================
@@ -23,7 +23,7 @@ local Jimmy = Config.Jimmy
 local Net = Config.Net
 
 -- 用例总数：runTest 会把它当断言前缀用，新增用例时同步改这一个数字
-local TOTAL = 40
+local TOTAL = 45
 local failures = 0
 local passed = 0
 
@@ -125,8 +125,8 @@ local SOURCE_KEYS = Config.__sourceKeys or {}
 -- ===========================================================================
 -- 1. 加载
 -- ===========================================================================
-runTest(1, "loader: 19 files (public layer 14 + flavour 5), expected globals only, require is idempotent", function()
-    M.assert_eq(Config.__loadedCount, 19, "loaded file count")
+runTest(1, "loader: 20 files (public layer 15 + flavour 5), expected globals only, require is idempotent", function()
+    M.assert_eq(Config.__loadedCount, 20, "loaded file count")
     M.assert_eq(Config.MODULE, "Bin2NPCExtension", "Config.MODULE")
     M.assert_eq(Bin2NPCExtension, Config, "Bin2NPCExtension is the Config table")
     M.assert_truthy(type(Config.Text.get) == "function", "Config.Text.get")
@@ -179,13 +179,13 @@ runTest(1, "loader: 19 files (public layer 14 + flavour 5), expected globals onl
     M.assert_truthy(type(coreContracts) == "function", "公共层模块导出的是工厂函数")
     M.assert_truthy(require("Bin2NPCExtensionCore/Contracts") == coreContracts,
         "a second require returns the very same factory (package.loaded hit)")
-    -- 17 个模块名 / 18 个文件（client 与 server 两个 Bootstrap 同名）
-    M.assert_eq(#Config.__requireNames, 18, "18 distinct require names for 19 files")
-    M.assert_eq(#Config.__coreModules, 14, "14 modules in the public layer")
+    -- 19 个模块名 / 20 个文件（client 与 server 两个 Bootstrap 同名）
+    M.assert_eq(#Config.__requireNames, 19, "19 distinct require names for 20 files")
+    M.assert_eq(#Config.__coreModules, 15, "15 modules in the public layer")
     M.assert_eq(Config.MONEY_KIND, "upstream", "this flavour pays through the upstream economy mod")
     M.assert_truthy(type(Config.UI_HINT) == "string" and Config.UI_HINT ~= "",
         "the flavour ships a diagnostic hint for the client entry")
-    -- 自动加载已经把 19 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
+    -- 自动加载已经把 20 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
     -- 这一条同时守住两件事：文件只执行一次（引擎的真实语义），以及没有写错的模块名。
     local reloaded = {}
     for _, name in ipairs(Config.__requireNames) do
@@ -1993,7 +1993,7 @@ end)
 runTest(40, "public layer: namespace() refuses a coreApi / money mismatch, normalizes sibling", function()
     local Core = Bin2NPCExtensionCore
     M.assert_truthy(type(Core) == "table", "公共层注册表存在")
-    M.assert_eq(Core.API, 2, "Core.API")
+    M.assert_eq(Core.API, 3, "Core.API")
     M.assert_truthy(type(Core.namespace) == "function" and type(Core.bind) == "function",
         "公共层导出 namespace / bind")
     -- 收钱方式是一张表（名字 -> 公共层文件），两个实现都要在
@@ -2070,6 +2070,245 @@ runTest(40, "public layer: namespace() refuses a coreApi / money mismatch, norma
     M.assert_eq(cash.balance(nil), nil, "no player -> balance is nil (not 0)")
     M.assert_eq(cash.pay(nil, 10), false, "no player -> pay fails")
     M.assert_eq(cash.refund(nil, 10), false, "no player -> refund fails")
+end)
+
+-- ===========================================================================
+-- I. 公共层：原版左侧竖排图标栏的入口（NS.Sidebar）
+-- ===========================================================================
+--[[
+    这一段测的是**公共层模块**（Bin2NPCExtensionCore/Sidebar.lua），不是某个口味的入口。
+
+    为什么要在这里测：这段挂接逻辑（hook ISEquippedItem:initialise、按 spec.id 分存、
+    尺寸档吸附、两态贴图、点击回调签名）是**两个口味共用**的代码；它的真实宿主（原版侧边栏）
+    在原版钞票口味的套件里有完整断言，这里再从"不知道是哪个口味"的角度走一遍 ——
+    既证明公共层没有偷偷绑定任何口味，也让 YeseMarket 变体的套件（由本文件生成）覆盖同一段。
+
+    ⚠ 公共层每个命名空间只认**第一张** spec（hook 已经闭包住了它）：橙子口味没人抢，
+    装上来的就是下面这张 PROBE_SPEC；YeseMarket 变体在文件加载期就把口味自己的 spec
+    装上了（那才是它真正的入口），于是这一段测的是**那一张**。
+    所以下面的断言一律通过 `Sidebar.spec` 取得"当前生效的 spec"来写，
+    只在真正需要探针语义的地方才判断 `spec == PROBE_SPEC`。
+    这一段放在文件最后：钩子装上之后就一直在，不该影响前面的用例。
+]]
+local Sidebar = Config.Sidebar
+
+local PROBE_ID = "BIN2NPCPROBE"
+
+--- 探针 spec：橙子口味下用它；YeseMarket 变体下它装不上去（口味自己那张先到）
+local PROBE_SPEC = {
+    id = PROBE_ID,
+    texture = "PROBEICON",
+    -- 公共层不认识任何翻译前缀：这里给的就是**查好的文案**
+    tooltip = "PROBE TOOLTIP",
+    isOpen = function() return M.state.probeOpen == true end,
+    toggle = function(playerNumber)
+        M.state.probeOpen = not (M.state.probeOpen == true)
+        M.state.probeToggles = M.state.probeToggles or {}
+        M.state.probeToggles[#M.state.probeToggles + 1] = playerNumber
+        return true
+    end,
+    log = "probe sidebar entry installed",
+}
+
+--- 装上入口并返回"当前真正生效的 spec"
+local function activeSpec()
+    Sidebar.install(PROBE_SPEC)
+    return Sidebar.spec
+end
+
+--- 面板上属于这张 spec 的图标
+local function iconOf(panel, spec)
+    local holder = panel ~= nil and panel.bin2NpcSidebar or nil
+    local entry = type(holder) == "table" and holder[spec.id] or nil
+    return type(entry) == "table" and entry.button or nil
+end
+
+--- 面板上"我们的按钮"有几个（用 internal 认，等价于玩家在屏幕上看到几个）
+local function countIcons(panel, spec)
+    local total = 0
+    for _, child in ipairs(panel:getChildren()) do
+        if child ~= nil and child.internal == spec.id then total = total + 1 end
+    end
+    return total
+end
+
+--- 引擎拼出来的贴图路径（与原版 ISButton 的规则一致）
+local function expectedTexture(spec, size, state)
+    return string.format("media/ui/Sidebar/%d/%s_%s_%d.png", size, spec.texture, state, size)
+end
+
+runTest(41, "public sidebar: install() hooks the vanilla column once, appends below the last button", function()
+    resetWorld()
+    M.assert_truthy(type(Sidebar) == "table", "the public layer bound NS.Sidebar")
+    M.assert_eq(type(Sidebar.SIZES), "table", "the five vanilla size buckets are exposed for troubleshooting")
+    M.assert_eq(#Sidebar.SIZES, 5, "…five of them (48/64/80/96/128)")
+
+    M.assert_eq(Sidebar.install(PROBE_SPEC), true, "install() returns true when the vanilla sidebar exists")
+    M.assert_truthy(Sidebar.hooked == ISEquippedItem, "the module remembers the hooked class table")
+    local wrapped = ISEquippedItem.initialise
+    M.assert_eq(type(wrapped), "function", "initialise is now our wrapper")
+    M.assert_eq(Sidebar.install(PROBE_SPEC), true, "install() is idempotent")
+    M.assert_truthy(ISEquippedItem.initialise == wrapped, "…the class is wrapped exactly once")
+    M.assert_eq(Sidebar.install(PROBE_SPEC), true, "…and again")
+
+    local spec = activeSpec()
+    M.assert_truthy(type(spec) == "table" and type(spec.id) == "string", "a spec is active")
+    local panel = M.newSidebarPanel(0, 48)
+    local holder = panel.bin2NpcSidebar
+    M.assert_truthy(type(holder) == "table", "the entry lives on the panel itself (panel.bin2NpcSidebar)")
+    M.assert_truthy(type(holder[spec.id]) == "table", "…keyed by spec.id")
+    local icon = holder[spec.id].button
+    M.assert_truthy(icon ~= nil, "the icon was attached")
+    M.assert_eq(icon.internal, spec.id, "the button carries spec.id (that is the click guard)")
+    M.assert_eq(icon:getY(), panel.mapBtn:getBottom() + 15, "appended 15px below the last vanilla button")
+    M.assert_eq(icon:getWidth(), 48, "width = the measured size bucket")
+    M.assert_eq(icon:getHeight(), 36, "height = 0.75 * bucket")
+    M.assert_eq(icon.target, panel, "the click target is the panel (engine calls onclick(target, button))")
+    M.assert_eq(countIcons(panel, spec), 1, "exactly one entry icon on the panel")
+    M.assert_eq(panel:getHeight(), icon:getBottom(), "shrinkWrap() grew the panel to include the icon")
+    M.assert_eq(panel.shrinkWrapCalls, 2, "initialise + attach each shrinkWrapped once")
+
+    -- 悬停提示原样交给原版 tooltip 列表（公共层不碰翻译前缀）
+    local tooltips = M.calls_named("addMouseOverToolTipItem")
+    M.assert_truthy(#tooltips >= 1, "a hover tooltip was registered")
+    M.assert_truthy(type(tooltips[#tooltips].text) == "string" and tooltips[#tooltips].text ~= "",
+        "…with a non-empty text")
+    if spec == PROBE_SPEC then
+        M.assert_eq(tooltips[#tooltips].text, "PROBE TOOLTIP",
+            "the public layer passes the text through, it does not translate it")
+    end
+end)
+
+runTest(42, "public sidebar: the two-state texture follows isOpen() and prerender keeps it fresh", function()
+    resetWorld()
+    local spec = activeSpec()
+    local panel = M.newSidebarPanel(0, 96)
+    local icon = iconOf(panel, spec)
+    M.assert_truthy(icon ~= nil, "the icon is there")
+    -- attach 时按当时的 isOpen() 选一次图（不假设"此刻一定是关着"：
+    -- YeseMarket 变体里上一个用例可能刚开过交易站窗口，那张 spec 的 isOpen 就还是 true）
+    local attachState = spec.isOpen() == true and "On" or "Off"
+    M.assert_eq(M.lastTexturePath(), expectedTexture(spec, 96, attachState),
+        "attach asks for the texture of the current state")
+    if M.iconFilesStrict() then
+        -- 严格桩（YeseMarket 变体）：清单来自磁盘，请求的路径必须真的存在，否则按钮没图
+        M.assert_truthy(icon.image ~= nil, "the requested texture exists on disk")
+    else
+        M.assert_eq(icon.image.__path, expectedTexture(spec, 96, attachState), "the button got that texture")
+    end
+
+    -- 用 isOpen 的替身驱动两态：既覆盖 prerender 的刷新，也不用知道窗口究竟是什么
+    local realIsOpen = spec.isOpen
+    local open = true
+    spec.isOpen = function() return open end
+    panel:prerender()
+    M.assert_eq(M.lastTexturePath(), expectedTexture(spec, 96, "On"), "open -> On texture")
+    open = false
+    panel:prerender()
+    M.assert_eq(M.lastTexturePath(), expectedTexture(spec, 96, "Off"), "closed again -> Off texture")
+    spec.isOpen = realIsOpen
+
+    M.assert_eq(icon.bin2SidebarSize, 96, "the measured bucket did not change")
+    M.assert_eq(panel.shrinkWrapCalls, 2, "…so the per-frame refresh did not shrinkWrap again")
+end)
+
+runTest(43, "public sidebar: a click calls toggle(playerNumber), foreign buttons are ignored", function()
+    resetWorld()
+    local spec = activeSpec()
+    local panel = M.newSidebarPanel(0, 48)
+    local icon = iconOf(panel, spec)
+    M.assert_truthy(icon ~= nil, "the icon is there")
+
+    -- 公共层是**每次点击时**读 spec.toggle，所以可以就地换一个探针上去看它传了什么
+    local realToggle = spec.toggle
+    local seen = {}
+    spec.toggle = function(playerNumber)
+        seen[#seen + 1] = playerNumber
+        return true
+    end
+    icon:click()                                       -- 引擎调 onclick(target, button)
+    M.assert_eq(#seen, 1, "the click called spec.toggle once")
+    M.assert_eq(seen[1], 0, "…with the player number of the panel (the callback signature)")
+    spec.toggle = realToggle
+
+    -- 真的点一下：状态翻转 + 贴图跟着走（两个口味的 toggle 都该是这个语义）
+    local before = spec.isOpen() == true
+    icon:click()
+    M.assert_eq(spec.isOpen(), not before, "a real click flips the window state")
+    M.assert_eq(M.lastTexturePath(), expectedTexture(spec, 48, before and "Off" or "On"),
+        "…and the icon switched to the other state")
+
+    --[[
+        回调约定：ISButton 的 mouse-up 路径是 onclick(self.target, self)，第一个参数是**面板**。
+        用原版自己的按钮（internal = "MAP"）调我们的回调必须什么都不做 ——
+        写成单参数签名（把面板当按钮）会让 internal 永远不成立，这一条就会红。
+    ]]
+    local flips = 0
+    local spyToggle = spec.toggle
+    spec.toggle = function(...) flips = flips + 1 return spyToggle(...) end
+    icon.onclick(panel, { internal = "MAP" })
+    M.assert_eq(flips, 0, "a button whose internal id is not ours is ignored")
+    spec.toggle = spyToggle
+    M.assert_truthy(icon.target == panel, "the click target is the panel, not the button")
+end)
+
+runTest(44, "public sidebar: only player 0, a rebuilt panel gets its own icon, no panel is retained", function()
+    resetWorld()
+    local spec = activeSpec()
+
+    -- 原版按钮列只给 0 号建（ISEquippedItem.lua:737 的 if）：分屏的 1 号面板不该有入口
+    local other = M.newSidebarPanel(1, 48)
+    M.assert_eq(other.bin2NpcSidebar, nil, "player 1 gets no icon (not even the holder table)")
+    M.assert_eq(countIcons(other, spec), 0, "…and nothing was added to its children")
+
+    -- 玩家在选项里改"侧边栏尺寸"时原版会 removeFromUIManager 后新建一个面板：
+    -- 新面板必须自己长出一个按钮，旧面板的按钮不能被复用
+    local first = M.newSidebarPanel(0, 48)
+    local firstIcon = iconOf(first, spec)
+    local second = M.newSidebarPanel(0, 96)
+    local secondIcon = iconOf(second, spec)
+    M.assert_truthy(secondIcon ~= nil and secondIcon ~= firstIcon, "the rebuilt panel gets a new button")
+    M.assert_eq(secondIcon.bin2SidebarSize, 96, "…sized from the new panel's vanilla buttons")
+    M.assert_truthy(iconOf(first, spec) == firstIcon, "the old panel still holds its own button")
+
+    -- 模块自己不能留面板引用：改尺寸后它会指向一个已经死掉的面板
+    local stale = {}
+    for name, value in pairs(Sidebar) do
+        if type(value) == "table" and (value.chr ~= nil or value.bin2NpcSidebar ~= nil) then
+            stale[#stale + 1] = tostring(name)
+        end
+    end
+    M.assert_eq(#stale, 0, "no panel is retained on the module: " .. table.concat(stale, ", "))
+    M.assert_truthy(Sidebar.hooked == ISEquippedItem, "the only table kept is the hooked class")
+end)
+
+runTest(45, "public sidebar: size buckets snap to 48/64/80/96/128, a missing vanilla class fails cleanly", function()
+    resetWorld()
+    local spec = activeSpec()
+    for _, size in ipairs(Sidebar.SIZES) do
+        local panel = M.newSidebarPanel(0, size)
+        local icon = iconOf(panel, spec)
+        M.assert_eq(icon.bin2SidebarSize, size, "bucket " .. tostring(size))
+        M.assert_eq(icon:getHeight(), math.floor(size * 0.75), "height for bucket " .. tostring(size))
+    end
+    -- 原版哪天给出非整数宽：吸附到最近的一档，而不是照抄那个数字（贴图文件名是按档拼的）
+    local odd = M.newSidebarPanel(0, 78)
+    M.assert_eq(iconOf(odd, spec).bin2SidebarSize, 80, "78 -> nearest bucket 80")
+    M.assert_eq(iconOf(odd, spec):getWidth(), 80, "the icon uses the bucket width, not the raw 78")
+
+    -- 原版侧边栏不在（别的模组换了 HUD）或类被改名：如实失败，不许抛错
+    local real = ISEquippedItem
+    ISEquippedItem = nil
+    M.assert_eq(Sidebar.install(PROBE_SPEC), false, "no ISEquippedItem -> install() returns false")
+    ISEquippedItem = { initialise = "not a function", prerender = function() end }
+    M.assert_eq(Sidebar.install(PROBE_SPEC), false, "a renamed / replaced class also fails cleanly")
+    ISEquippedItem = real
+    M.assert_eq(Sidebar.install(PROBE_SPEC), true, "restoring the real class brings the entry back")
+    M.assert_truthy(Sidebar.hooked == real, "…and the hook still points at the real class (no re-wrap)")
+
+    -- spec 的必填字段缺一个就拒绝（打日志），而不是装出一个点不动的图标
+    M.assert_eq(Sidebar.install({}), false, "spec without id/texture/toggle is refused")
+    M.assert_eq(Sidebar.install({ id = "X", texture = "Y" }), false, "…toggle is required")
 end)
 
 -- ===========================================================================

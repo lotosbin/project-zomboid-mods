@@ -1,7 +1,8 @@
 {
     "IGUI_Bin2NPCExtensionYese_PageTitle": "NPC Recruitment",
     "IGUI_Bin2NPCExtensionYese_EntryButton": "NPC Recruit",
-    "IGUI_Bin2NPCExtensionYese_EntryTooltip": "Hire nearby A-Life NPCs with community currency, or have A-Life send a fresh one. Hotkey: Ctrl+Alt+N.",
+    "IGUI_Bin2NPCExtensionYese_IconTooltip": "Survivor trading station: click to open or close it (Ctrl+Alt+N opens NPC recruitment).",
+    "IGUI_Bin2NPCExtensionYese_EntryTooltip": "Hire nearby A-Life NPCs with coins, or have A-Life send a fresh one. Hotkey: Ctrl+Alt+N.",
     "IGUI_Bin2NPCExtensionYese_TabRoster": "My employees",
     "IGUI_Bin2NPCExtensionYese_TabHire": "Hire (nearby)",
     "IGUI_Bin2NPCExtensionYese_TabSummon": "Agency",

@@ -180,6 +180,13 @@ local function lastCommand()
     return all[#all]
 end
 
+--- 面板上我们的图标（公共层按 spec.id 分开存在 panel.bin2NpcSidebar 里）
+local function ourIcon(panel)
+    local holder = panel and panel.bin2NpcSidebar or nil
+    local entry = type(holder) == "table" and holder.BIN2NPCRECRUIT or nil
+    return type(entry) == "table" and entry.button or nil
+end
+
 --- 侧边栏面板上属于我们的图标有几个（正常情况下 0 或 1）
 local function countIcons(panel)
     local total = 0
@@ -192,9 +199,9 @@ end
 -- ===========================================================================
 -- A. 装载与身份
 -- ===========================================================================
-runTest(1, "loader: 19 files (public 14 + flavour 5), 18 require names, no file read twice, expected globals", function()
-    M.assert_eq(Config.__loadedCount, 19, "loaded file count")
-    M.assert_eq(Config.__moduleFileCount, 19, "module file count")
+runTest(1, "loader: 20 files (public 15 + flavour 5), 19 require names, no file read twice, expected globals", function()
+    M.assert_eq(Config.__loadedCount, 20, "loaded file count")
+    M.assert_eq(Config.__moduleFileCount, 20, "module file count")
     M.assert_eq(Config.MODULE, "Bin2NPCExtensionVanilla", "Config.MODULE")
     M.assert_eq(Bin2NPCExtensionVanilla, Config, "the global is the namespace table")
     M.assert_truthy(type(Config.SPEC) == "table" and Config.SPEC.module == Config.MODULE,
@@ -202,15 +209,15 @@ runTest(1, "loader: 19 files (public 14 + flavour 5), 18 require names, no file 
 
     -- 公共层把它自己按依赖顺序绑到了本口味的命名空间上（Namespace.bind）
     for _, name in ipairs({ "Text", "Contracts", "Store", "Economy", "Alife", "Jimmy",
-        "Service", "Maintain", "Net", "ServerBootstrap", "ClientBootstrap" }) do
+        "Service", "Maintain", "Net", "Sidebar", "ServerBootstrap", "ClientBootstrap" }) do
         M.assert_truthy(type(Config[name]) == "table", "public-layer module bound: " .. name)
     end
     M.assert_truthy(type(Config.RecruitPanel) == "table", "client ui/Panel ran")
     M.assert_truthy(type(Config.Entry) == "table", "client ui/Icon ran")
-    M.assert_eq(#Config.__requireNames, 18, "18 distinct require names for 19 files")
-    M.assert_eq(#Config.__coreModules, 14, "14 modules in the public layer")
+    M.assert_eq(#Config.__requireNames, 19, "19 distinct require names for 20 files")
+    M.assert_eq(#Config.__coreModules, 15, "15 modules in the public layer")
 
-    -- 自动加载已经把 19 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
+    -- 自动加载已经把 20 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
     -- 这一条同时守住两件事：文件只执行一次（引擎的真实语义），以及没有写错的模块名。
     local reloaded = {}
     for _, name in ipairs(Config.__requireNames) do
@@ -293,11 +300,11 @@ runTest(2, "loader: a second require hits package.loaded, and install() is idemp
         "…and the count is stable across a repeat call")
 end)
 
-runTest(3, "profile: spec identity (MODULE / VERSION / coreApi=2 / money=cash / TAG / TABLE / prefixes)", function()
+runTest(3, "profile: spec identity (MODULE / VERSION / coreApi=3 / money=cash / TAG / TABLE / prefixes)", function()
     M.assert_eq(Config.MODULE, "Bin2NPCExtensionVanilla", "MODULE")
-    M.assert_eq(Config.VERSION, "0.4.0", "VERSION")
-    M.assert_eq(Config.SPEC.coreApi, 2, "spec.coreApi")
-    M.assert_eq(Core.API, 2, "Core.API")
+    M.assert_eq(Config.VERSION, "0.5.0", "VERSION")
+    M.assert_eq(Config.SPEC.coreApi, 3, "spec.coreApi")
+    M.assert_eq(Core.API, 3, "Core.API")
     M.assert_eq(Config.SPEC.money, "cash", "spec.money")
     M.assert_eq(Config.MONEY_KIND, "cash", "the bound MONEY_KIND")
     M.assert_eq(Core.MONEY_PROVIDERS.cash, "Cash", "cash -> Cash.lua")
@@ -748,8 +755,8 @@ end)
 -- ===========================================================================
 runTest(29, "sidebar: the entry was hooked at load time, and install() never wraps twice", function()
     resetWorld()
-    M.assert_truthy(Icon.hooked == ISEquippedItem,
-        "Entry.install ran at load time (client Bootstrap) and remembers the class table")
+    M.assert_truthy(Config.Sidebar.hooked == ISEquippedItem,
+        "Entry.install ran at load time (client Bootstrap) and the public module remembers the class")
     local initialise, prerender = ISEquippedItem.initialise, ISEquippedItem.prerender
     M.assert_eq(Icon.install(), true, "install() returns true (the vanilla sidebar exists)")
     M.assert_truthy(ISEquippedItem.initialise == initialise, "a second install does not wrap initialise again")
@@ -772,15 +779,15 @@ runTest(30, "sidebar: install() degrades to false when ISEquippedItem is missing
     M.assert_eq(Icon.install(), false, "a renamed / replaced vanilla class also fails cleanly")
     ISEquippedItem = real
     M.assert_eq(Icon.install(), true, "restoring the real class brings the entry back")
-    M.assert_truthy(Icon.hooked == real, "…and the hook still points at the real class (no re-wrap)")
+    M.assert_truthy(Config.Sidebar.hooked == real, "…and the hook still points at the real class (no re-wrap)")
     M.assert_truthy(ISEquippedItem.initialise == real.initialise, "the real class kept its wrapper")
 end)
 
 runTest(31, "sidebar: the icon sits below the last vanilla button and the panel grows to include it", function()
     resetWorld()
     local panel = M.newSidebarPanel(0, 48)
-    local icon = panel.bin2NpcIcon
-    M.assert_truthy(icon ~= nil, "panel.bin2NpcIcon exists (the idempotency guard lives on the panel)")
+    local icon = ourIcon(panel)
+    M.assert_truthy(icon ~= nil, "panel.bin2NpcSidebar[BIN2NPCRECRUIT] exists (the guard lives on the panel)")
     M.assert_eq(icon.internal, "BIN2NPCRECRUIT", "internal id (vanilla dispatch style)")
     M.assert_eq(icon.Type, "ISButton", "it is an ISButton (ISEquippedItem:shrinkWrap only counts those)")
     M.assert_eq(icon:getY(), panel.mapBtn:getBottom() + 15, "y = last vanilla button bottom + 15")
@@ -799,20 +806,20 @@ end)
 runTest(32, "sidebar: the size bucket is measured from the vanilla buttons (48 -> 48, 96 -> 96, 78 -> 80)", function()
     resetWorld()
     local small = M.newSidebarPanel(0, 48)
-    M.assert_eq(small.bin2NpcIcon.bin2NpcSize, 48, "48 bucket measured from invBtn")
-    M.assert_eq(small.bin2NpcIcon:getWidth(), 48, "button width")
+    M.assert_eq(ourIcon(small).bin2SidebarSize, 48, "48 bucket measured from invBtn")
+    M.assert_eq(ourIcon(small):getWidth(), 48, "button width")
     local large = M.newSidebarPanel(0, 96)
-    M.assert_eq(large.bin2NpcIcon.bin2NpcSize, 96, "96 bucket")
-    M.assert_eq(large.bin2NpcIcon:getWidth(), 96, "button width")
-    M.assert_eq(large.bin2NpcIcon:getHeight(), 72, "0.75 * 96")
+    M.assert_eq(ourIcon(large).bin2SidebarSize, 96, "96 bucket")
+    M.assert_eq(ourIcon(large):getWidth(), 96, "button width")
+    M.assert_eq(ourIcon(large):getHeight(), 72, "0.75 * 96")
     -- 非整数宽度也要落到最近的档（原版哪天改成非整数宽）
     local odd = M.newSidebarPanel(0, 78)
-    M.assert_eq(odd.bin2NpcIcon.bin2NpcSize, 80, "78 -> nearest bucket 80")
-    M.assert_eq(odd.bin2NpcIcon:getWidth(), 80, "the icon uses the bucket width, not the raw 78")
+    M.assert_eq(ourIcon(odd).bin2SidebarSize, 80, "78 -> nearest bucket 80")
+    M.assert_eq(ourIcon(odd):getWidth(), 80, "the icon uses the bucket width, not the raw 78")
     -- 五个档都能量出来（tools/make_icons.py 生成的就是这五档）
     for _, size in ipairs({ 48, 64, 80, 96, 128 }) do
         local panel = M.newSidebarPanel(0, size)
-        M.assert_eq(panel.bin2NpcIcon.bin2NpcSize, size, "bucket " .. size)
+        M.assert_eq(ourIcon(panel).bin2SidebarSize, size, "bucket " .. size)
     end
     local injected = {}
     for _, size in ipairs(Config.__sidebarSizes) do injected[tostring(size)] = true end
@@ -825,7 +832,7 @@ end)
 runTest(33, "sidebar: every requested texture really exists on disk (mock getTexture mirrors the filesystem)", function()
     resetWorld()
     local panel = M.newSidebarPanel(0, 48)
-    M.assert_eq(panel.bin2NpcIcon.image.__path, "media/ui/Sidebar/48/NPC_Off_48.png",
+    M.assert_eq(ourIcon(panel).image.__path, "media/ui/Sidebar/48/NPC_Off_48.png",
         "the icon starts with the 48 Off texture (getTexture returned it, so the file exists)")
     M.newSidebarPanel(0, 96)
     local known = Config.__iconFiles or {}
@@ -859,7 +866,7 @@ runTest(34, "sidebar: only player 0 gets the icon (the vanilla button column is 
     resetWorld()
     local p1 = M.newSidebarPanel(1, 48)
     M.assert_eq(p1.invBtn, nil, "player 1 has no vanilla button column at all")
-    M.assert_eq(p1.bin2NpcIcon, nil, "…and therefore no recruit icon")
+    M.assert_eq(ourIcon(p1), nil, "…and therefore no recruit icon")
     M.assert_eq(p1.shrinkWrapCalls, 1, "only the vanilla shrinkWrap ran")
     M.assert_eq(countIcons(p1), 0, "no icon was appended on player 1")
     local p0 = M.newSidebarPanel(0, 48)
@@ -872,32 +879,38 @@ runTest(35, "sidebar: a rebuilt panel gets its own icon and the module keeps no 
     resetWorld()
     local first = M.newSidebarPanel(0, 48)
     first:addToUIManager()
-    local firstIcon = first.bin2NpcIcon
+    local firstIcon = ourIcon(first)
     M.assert_truthy(firstIcon ~= nil, "the first panel got an icon")
     -- 模拟玩家改"侧边栏尺寸"：原版 checkSidebarSizeOption 会 removeFromUIManager 后重建整个面板
     first:removeFromUIManager()
     M.assert_eq(M.uiHas(first.javaObject), false, "the old panel is out of the UIManager")
     local second = M.newSidebarPanel(0, 96)
-    M.assert_truthy(second.bin2NpcIcon ~= nil, "the rebuilt panel has an icon")
-    M.assert_truthy(second.bin2NpcIcon ~= firstIcon, "…and it is a new button, not the dead one")
-    M.assert_eq(second.bin2NpcIcon.bin2NpcSize, 96, "sized from the new panel's vanilla buttons")
-    M.assert_truthy(first.bin2NpcIcon == firstIcon, "the old panel still holds its own field (nothing was rewritten)")
+    M.assert_truthy(ourIcon(second) ~= nil, "the rebuilt panel has an icon")
+    M.assert_truthy(ourIcon(second) ~= firstIcon, "…and it is a new button, not the dead one")
+    M.assert_eq(ourIcon(second).bin2SidebarSize, 96, "sized from the new panel's vanilla buttons")
+    M.assert_truthy(ourIcon(first) == firstIcon, "the old panel still holds its own field (nothing was rewritten)")
     M.assert_truthy(getPlayerData(0).equipped == second, "player data points at the new panel")
     -- 模块上不能留面板引用，否则改尺寸后会去操作一个已经死掉的面板
+    -- （判据：面板有 chr 字段 / 有我们的 bin2NpcSidebar 字段）
     local stale = {}
-    for name, value in pairs(Icon) do
-        if type(value) == "table" and (value.chr ~= nil or value.bin2NpcIcon ~= nil) then
-            stale[#stale + 1] = tostring(name)
+    local function scan(prefix, module)
+        for name, value in pairs(module) do
+            if type(value) == "table" and (value.chr ~= nil or value.bin2NpcSidebar ~= nil) then
+                stale[#stale + 1] = prefix .. "." .. tostring(name)
+            end
         end
     end
-    M.assert_eq(#stale, 0, "no panel is stored on the Icon module: " .. table.concat(stale, ", "))
-    M.assert_truthy(Icon.hooked == ISEquippedItem, "the only table the module keeps is the hooked class")
+    scan("Icon", Icon)
+    scan("Config.Sidebar", Config.Sidebar)
+    M.assert_eq(#stale, 0, "no panel is stored on the flavour or the public module: "
+        .. table.concat(stale, ", "))
+    M.assert_truthy(Config.Sidebar.hooked == ISEquippedItem, "the only table the module keeps is the hooked class")
 end)
 
 runTest(36, "sidebar: prerender keeps the icon texture in sync with the window state", function()
     resetWorld()
     local panel = M.newSidebarPanel(0, 48)
-    local icon = panel.bin2NpcIcon
+    local icon = ourIcon(panel)
     M.assert_eq(icon.image.__path, "media/ui/Sidebar/48/NPC_Off_48.png", "closed -> Off texture")
     local window = Panel.open(M.player)
     M.assert_truthy(window ~= nil, "the window opened")
@@ -906,14 +919,14 @@ runTest(36, "sidebar: prerender keeps the icon texture in sync with the window s
     Panel.close()
     panel:prerender()
     M.assert_eq(icon.image.__path, "media/ui/Sidebar/48/NPC_Off_48.png", "closed again -> Off texture")
-    M.assert_eq(icon.bin2NpcSize, 48, "the measured bucket did not change")
+    M.assert_eq(icon.bin2SidebarSize, 48, "the measured bucket did not change")
     M.assert_eq(panel.shrinkWrapCalls, 2, "…so refreshIcon did not shrinkWrap again (no per-frame churn)")
 end)
 
 runTest(37, "sidebar: clicking the icon toggles the window while the UIManager stays consistent", function()
     resetWorld()
     local panel = M.newSidebarPanel(0, 48)
-    local icon = panel.bin2NpcIcon
+    local icon = ourIcon(panel)
     M.assert_eq(M.uiCount(), 0, "no UI element yet")
     M.assert_eq(Panel.isOpen(), false, "the panel starts closed")
     icon:click()                                       -- 引擎调 onclick(target, button)
