@@ -3223,3 +3223,47 @@ CN 翻译键是**裸配方 id**（原版 `Translate/CN/Recipes.json` 同样是�
 仓库工作区本身（`~/Zomboid/Workshop/bin2_b42/workshop.txt` 里 `id=3628652563`，即已发布的那个工坊条目），
 改完代码不必先拷贝一份；同目录下 `bin2_npc_extension`、`bin2_viewpoint` 等 8 个条目都是这个做法。
 **注意**：软链只是本机上传/测试通路，上传前线上仍是 v1.6.1。
+
+## 2026-10-12 · 「要游戏内截图」落到引擎细节上：从贴图包里挖物品图标，顺带确认工坊真的更新了
+
+小红书运营要配图,要的是"游戏内实拍"。我驱动不了游戏 UI(启动游戏→点制作面板→按截图键这一串
+需要人),于是换了个方向:**能不能直接拿到游戏原生的物品图标?** 结果是能,而且比截图更适合手机屏。
+
+**图标在哪**:`media/textures/WorldItems/Glue.png` 是**丢在地上的世界模型**(64x128),不是物品栏图标。
+真正的图标打包在 `media/texturepacks/UI2.pack`(54 MB)与 `UI.pack`(1.2 MB)里,格式是自研的 PZPK:
+
+```
+"PZPK" + 若干头字段
+记录 = uint32 名称长度 + 名称 + 8 个 uint32(x, y, w, h, offX, offY, origW, origH)
+页码 = 该记录之后最近的那个 PNG —— 每张雪碧图的名称表紧挨在它前面,PNG 内嵌在 .pack 里
+```
+
+三个坑:① **图标名 ≠ 物品 ID**,得先读物品脚本的 `Icon = X` 再找 `Item_X`
+(`Base.HacksawBlade` → `Item_Sawblade`,`Base.AnimalBone` → `Item_Bone`);
+② 名称表**按页分散**,`Item_NutsBolts` 在第 3 张雪碧图、`Item_Bone` 在第 1 张 ——
+一开始想"解析全表再查",逐字节扫 54 MB 慢到跑不完,改成按名字 `bytes.find` 定向查快一个数量级
+(45 个图标 1 秒导完);
+③ 原版有物品**没有 `Icon` 字段**(`Base.Hammer`、`Base.BallPeenHammer`,只有锻造版才有图标),导不出来。
+
+产出:`bin2_b42/tools/pz_atlas/`(工具 + README)、`docs/xhs/游戏图标素材/`
+(45 个图标 × 原生 32px + 4 倍放大,加 `manifest.json` 与带中文名的总览图)。
+格式细节写进 `docs/craft-recipe-study.md` 第 14.8 节。
+
+**顺带把悬着的一件事确认了**:我先前告诉运营"工坊线上仍是 v1.6.1,别写已上线",这是**过期结论**。
+三条证据:① `steamapps/workshop/appworkshop_108600.acf` 条目 3628652563 的
+`timeupdated = 1791812609` = **21:43:29**;② Steam 下载的已发布副本里 `mod.info` 是 `modversion=1.7.0`、
+配方文件 11 条 craftRecipe;③ `diff -r` 该副本与仓库**完全一致**,且只有变更文件时间戳是新的
+(未改的 `bin2_base` 还是 9 月 10 日)。⇒ 订阅者拿到的是 1.7.0。教训:**"线上版本"是会变的,
+发结论前重新读一次,别引用几小时前的读数。**
+
+**名称踩坑(值得记的通用教训)**:我在更新日志/工坊描述里按自己的叫法写了锅具名 ——
+"铜煮锅 / 炖锅 / 锻造炖锅 / 铜水壶",而游戏内实际是 **铜平底煮锅 / 蒸煮锅 / 粗制蒸煮锅 / 铜制水壶**
+(`Base.SaucepanCopper` / `Base.Pot` / `Base.PotForged` / `Base.Kettle_Copper`,
+来源 `media/lua/shared/Translate/CN/ItemName.json`)。玩家搜"炖锅"根本搜不到。
+是运营拿 `manifest.json` 的 `cn` 字段逐项核对才发现的 —— **自造术语是看不见的错误**:
+代码能跑、配方能用,只有玩家在游戏里找不到那个词。已改 `bin2_b42/workshop.txt`、
+两份 `Changelog.txt`、模组 `README.md`,并在 `docs/craft-recipe-study.md` 13.5 节给锅具表加了
+"游戏内中文名"列。注意:工坊描述是上传时写进 Steam 的,**线上那份还是旧措辞**,下次上传才会同步。
+
+**边界(说清楚)**:真正的制作面板界面实拍只能由人截(面板列表缩到手机宽度其实看不清,
+唯一有信息增量的是"制作菜单里列出这 5 条配方"那一屏,1 张就够)。

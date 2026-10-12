@@ -700,12 +700,19 @@ IsNotSealed / Unseal / EquipSecondary / SetActivated`。
 
 `media/scripts/generated/items/*.txt` 实测(有 `component FluidContainer` 且 `IsCookable = true`):
 
-| 物品 | 容量 | 标签 |
-|------|------|------|
-| `Base.Saucepan` / `Base.SaucepanCopper` | 0.6 L | `base:cookable;base:hasmetal;…` |
-| `Base.Pot` / `Base.PotForged` | 1.5 L | `base:cookable;base:hasmetal;…` |
-| `Base.Kettle` / `Base.Kettle_Copper` | 1.5 L | `base:cookable;base:hasmetal;…` |
-| `Base.Bucket` 等金属桶 | 10 L | `base:bucket;base:cookable;…` |
+| 物品 | 游戏内中文名 | 容量 | 标签 |
+|------|------|------|------|
+| `Base.Saucepan` | 平底煮锅 | 0.6 L | `base:cookable;base:hasmetal;…` |
+| `Base.SaucepanCopper` | 铜平底煮锅 | 0.6 L | `base:cookable;base:hasmetal;…` |
+| `Base.Pot` | 蒸煮锅 | 1.5 L | `base:cookable;base:hasmetal;…` |
+| `Base.PotForged` | 粗制蒸煮锅 | 1.5 L | `base:cookable;base:hasmetal;…` |
+| `Base.Kettle` | 水壶 | 1.5 L | `base:cookable;base:hasmetal;…` |
+| `Base.Kettle_Copper` | 铜制水壶 | 1.5 L | `base:cookable;base:hasmetal;…` |
+| `Base.Bucket` 等金属桶 | 金属桶 | 10 L | `base:bucket;base:cookable;…` |
+
+> 写用户可见文案时**必须**照抄这里的"游戏内中文名"(来源:`media/lua/shared/Translate/CN/ItemName.json`)。
+> 我自己起过名 —— 把 `Base.Pot` 写成"炖锅"、`Base.Kettle_Copper` 写成"铜水壶",玩家在游戏里根本搜不到
+> 这两个词,是小红书运营按 `manifest.json` 的 `cn` 字段核对时才发现的。
 
 `Base.RoastingPan` / `Base.BakingPan` / `Base.BakingTray` / `Base.MuffinTray` 带 `base:cookable` 但
 **没有 FluidContainer**,装不了水。且**没有**"锅具"专用 tag:`base:cookable` 在原版命中 115 个物品
