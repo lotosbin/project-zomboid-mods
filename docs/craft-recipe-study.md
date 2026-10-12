@@ -879,6 +879,21 @@ magic "PZPK"                      4 字节;UI.pack 这类老包直接以记录�
 用它给 `bin2_Recipes.txt` 里出现的全部物品导过 45 个图标,总览图在
 `docs/xhs/游戏图标素材/图标总览.png`。
 
+### 14.9 临时 grep 才会踩的坑:包含判断会假阳性
+
+复核结论时最容易脱口而出的一句是"我在 outputs 里 grep 到了它,所以它有产出"。**别这么判**。
+
+反例(实测):`Base.CircularSawblade` 与 `Base.CircularSawblade_Half` 是**两个物品**,后者以前者为前缀。
+`recipes_metalWelding.txt:120` 的 `CutCircularSawblade` 与 `:164` 的 `SawCircularSawblade` 都是
+`inputs { item 1 [Base.CircularSawblade] }` + `outputs { item 2 Base.CircularSawblade_Half }` ——
+它们**消耗**圆锯片、产出半片。可一句 `grep Base.CircularSawblade` 会把 outputs 里的
+`Base.CircularSawblade_Half` 也算成命中,于是得出"圆锯片有产出"的错误结论(而且方向正好相反:
+把真缺口判成不缺口)。
+
+规矩:**匹配物品 ID 必须精确**(正则 `ID(?=[\s,;\]\n]|$)`),不要用 `in` / 子串包含。
+`scan_recipe_gaps.py` 是按物品 ID 建索引后比较的,不受这个影响;会踩的是"顺手 grep 复核一遍"的人,
+所以写在这里。
+
 ---
 
 ## 15. 参考链接(真实引用地址)

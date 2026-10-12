@@ -48,3 +48,7 @@ Build 42.21 的完整数字(5079 物品 / 969 craftRecipe / 389 真缺口)见第
   mod 的翻译才带 `ItemName_` 前缀,两种都试。
 - 报告只解决"缺不缺",**不解决"该不该补"**:补配方前必须逐条检查能不能形成材料泵
   (能不能回炉、回炉产出与配方消耗谁多),做法见第 14.4 节。
+- **顺手 grep 复核会假阳性,物品 ID 必须精确匹配**。脚本本身按物品 ID 建索引比较,不受影响;
+  会踩的是人工抽查:比如 `grep Base.CircularSawblade` 会连 `Base.CircularSawblade_Half` 一起命中
+  (`CutCircularSawblade` / `SawCircularSawblade` 正好是消耗整片、产出半片),于是把真缺口判成"有产出"。
+  要 grep 就用 `ID(?=[\s,;\]\n]|$)` 这种边界断言,别用子串包含。详见第 14.9 节。

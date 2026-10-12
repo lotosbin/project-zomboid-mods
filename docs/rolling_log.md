@@ -3276,3 +3276,11 @@ CN 翻译键是**裸配方 id**（原版 `Translate/CN/Recipes.json` 同样是�
 
 **边界(说清楚)**:真正的制作面板界面实拍只能由人截(面板列表缩到手机宽度其实看不清,
 唯一有信息增量的是"制作菜单里列出这 5 条配方"那一屏,1 张就够)。
+
+**又一处"看不见的错误":包含判断假阳性**(运营复核时点出来的)。`Base.CircularSawblade` 与
+`Base.CircularSawblade_Half` 是两个物品,后者以前者为前缀 —— `recipes_metalWelding.txt:120/164`
+的 `CutCircularSawblade` / `SawCircularSawblade` 是**消耗**整片、产出半片。若用
+`grep Base.CircularSawblade` 复核 outputs,半片会一起命中,于是把"圆锯片无产出"这个**真缺口**
+读成"有产出",结论正好反掉。规矩:**物品 ID 精确匹配**(边界断言 `ID(?=[\s,;\]\n]|$)`),
+不用 `in`/子串。`scan_recipe_gaps.py` 按 ID 建索引,本身不受影响;写进
+`docs/craft-recipe-study.md` 14.9 节与 `tools/recipe_gap/README.md` 的坑列表。
