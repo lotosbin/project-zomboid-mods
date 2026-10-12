@@ -37,10 +37,17 @@ python3 scan_recipe_gaps.py --game /path/to/Project\ Zomboid.app/Contents/Java
 | 做得出没人用 | 有产出、无消耗(成品为主) | 不补,**不是**缺口 |
 
 "完全没配方的物品"(衣服、书、罐头……)不在报告里 —— 它们本来就不该有配方,那不是缺口。
-Build 42.21 的完整数字(5079 物品 / 969 craftRecipe / 389 真缺口)见第 14.1 节。
+Build 42.21 的完整数字(5079 物品 / 969 craftRecipe / 379 真缺口)见第 14.1 节。
 
 ## 坑
 
+- **`item` 的数量可能是小数**:原版有 3 行写成 `item 1.0` / `item 2.0` / `item 5.0`
+  (`recipes_jarring.txt:49-50` 的 `MakeJar` 就在其中)。数量正则必须写 `\d+(?:\.\d+)?`,
+  写成 `\d+` 会**整行漏掉**、静默少算(`Base.Salt` 由 7 条变成 6 条就是这个 bug)。
+- **方括号有三种,先摘掉 `tags/flags/mappers` 再找物品列表**:`item 1 tags[base:glass] flags[ItemCount]`
+  若直接取"第一个方括号",会解析出"物品 = ItemCount"(假阳性);更糟的是
+  `item 1 Base.HandScytheBlade flags[IsBlunt]` 会解析出"物品 = IsBlunt"而**漏掉真物品**(假阴性)。
+  `[*]` 是任意物品通配,也要排除。
 - **`mode:keep` 不是"不消耗"的同义词**:工具位(`Prop1/Prop2/ToolLeft/ToolRight`)也在 keep 里,
   所以脚本把两者都归到"工具使用",否则锤子、凿子会被算成"被消耗的材料",报告里全是工具。
 - **`default =` 在 itemMapper 里是兜底产出**,不是消耗源,键值语义反了会得出完全错误的结论。

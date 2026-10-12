@@ -40,13 +40,14 @@ TAGS_RE = re.compile(r'^\s*Tags\s*=\s*([^,\n]+?)\s*,?\s*$')
 CRAFT_RE = re.compile(r'^\s*craftRecipe\s+([A-Za-z_]\w*)\s*$')
 CAT_RE = re.compile(r'^\s*category\s*=\s*([^,\n]+?)\s*,?\s*$')
 SECT_RE = re.compile(r'^\s*(inputs|outputs)\s*$')
-ITEMREF_RE = re.compile(r'^\s*item\s+(\d+)\s+(.+?),?\s*$')
+ITEMREF_RE = re.compile(r'^\s*item\s+(\d+(?:\.\d+)?)\s+(.+?),?\s*$')
 FLUID_RE = re.compile(r'^\s*-fluid\s+([\d.]+)\s+(.+?),?\s*$')
 MAPPER_OPEN_RE = re.compile(r'^\s*itemMapper\s+([A-Za-z_]\w*)\s*$')
 MAPPER_LINE_RE = re.compile(r'^\s*([A-Za-z_]\w*|\w+\.\w+)\s*=\s*([A-Za-z_]\w*|\w+\.\w+)\s*,?\s*$')
 BRACKET_RE = re.compile(r'\[\s*([^\]]+?)\s*\]')
 TAGSEL_RE = re.compile(r'tags\[([^\]]+)\]')
 FLAGS_RE = re.compile(r'flags\[([^\]]+)\]')
+KEYED_BRACKET_RE = re.compile(r'(?:tags|flags|mappers)\[[^\]]*\]')
 FULLTYPE_RE = re.compile(r'\b([A-Za-z_]\w*\.[A-Za-z_]\w*)\b')
 SCRAP_RE = re.compile(r'addScrapItem\s*\(\s*"([^"]*)"\s*,\s*"([^"]+)"')
 
@@ -131,7 +132,9 @@ def parse_recipes(scripts_dir):
                 continue
             m = ITEMREF_RE.match(line)
             if m and section:
-                rec[section].append(parse_input(int(m.group(1)), m.group(2)))
+                # 数量允许小数(原版有 3 行写成 item 1.0 / 2.0 / 5.0,只认整数会整行漏掉)
+                amount = float(m.group(1))
+                rec[section].append(parse_input(int(amount) if amount.is_integer() else amount, m.group(2)))
     return recipes
 
 
@@ -145,14 +148,19 @@ def parse_input(count, selector):
     mappers = re.search(r'mappers\[([^\]]+)\]', selector)
     if mappers:
         entry["mappers"] = [x.strip() for x in mappers.group(1).split(";") if x.strip()]
-    bracket = BRACKET_RE.search(selector)
+    # tags[...] / flags[...] / mappers[...] 也带方括号,必须先全部摘掉再找物品列表:
+    # 否则 `tags[base:hammer] flags[Prop1]` 会把 Prop1 当物品、`Base.HandScytheBlade flags[IsBlunt]`
+    # 会把 IsBlunt 当物品而**漏掉真正的 Base.HandScytheBlade**(假阳性 + 假阴性同时发生)。
+    without_keyed = KEYED_BRACKET_RE.sub("", selector)
+    bracket = BRACKET_RE.search(without_keyed)
     if bracket:
-        entry["fts"] = [x.strip().split(":")[-1] for x in bracket.group(1).split(";") if x.strip()]
+        entry["fts"] = [x.strip().split(":")[-1] for x in bracket.group(1).split(";")
+                        if x.strip() and x.strip() != "*"]   # [*] 是"任意物品"通配,不是物品 ID
     else:
         if "mapper:" in compact:
             entry["mapper_ref"] = compact.split("mapper:")[-1]
         else:
-            m = FULLTYPE_RE.search(selector)
+            m = FULLTYPE_RE.search(without_keyed)
             if m:
                 entry["fts"] = [m.group(1)]
     tags = TAGSEL_RE.search(selector)
