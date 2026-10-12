@@ -3099,3 +3099,52 @@ ALL RECIPES PARSED      # 6 条配方全过；6 个锅具 fullType 全部解析�
 "我在 inputs 里写了流体" ≠ "引擎收下了流体行"。可复用的验证姿势是
 **把引擎自己的解析器跑起来、把它解析出的结构打印出来**，而不是再写一层正则去猜；
 这次的 4 个 headless 坑，也正是"猜"与"跑"之间的差价。
+
+### 追加 · 最低支持版本 42.15.0 → 42.21.0（同一个 1.6.2，还没上架）
+
+用户接着要求「最低支持版本更新到 42.21」。本机游戏正是 **42.21.0**（`~/Zomboid/version.txt`：
+`42.21.0 4a0e9546ec`），所以这条是把门槛抬到"就是现在这版"。
+
+`versionMin` 是**硬门禁**（`ChooseGameInfo$Mod.isAvailableSelf()`：`versionMin > 游戏版本` 就返回
+false，玩家那边整条模组不可用），比较用 `GameVersion.getInt() = major*1000+minor`
+（`42.21.0` → 42021）。改的是 `bin2_extension/42.19.0/mod.info` 的 `versionMin`。
+
+**没有重命名版本子目录**（`42.19.0/` 保持不动），依据是 `ZomboidFileSystem.getModVersionDirName`：
+它只接受 `≥ ChooseGameInfo.minRequiredVersion`（静态初始化里写死 `42.0.0`）`且 ≤ 当前游戏版本` 的
+目录名、取最大者 —— 42.21 的客户端照样会选中 `42.19.0/`，目录名只决定"选哪个子目录"，
+`versionMin` 才决定"这台客户端能不能用"。顺带和同集合的 `bin2_base`（目录 42.19.0 / versionMin 42.19.0）保持一致。
+
+顺手补了第二个探针 `bin2_b42/tools/modinfo_probe`（`ChooseGameInfo.readModInfo(目录)` + 降版模拟）：
+
+```
+### bin2_extension  (bin2扩展)
+    versionDir    = …/bin2_extension/42.19.0
+    modversion    = 1.6.2
+    versionMin    = 42.21.0 (int=42021)   versionMax = (none)
+    game          = 42.21 (int=42021)  → availableSelf=true
+    模拟旧客户端  = 42.20 (int=42020)  → availableSelf=false   (符合预期：旧版本上模组不可用)
+ALL MOD.INFO OK      # 4 个模组目录全过
+```
+
+三个坑：① 入口必须吃**目录**（`readModInfo(目录)`）而不是模组 id —— 后者走目录扫描会命中
+**工坊已发布的那一份**（这次是 1.6.1），拿它验证改动会得出错误结论；② `Core.gameVersion` 是
+`private static final`，`Field.set` 直接抛 `IllegalAccessException`，降版模拟得走
+`sun.misc.Unsafe` 的 `staticFieldBase/staticFieldOffset/putObject` 改写再还原；
+③ "当前版本能加载"是单向证据，只有旧版本上确实 `false` 才叫门禁生效。
+
+顺带确认了一件事：工坊 3628652563 里已发布的 `bin2_extension` 是 **1.6.1**（Sep 10），所以这次
+无需开 1.6.3，把版本门禁并进 1.6.2 的更新日志即可。
+
+影响面（先说清，因为它不直观）：仓库里没有任何模组 `require` 了 `bin2_extension`
+（合集 `bin2_modpack` 的 require 列表里也没有它），所以抬高门禁只影响**直接启用**它的玩家。
+而且效果按客户端版本分两段 —— 版本子目录选择器只挑 `≤ 当前版本` 的最大目录名：
+
+| 客户端 | 选中的子目录 | 结果 |
+|---|---|---|
+| 42.21+ | `42.19.0/` | versionMin=42.21.0 放行 → 可用（新版配方） |
+| 42.19 / 42.20 | `42.19.0/` | versionMin=42.21.0 拦住 → **模组不可用**（提示需更新游戏） |
+| ≤ 42.18 | `42.15.0/` | 那是 EOL 归档版(v1.0.4, versionMin=42.15.0) → 仍旧可用 |
+
+也就是"42.19/42.20 的玩家看到不可用、更老的玩家反而拿到 EOL 版"—— 这是版本子目录与 versionMin
+两套机制叠加的结果，不是 bug；如果希望老客户端一律不可用，得连 EOL 目录的 versionMin 一起抬，
+但那与"EOL 归档"的定位冲突，所以保持不动。

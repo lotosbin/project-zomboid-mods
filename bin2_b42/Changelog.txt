@@ -14,6 +14,7 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 - 修复: flags[NotEmpty] 对装液体的容器不生效
   - 引擎只对 FluidContainer 校验 IsFull / IsEmpty,该 flag 是空操作,此前"需要装满液体的锅"并未生效
 - 终态: 1 锅具 + 0.5 升水 + 1 木炭 (木炭/自制木炭/焦炭任选) → 1 盐
+- 兼容: 最低支持版本提升到 Build 42.21.0 (mod.info versionMin=42.21.0,42.21 以下的游戏里本模组将显示为不可用)
 - 校验: 新增 bin2_b42/tools/recipe_probe,用游戏自带脚本解析器离线解析 6 条配方 (不启动游戏)
 
 [ 06/10/2026 ]

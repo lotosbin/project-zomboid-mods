@@ -12,7 +12,8 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 - 修复: 锅具用 mode:keep 保留却仍在 outputs 里返回 → 制作后锅具翻倍
   现在锅具保留、不再额外产出一个锅
 - 修复: flags[NotEmpty] 对装液体的容器不生效
-  (引擎只对 FluidContainer 校验 IsFull / IsEmpty,见 docs/craft-recipe-study.md 第 14 节)
+  (引擎只对 FluidContainer 校验 IsFull / IsEmpty,见 docs/craft-recipe-study.md 第 13 节)
+- 兼容: 最低支持版本提升到 Build 42.21.0 (versionMin=42.21.0)
 - 校验: 新增 bin2_b42/tools/recipe_probe,用游戏自带脚本解析器离线解析全部 6 条配方
 
 [ 06/10/2026 ]
