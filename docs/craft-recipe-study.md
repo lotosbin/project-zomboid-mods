@@ -1023,16 +1023,17 @@ ls -d "$G"/lua/shared/Translate/*/ | wc -l                          # 语言目�
 `generated/entities/blacksmith/craftRecipes/recipes_blacksmith_heads.txt` ——
 **该文件 19 条 `craftRecipe` 里 15 条是工具头,没有耙头**(锄头/叉头/铲头/镰刀/旧斧/手斧/镐/大锤/木斧/爪锤/羊角锤/棍锤/钉锤头/铁匠锤头/锤头都有)。
 
-**"15 条"要连数法一起写**(2026-10-13 与过程改进组长互核:他按 `Forge_*_Head` 模式只数出 14,
-差 1 是数法不是事实):
+**"15 条"要连数法一起写**(2026-10-13 的教训:组长报过一个 14,那个 14 来自**另一个模式、另一个范围**——全
+`media/scripts` 里 `Forge_[A-Za-z_]*Head` 的**名字数**,回答的是"整棵树有多少个这种名字",不是"这个文件有多少条头部配方";
+我把这个数抄进本文件时**没有重跑**,范围就这么丢了。**换模式换范围就重跑,不许推演**):
 ```bash
 f="…/media/scripts/generated/entities/blacksmith/craftRecipes/recipes_blacksmith_heads.txt"
 grep -oE 'craftRecipe +[A-Za-z0-9_]+' "$f" | wc -l                                   # 19 条配方
 grep -oE 'craftRecipe +[A-Za-z0-9_]+' "$f" | awk '{print $2}' | grep -icE 'head'    # 15 条工具头
 grep -oE 'craftRecipe +[A-Za-z0-9_]+' "$f" | awk '{print $2}' | grep -icE '^forge_.*_head$'  # 14
 ```
-差的那条是 `forge_garden_fork_head` **全小写**(大小写敏感的 `Forge_*_Head` 只能数出 13);
-第 15 条 `ForgeMaceHead` 根本不匹配 `Forge_*_Head`。**"唯独缺耙头"这个结论对这三种数法都成立**。
+不匹配 `Forge_*_Head` 的是两条:`forge_garden_fork_head`(**全小写**)与 `ForgeMaceHead`(**没下划线**)——
+所以大小写敏感数出 **13**、不敏感数出 **14**、含 `head` 数出 **15**。**"唯独缺耙头"这个结论对这三种数法都成立**。
 独立复核(组长,另一条路径,不在本扫描器上):全 `media/scripts` 扫 outputs 块**没有任何配方产出耙头**;
 唯一命中 `mapper:RakeHeadMapper` 经开箱是**假阳性**(产物是棒球棍/长手柄武器)。
 

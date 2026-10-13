@@ -59,3 +59,16 @@ Build 42.21 的完整数字(5079 物品 / 969 craftRecipe / 379 真缺口)见第
   会踩的是人工抽查:比如 `grep Base.CircularSawblade` 会连 `Base.CircularSawblade_Half` 一起命中
   (`CutCircularSawblade` / `SawCircularSawblade` 正好是消耗整片、产出半片),于是把真缺口判成"有产出"。
   要 grep 就用 `ID(?=[\s,;\]\n]|$)` 这种边界断言,别用子串包含。详见第 14.9 节。
+- **`mapper:<名字>` 里的名字不是产出物**——它是作者起的标签,和产出什么物品无关。实例(2026-10-13,耙头):
+  `generated/recipes/recipes_improvised_weapons.txt:497` 的 `itemMapper RakeHeadMapper` 键是
+  `Base.BaseballBat_RakeHead = Base.BaseballBat`、`Base.LongHandle_RakeHead = Base.LongHandle`、
+  `Base.ShortBat_RakeHead = Base.ShortBat`、`default = Base.BaseballBat_RakeHead`
+  —— **产出的是棒球棍 / 长手柄**。同一处还有第二个陷阱:mapper 的**键是派生变体 ID**
+  (`Base.BaseballBat_RakeHead` 这种,原版另有 `Base.BaseballBat`),grep 物品名会连它一起命中。
+  脚本不受影响:`produced` 的 1622 个键里**没有任何一个含 `Mapper`**,`Base.RakeHead` 只有
+  `DismantleLongImplement`;会踩的只有人工 grep。
+- **"有多少条"必须连数法一起写**。同一个文件 `recipes_blacksmith_heads.txt`,三个数都对、答的是三个问题:
+  `craftRecipe` 总数 **19**、名字含 `head` **15**(工具头)、大小写不敏感 `^forge_.*_head$` **14**、
+  大小写敏感 `^Forge_.*_Head$` **13** —— 差在 `forge_garden_fork_head` 全小写、`ForgeMaceHead` 没下划线。
+  报"15 条 `Forge_*_Head`"这类话时**模式和大小写都要写出来**,否则下一个人复算不出来(2026-10-13 就这么
+  让一个没跑过的数字进了账本)。
