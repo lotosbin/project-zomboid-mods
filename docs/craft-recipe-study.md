@@ -1074,6 +1074,10 @@ outputs: item 1 Base.RakeHead
    形状最接近的原版同类是 `forge_garden_fork_head`(`Blacksmith:8`、农具、`PrimitiveForge`);丁字镐头用 `AdvancedForge`
    是因为它吃 `PiercedSteelBlock`(钢块)。要改成三级炉限定,只需把这一个词换掉。
 4. 工具位按原版头部配方补齐 `base:metalworkingpunch`(19 条头部/锤头配方里 18 条有,唯一例外是 `Forge_Hand_Scythe_Head`)。
+   **`tags[base:metalworkingpunch]` 对应的物品是 `Base.MetalworkingPunch` = 金属加工冲头**——不是「金属加工凿」
+   (`Base.MetalworkingChisel`,它带的是 `base:metalworkingchisel`,圆锯片/手锯条要的才是它)。两件都是 1.0 重量、
+   同一 `DisplayCategory`,只有 `Tags` 不同,所以**只能查 tag 不能靠印象**;2026-10-13 我在公开文案里把它写成了「凿」,
+   线上描述带着这个错名传到 17:49 那版,靠 @哔哩哔哩运营 读 item 块才发现。
 
 **验收(本机实跑,命令可复算)**:
 ```bash

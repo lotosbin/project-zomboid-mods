@@ -3509,7 +3509,7 @@ server-ops 补记 / 两份别的项目的复盘），所以按线索拆提交；
 **唯独没有耙头**，符合"原版缺路径"⇒ 判"接"并直接实现；**发布等 @human**（账本那行 `已采纳`，`3ae2b52`）。
 
 **配方**（`42.19.0/media/scripts/recipes/bin2_Recipes.txt` 的 `Bin2ForgeRakeHead`）：
-4 个 1/4 铁条（`tags[base:barstockquarter]`）+ 5 木炭 + 铁匠锤 + 夹钳 + 金属加工凿 → 1 耙头；
+4 个 1/4 铁条（`tags[base:barstockquarter]`）+ 5 木炭 + 铁匠锤 + 夹钳 + 金属加工冲头 → 1 耙头；
 `time=500, SkillRequired=Blacksmith:7, timedAction=HammerMetalStanding, xpAward=Blacksmith:70,
 Tags=PrimitiveForge, category=Tools`，三个工具位一律 `mode:keep`。译名「锻造耙头」写进
 `Translate/CN/Recipes.json`（**裸配方名做键**，无 `Recipe_` 前缀 —— 原版同一文件也是裸键，B41 才有前缀）。
@@ -3547,6 +3547,22 @@ Tags=PrimitiveForge, category=Tools`，三个工具位一律 `mode:keep`。译�
 **上传通路（要人来做）**：`~/Zomboid/Workshop/bin2_b42` 早已软链到仓库工作区，游戏内工坊上传界面读的就是这份，
 改完文件不必另拷一份。**上传本身（Steam 账号 + 游戏内向导）是 @human 的动作**，本地只做到"文件就绪 + 校验通过"。
 
-**未验证**：进游戏实测这条配方（锻造面板里能不能选中、`HammerMetalStanding` 动画与 500 的时长对不对）——
-需要真人开机；线上仍是 1.7.0，上传后要回读 `appworkshop_108600.acf` 的 `timeupdated` 与已发布副本的
-`mod.info` 才能说"线上是 1.7.1"。
+**已上传（2026-10-13 17:49:26），但我是靠别人纠正才知道的 —— 判据写错了两次，都记在这里**：
+@human 17:13 决定单独发，17:49:26 完成上传（`GetPublishedFileDetails` → `time_updated=1791884966`、
+`file_size` 192243 → 194997）。我依据本机 `appworkshop_108600.acf` 的 `WorkshopItemsInstalled`（`size` 192243、
+`timeupdated` = 10-12 21:43:29）与 `steamapps/workshop/content/…` 那份副本，判成"还没上传"，并在 Thread 里让三个
+渠道"先别发"。**错在把客户端缓存当权威**：acf 的 `WorkshopItemDetails` 里 `timetouched = 1791884894`（17:48:14，
+本机最后一次向 Steam 查询）**比远端那次更新早 72 秒**，`latest_timeupdated` 当然还是旧值；`WorkshopItemsInstalled`
+那条是"已下载到本机的旧拷贝"，天然滞后。**新判据：acf 变了 ⇒ 上传一定发生过；acf 没变 ≠ 没上传；"线上是什么版本"
+只认远端**（`POST https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/`
++ `itemcount=1&publishedfileids[0]=3628652563`；公开页面同源）。教训与上午那条"会变的状态引用前重读"是同一类，
+但这次错得更根本：**读的是缓存，还把它当成了事实**。
+
+**上传后被抓出的一个真错（已修仓库文本，线上描述待下次上传覆盖）**：描述与两份 `Changelog.txt` 里我把这条配方的
+第三件工具写成了「**金属加工凿**」，而配方要的是 `tags[base:metalworkingpunch]` =
+**`Base.MetalworkingPunch`「金属加工冲头」**（`weapon.txt:3948` 那块带这个 tag；`Base.MetalworkingChisel`「金属加工凿」
+带的是 `base:metalworkingchisel`，**不接受**）。是我照抄圆锯片/手锯条的工具清单造成的 —— 那两条要的确实是凿。
+已改 `workshop.txt`（两处）、两份 `Changelog.txt`、模组 `README.md`、本文档 14.13，并在 14.13 写下"只能查 tag 不能靠印象"。
+**线上那版描述仍带着这个错名**，要覆盖得再上传一次（@human 的动作，传不传他定）；三个渠道的稿子已按「金属加工冲头」改。
+
+**未验证**：进游戏实测这条配方（锻造面板里能不能选中、`HammerMetalStanding` 动画与 500 的时长对不对）——需要真人开机。
