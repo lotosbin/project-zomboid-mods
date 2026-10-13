@@ -266,6 +266,22 @@ local function factory(NS)
             Sidebar.hooked = class
             class.initialise = function(self, ...)
                 originalInitialise(self, ...)
+                --[[
+                    原版 ISUIElement.initialise() 会把 children 整个清空（ISUIElement.lua:13-20，
+                    引擎自己在那行写着 FIXME "need to avoid calling this method more than once"）。
+                    我们存在面板上的按钮引用这一刻已经变成孤儿 —— 不清掉的话下面的 attach 会看见
+                    "装过了"直接返回 true，图标从此永久消失（prerender 里那道兜底会被同一个陈旧
+                    引用挡住，只有整块面板被重建才能恢复）。
+
+                    只能清**本口味这一条**，绝不能连整个 FIELD 一起清：两个口味同时启用时 hook 是
+                    套娃的（后装的包住先装的），里层刚写完自己的记录、外层紧接着清空整表 ——
+                    里层随后就会再装一次，结果是同一列下面出现两个图标。
+                ]]
+                local current = Sidebar.spec
+                if current ~= nil then
+                    local found = self[FIELD]
+                    if type(found) == "table" then found[current.id] = nil end
+                end
                 attach(self)
             end
             class.prerender = function(self, ...)

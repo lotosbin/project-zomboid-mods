@@ -23,7 +23,7 @@ local Jimmy = Config.Jimmy
 local Net = Config.Net
 
 -- 用例总数：runTest 会把它当断言前缀用，新增用例时同步改这一个数字
-local TOTAL = 45
+local TOTAL = 46
 local failures = 0
 local passed = 0
 
@@ -2309,6 +2309,33 @@ runTest(45, "public sidebar: size buckets snap to 48/64/80/96/128, a missing van
     -- spec 的必填字段缺一个就拒绝（打日志），而不是装出一个点不动的图标
     M.assert_eq(Sidebar.install({}), false, "spec without id/texture/toggle is refused")
     M.assert_eq(Sidebar.install({ id = "X", texture = "Y" }), false, "…toggle is required")
+end)
+
+runTest(46, "public sidebar: a second initialise() on the same panel rebuilds exactly one icon", function()
+    resetWorld()
+    local spec = activeSpec()
+    local panel = M.newSidebarPanel(0, 48)
+    local first = iconOf(panel, spec)
+    M.assert_truthy(first ~= nil, "the icon is there after the first initialise()")
+    M.assert_eq(countIcons(panel, spec), 1, "…exactly one")
+
+    --[[
+        引擎给 ISUIElement:initialise() 留了 FIXME"别调第二次"（ISUIElement.lua:13-20：
+        `self.children = {}`）。原版侧边栏自己不这么干，但换 HUD 的第三方模组会重跑 initialise ——
+        那一刻我们存在面板上的按钮引用就变成孤儿。若据此认定"装过了"，图标从此再也不回来
+        （prerender 里那道兜底也会被同一个陈旧引用挡住），只有整块面板被重建才能恢复。
+    ]]
+    panel:initialise()
+    M.assert_eq(countIcons(panel, spec), 1,
+        "a second initialise() leaves exactly one icon (0 = lost, 2 = duplicated)")
+    local second = iconOf(panel, spec)
+    M.assert_truthy(second ~= nil and second ~= first, "the stale button was replaced by a fresh one")
+    M.assert_eq(second.internal, spec.id, "…still carrying spec.id (the click guard)")
+    M.assert_eq(second:getY(), panel.mapBtn:getBottom() + 15, "…still appended below the vanilla column")
+
+    -- 补装过之后 prerender 不许再补一个（幂等）
+    panel:prerender()
+    M.assert_eq(countIcons(panel, spec), 1, "prerender() does not add a duplicate on top")
 end)
 
 -- ===========================================================================

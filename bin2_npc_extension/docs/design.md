@@ -765,6 +765,14 @@ function Icon.install() return Config.Sidebar.install(SPEC) end
 * **面板上的存放方式是"一个通用字段 + 按 `spec.id` 分一层"**：`panel.bin2NpcSidebar[spec.id].button`
   （按钮上 `bin2SidebarSize` 记着量到的档）。为什么不是一个口味一个字段名：三个口味可以同时启用，
   其中两个都会往同一个面板追加图标，用"一个面板一个字段"时第二个口味会看见字段非空而以为自己装过了。
+* **面板被重新 `initialise()` 时，面板上那条记录要先作废再重装**：原版 `ISUIElement.initialise()`
+  第一件事就是 `self.children = {}`（`ISUIElement.lua:13-20`，引擎自己在那行写着
+  FIXME "need to avoid calling this method more than once"）。原版侧边栏自己不这么干，但换 HUD 的
+  第三方模组会 —— 那一刻 `panel.bin2NpcSidebar[id]` 里的按钮已经成了孤儿，若据此认定"装过了"，
+  图标会**永久消失**（`prerender` 里那道兜底被同一个陈旧引用挡住，只有整块面板被重建才能恢复）。
+  所以 hook 在 `originalInitialise` 之后先清掉**本口味这一条**再 `attach`。⚠ 不能整张表一起清：
+  两个口味同时启用时 hook 是套娃的（后装的包住先装的），外层清空整表会抹掉里层刚写好的记录，
+  里层随后又装一次 —— 同一列下面出现**两个图标**（离线用例 46 把这两条都钉住了）。
 * 两态贴图跟着窗口开关走（开着用 `On`）：hook `prerender` 里刷新一次，同时在
   该 `spec.id` 还没有按钮时补一次 `attach`（重载 Lua / 重进世界时原版面板可能已经建好了）。
 * 点击回调的签名是 `onclick(target, button)` —— **第一个参数是注册时的 target（面板）**，

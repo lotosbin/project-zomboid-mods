@@ -3450,3 +3450,54 @@ JSONL 转录（所以 `grep` 直接搜什么都搜不到，必须 `zstdcat`）�
 * 脚本的第二阶段不要再依赖"第一步之后的工作区状态"；要么把中间结果传参进去，要么只依赖 git 对象。
 * 丢文件先查**转录**（`zstdcat ... | grep`）再考虑手抄：手抄一个中文长段落是必然引入错字的动作，
   而这个仓库已经有过一次"手工转录导致 5/2 处不一致"的先例。
+
+## 2026-10-13 · v0.5.0 拆成 4 个提交推送，并把侧边栏模块交给独立审核：改 3 处、留 2 处待决
+
+需求只有一句「commit; push」。工作区里同时躺着三条不相干的线索（v0.5.0 / `63c9c92` 漏掉的
+server-ops 补记 / 两份别的项目的复盘），所以按线索拆提交；推送前把公共层新模块
+`Bin2NPCExtensionCore/Sidebar.lua` 交给一个**没有上下文**的独立 agent 审核（它自己去反汇编
+`LuaManager` 核对了"翻译文件何时加载"，也另跑了一遍三套离线测试）。
+
+推送时另有一个会话正在并发写 `docs/server-ops/`（README + 两个新文件），**没有碰它们**。
+
+### 拆成 4 个提交
+
+`4b8f5e5` feat：v0.5.0（42 文件） / `6dbbb62` docs：补记 server-ops 漏掉的那段 /
+`f8df96b` docs：暂存切分的教训与从转录恢复原文 / `e0ac041` docs：归档两份复盘。
+推送 `5f9997e..e0ac041 main -> main`。
+
+### 审核报的问题（逐条核到引擎源码才动手）
+
+* **真的，而且引擎自证**：面板被第二次 `initialise()` 时我们的图标**永久消失**。
+  `ISUIElement:initialise()` 第一件事就是 `self.children = {}`（`ISUIElement.lua:13-20`），
+  而引擎自己在那一行留着 FIXME "need to avoid calling this method more than once"。
+  我们存在面板上的按钮引用因此变成孤儿，`attach` 看见"装过了"直接返回 true。
+  **修法只能清本口味那一条**：两个口味同时启用时 hook 是套娃的，清整张表会把里层刚写好的记录
+  抹掉、里层再装一次 —— 同一列下面出现两个图标。先写用例 46 让它在**修复前失败**
+  （实测 `got 0, want 1`）再改代码。
+* **注释写错了失败机理**（比没有注释更坏）：`Core.API = 3` 的理由原本写"新版口味在文件加载期就调
+  `Config.Sidebar.install(...)`、旧公共层没这个字段会当场报错"。实际上口味只在 `install()` 里索引
+  `Config.Sidebar`，那是 `ClientBootstrap` pcall 里的**运行时**调用 —— 不升 API 才是"静默消失"；
+  升了之后是 `Core.namespace` 的 coreApi 守卫在加载期返回 nil 并打 `public layer mismatch`。
+* **日志谎报**：Yese 的 `Entry.install()` 在只有导航行装好、图标没装时也打"…and sidebar icon
+  installed"。改成按实际结果分两句（Yese 是生成物，改动回推到 `tools/fork_variant.py` 的字面量）。
+
+### 两处**没有**改，留作待决（都要动公共层契约，各自得带断言）
+
+① 两个 spec 用同一个 `id` 时公共层没有任何防护：后到者 `attach` 提前返回 true（假装装好、
+其实没按钮），且两个 NS 的 `refresh` 会交替写同一个按钮对象。当前两个 id 不同，属潜伏缺陷；
+要加防护就得先定"公共层凭什么判断这个 id 不是自己的"。
+② `install()` 用 `false` 同时表示"未就绪"与"spec 写错"：后者会被 `ClientBootstrap` 当瞬时条件
+重试满 60 次、刷 60 条 WARN，最后打出与真实原因无关的 uiHint。
+
+### 验证（全部本机复跑）
+
+`tools/test` **46/46**、`tools/test-yese` **46/46**、`tools/test-vanilla` **50/50**；
+`check_base.py`（零身份 + 3 口味互不撞车）、`extract_base.py --from-git 33f24e3`（12 文件一致）、
+`lua_syntax_check.mjs` files=36 failed=0、`fork_variant.py --check`（mod 11 / test 5）。
+
+### 未验证
+
+审核那条的触发条件（第三方 HUD 模组重跑 `initialise`）只在 mock 里复现过，**真机没测**。
+审核还指出 `workshop.txt` 为压字节把"背着的背包里的钞票也算"删成了"钱包、背包都算"
+（`Cash.lua` 没动、功能仍在）：要不要补回这句（还有 ~100 字节余量）留给作者定。

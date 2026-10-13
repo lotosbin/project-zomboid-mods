@@ -243,7 +243,12 @@ function Entry.install()
 
     if Entry.navInstalled == true then return sidebarReady end
     if installNavRow(ui) then
-        Config.always("recruit page registered; YeseMarket navigation row and sidebar icon installed")
+        -- 如实分开报：导航行装好了不代表图标装好了（上面那条 WARN 已经说了原因）
+        if sidebarReady then
+            Config.always("recruit page registered; YeseMarket navigation row and sidebar icon installed")
+        else
+            Config.always("recruit page registered; YeseMarket navigation row installed (sidebar icon pending)")
+        end
         return sidebarReady
     end
     return false

@@ -50,10 +50,11 @@ local Core = Bin2NPCExtensionCore
 --     （新口味要的 Cash.lua 在旧公共层里不存在 → 会静默变成"没有经济模组"，正是最坏的降级），
 --     所以仍然按接口变更处理：+1。
 -- 3 = 2 + 原版左侧竖排图标栏的入口模块（NS.Sidebar，Sidebar.lua）。
---     同样是"加字段"，但新版口味会**在文件加载期**就去调 `Config.Sidebar.install(...)`：
---     旧公共层上没有这个字段 ⇒ 口味自己的 client 层会当场报错，随后被 ClientBootstrap 的
---     pcall 吃掉并**放弃安装整个入口**（那是最坏的静默降级：连原来的入口也没了）。
---     所以照旧 +1，让"只更新了一半"变成一条明确的 coreApi 日志。
+--     同样是"加字段"，为什么还要 +1：**不升**的话，老公共层（没有 Sidebar 字段）会让新版口味
+--     照常加载，而口味只在 install() 里索引 `Config.Sidebar` —— 那是走 ClientBootstrap
+--     pcall 的运行时调用，失败只剩一行 WARN、入口静默消失（连口味原来那个入口也一起没了）。
+--     升到 3 后 coreApi 守卫提前生效：各口味 Profile.lua 里的 Core.namespace 直接返回 nil，
+--     加载期就打出一条明确的 "public layer mismatch"，把"只更新了一半的工坊物品"拦在前面。
 Core.API = 3
 
 -- 钱的两个实现，名字 -> 公共层文件名（Core.bind 按 NS.MONEY_KIND 取）。
