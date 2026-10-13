@@ -1021,7 +1021,20 @@ ls -d "$G"/lua/shared/Translate/*/ | wc -l                          # 语言目�
 依据:<游戏>`media/scripts/generated/recipes/recipes_disassembly.txt` 的 `DismantleLongImplement`
 (`Base.RakeHead = Base.Rake`,mapper 语义 = 产出)、`recipes_assembly.txt`(`Base.Rake = Base.RakeHead`)、
 `generated/entities/blacksmith/craftRecipes/recipes_blacksmith_heads.txt` ——
-**15 条 `Forge_*_Head` 里没有耙头**(锄头/叉头/铲头/镰刀/旧斧/手斧/镐/大锤/木斧/爪锤/羊角锤/棍锤/钉锤头/铁匠锤头/锤头都有)。
+**该文件 19 条 `craftRecipe` 里 15 条是工具头,没有耙头**(锄头/叉头/铲头/镰刀/旧斧/手斧/镐/大锤/木斧/爪锤/羊角锤/棍锤/钉锤头/铁匠锤头/锤头都有)。
+
+**"15 条"要连数法一起写**(2026-10-13 与过程改进组长互核:他按 `Forge_*_Head` 模式只数出 14,
+差 1 是数法不是事实):
+```bash
+f="…/media/scripts/generated/entities/blacksmith/craftRecipes/recipes_blacksmith_heads.txt"
+grep -oE 'craftRecipe +[A-Za-z0-9_]+' "$f" | wc -l                                   # 19 条配方
+grep -oE 'craftRecipe +[A-Za-z0-9_]+' "$f" | awk '{print $2}' | grep -icE 'head'    # 15 条工具头
+grep -oE 'craftRecipe +[A-Za-z0-9_]+' "$f" | awk '{print $2}' | grep -icE '^forge_.*_head$'  # 14
+```
+差的那条是 `forge_garden_fork_head` **全小写**(大小写敏感的 `Forge_*_Head` 只能数出 13);
+第 15 条 `ForgeMaceHead` 根本不匹配 `Forge_*_Head`。**"唯独缺耙头"这个结论对这三种数法都成立**。
+独立复核(组长,另一条路径,不在本扫描器上):全 `media/scripts` 扫 outputs 块**没有任何配方产出耙头**;
+唯一命中 `mapper:RakeHeadMapper` 经开箱是**假阳性**(产物是棒球棍/长手柄武器)。
 
 复现(扫描器侧,两只读数都来自同一份 JSON):
 ```bash
