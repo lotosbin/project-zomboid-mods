@@ -6,6 +6,8 @@ validate_recipes.py: 配方内容验证脚本
 2. 物品 ID (fullType) 在 PZ 中真实存在
 3. B41/B42 语法可被正确解析
 4. 配方字段完整(必填: time, tags, inputs, outputs)
+   注意 inputs 有三种写法:`item N [ID;ID]`(查物品表)、`item N tags[a;b]`(按标签,标签不是物品 ID,
+   只记数量)、`fluid N ...`(流体)—— 只认第一种会把"整条配方只用标签输入"误判成"缺 inputs"。
 5. 关键经验: 设计三原则(真实性/合理性/可行性)
 
 用法:
@@ -212,12 +214,24 @@ def parse_b42_recipe(body: str) -> Dict:
     in_block = re.search(r'inputs\s*\{(.*?)\}', body, re.DOTALL)
     if in_block:
         for line in in_block.group(1).split('\n'):
-            m = re.search(r'item\s+(\d+)\s+\[([\w\.;]+)\]', line.strip())
+            s = line.strip()
+            m = re.search(r'item\s+(\d+)\s+\[([\w\.;]+)\]', s)
             if m:
                 for sub in m.group(2).split(';'):
                     sub = sub.strip()
                     if sub:
                         info['inputs'].append({'count': int(m.group(1)), 'item': sub})
+                continue
+            # `item N tags[a;b]`:按标签给的输入,引擎同样认可。标签不是物品 ID,所以只记数量、
+            # 不查物品表 —— 否则"整条配方只用标签输入"会被误判成"缺 inputs"。
+            m = re.search(r'item\s+(\d+)\s+tags\[', s)
+            if m:
+                info['inputs'].append({'count': int(m.group(1)), 'item': None, 'kind': 'tag'})
+                continue
+            # `fluid N [..]` / `fluid N categories[..]`:流体输入
+            m = re.search(r'fluid\s+([\d.]+)', s)
+            if m:
+                info['inputs'].append({'count': float(m.group(1)), 'item': None, 'kind': 'fluid'})
 
     # outputs 块
     out_block = re.search(r'outputs\s*\{(.*?)\}', body, re.DOTALL)
@@ -276,9 +290,9 @@ def validate_recipe_file(path: str, known_items: Set[str]) -> List[str]:
         if not info['outputs']:
             errors.append(f"  [Recipe '{info['id']}'] 缺 outputs")
 
-        # 检查 2: 物品存在性
+        # 检查 2: 物品存在性(tag / fluid 输入没有物品 ID,跳过)
         for inp in info['inputs']:
-            if inp['item'] not in known_items:
+            if inp['item'] and inp['item'] not in known_items:
                 errors.append(f"  [Recipe '{info['id']}'] INPUT '{inp['item']}' 不在 PZ 物品表中")
         for out in info['outputs']:
             if out['item'] not in known_items:

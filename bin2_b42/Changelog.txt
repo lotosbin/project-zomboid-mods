@@ -3,6 +3,20 @@ link1 = GitHub = https://github.com/lotosbin/project-zomboid-mods,
 link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotosbin,
 [ ------ ]
 
+[ 10/13/2026 ]
+版本 1.7.1 (2026-10-13)
+- 新增: Bin2ForgeRakeHead 锻造耙头 —— 4 个 1/4 铁条 + 5 木炭 + 铁匠锤 + 夹钳 + 金属加工凿 → 1 耙头 (锻造 7 级)
+  - 依据: 原版把锄头 / 铁铲 / 丁字镐 / 镰刀 / 手镰刀 / 各种斧头与锤头都做成了锻造配方,唯独没有耙头;
+    耙头 (Base.RakeHead) 只能搜刮,或拆掉整把耙子得到 (原版 DismantleLongImplement),没有任何从材料做出的路径
+  - 档位: 只需 PrimitiveForge (任意锻造炉),与原版同级工具头一致 (丁字镐那类才要 AdvancedForge 高级炉)
+  - 工具: 铁匠锤 / 夹钳 / 金属加工凿 全部 mode:keep,做完原样保留,只消耗 1/4 铁条与木炭
+  - 安全: 不构成材料泵 —— 4 个 1/4 铁条就是原版 1 整根铁条 (Cut_Iron_Bar_Quarters),它们回炉得 4 铁块,
+    而耙头回炉只有 2 铁块 (base:smeltableironmedium),净亏
+  - 只锻头不锻整耙: 原版装配配方已能"耙头 + 长棍 + 锤子 + 小刀 → 耙子",本模组不重复实现
+- 刻意不加 NeedToBeLearn: 原版同类配方靠按配方名白名单授予 (职业/特质 GrantedRecipes、锻造书 LearnedRecipes),
+  模组配方名不在名单里,加上它就变成只有开了"自动学会全部配方"的档位才认识它,7 级自然做不出来
+- 校验: recipe_probe 用游戏自带解析器离线解析全部 12 条配方 = ALL RECIPES PARSED (退出码 0)
+
 [ 10/12/2026 ]
 版本 1.7.0 (2026-10-12)
 - 新增: 5 条配方,补齐原版"配方在消耗、却没有任何从材料做出它们"的材料

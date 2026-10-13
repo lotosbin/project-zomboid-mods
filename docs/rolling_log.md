@@ -3501,3 +3501,52 @@ server-ops 补记 / 两份别的项目的复盘），所以按线索拆提交；
 审核那条的触发条件（第三方 HUD 模组重跑 `initialise`）只在 mock 里复现过，**真机没测**。
 审核还指出 `workshop.txt` 为压字节把"背着的背包里的钞票也算"删成了"钱包、背包都算"
 （`Cash.lua` 没动、功能仍在）：要不要补回这句（还有 ~100 字节余量）留给作者定。
+
+## 2026-10-13 · 锻造耙头落地（1.7.1）：一条社区建议走完「判据 → 实现 → 发布准备」
+
+来源：QQ 频道建议（采集面 `B_be93cd6ab3f609001441152191160838140X60`）——"能不能锻造耙头"。
+判据（`docs/社区建议/README.md`）：原版把锄头 / 铁铲 / 丁字镐 / 镰刀 / 各种斧头与锤头都做成了锻造配方，
+**唯独没有耙头**，符合"原版缺路径"⇒ 判"接"并直接实现；**发布等 @human**（账本那行 `已采纳`，`3ae2b52`）。
+
+**配方**（`42.19.0/media/scripts/recipes/bin2_Recipes.txt` 的 `Bin2ForgeRakeHead`）：
+4 个 1/4 铁条（`tags[base:barstockquarter]`）+ 5 木炭 + 铁匠锤 + 夹钳 + 金属加工凿 → 1 耙头；
+`time=500, SkillRequired=Blacksmith:7, timedAction=HammerMetalStanding, xpAward=Blacksmith:70,
+Tags=PrimitiveForge, category=Tools`，三个工具位一律 `mode:keep`。译名「锻造耙头」写进
+`Translate/CN/Recipes.json`（**裸配方名做键**，无 `Recipe_` 前缀 —— 原版同一文件也是裸键，B41 才有前缀）。
+
+**三处按原版校准了最初的想法**（每条都是一行可改）：
+① 加 `base:metalworkingpunch`（`recipes_blacksmith_heads.txt` 里 18/19 条同类都要它）；
+② 用 `PrimitiveForge` 而不是 `AdvancedForge`（锄头/铁铲/镰刀都在任意炉，只有丁字镐那类要高级炉）；
+③ **不加 `NeedToBeLearn`** —— 原版同类配方靠**配方名白名单**授予（职业/特质 `GrantedRecipes`、
+锻造书 `LearnedRecipes`），模组配方名不在名单里，加了就只剩"自动学会全部配方"那一档认识它，7 级反而做不出来。
+
+**只锻头不锻整耙**：原版装配配方已吃 `[GardenHoeHead;RakeHead;ScytheBlade;SpadeHead;…]` + 长棍 + 锤子 + 小刀
+（`recipes_assembly.txt:81`，第 91 行 `Base.Rake = Base.RakeHead`），不重复实现。耙头在原版只能搜刮、
+或拆掉整把耙子（`DismantleLongImplement`）—— 全库 `grep 'Base.RakeHead'` 没有任何**产出**它的配方，
+只有拆解/装配/焊接在消耗它。
+
+**材料泵等式**（按 `ExtractIronFromSmallItem` / `ExtractIronFromMediumItem` 核）：4 个 1/4 铁条就是
+1 整根铁条（`Cut_Iron_Bar_Quarters`），回炉得 4 铁块；耙头自己带 `base:smeltableironmedium`，回炉只有
+2 铁块 ⇒ 净亏，不构成循环。
+
+**发布准备（1.7.1，@human 2026-10-13 17:13 决定"单独发"）**：`42.19.0/mod.info` 改 `modversion=1.7.1`；
+两份 `Changelog.txt` 各加 `[ 10/13/2026 ]` 版本 1.7.1 段；`workshop.txt` 版本行改 v1.7.1、配方清单加一行、
+再加一段"原版唯独没有耙头"的说明（**这次上传会顺带覆盖线上那份还写着"炖锅/火钳/凿子"的旧描述**）；
+模组 `README.md` 加一行。
+
+**校验（本机跑过，带退出码）**：`bin2_b42/tools/recipe_probe/run.sh` → 12 条全 `OK`、`ALL RECIPES PARSED`、
+**退出码 0**（唯一 3 条 `!! UNKNOWN fullType` 是 `LabItems.*`，来自依赖模组 `ZVirusVaccine42BETA`，属预期）；
+`bin2_b42/tools/modinfo_probe/run.sh` → `bin2_extension 1.7.1` 在 42.21 可用 / 42.20 不可用、`ALL MOD.INFO OK`；
+`python3 -m mod_dependency_analyzer.validate_recipes --root ./bin2_b42` → 全部通过。
+
+**顺手修了校验器的一个假阳性**：`mod_dependency_analyzer/validate_recipes.py` 的 inputs 解析只认
+`item N [ID;ID]`，于是"整条配方只用 `tags[…]` 输入"的 `Bin2ForgeRakeHead` 被判 **缺 inputs** ——
+而引擎探针明明读到 5 个 item 输入。现在 `tags[…]` 与 `fluid …` 也记数量（标签不是物品 ID，故跳过物品表检查），
+合成用例自测过：假物品 ID 仍被抓、纯 tag 输入不再误报。
+
+**上传通路（要人来做）**：`~/Zomboid/Workshop/bin2_b42` 早已软链到仓库工作区，游戏内工坊上传界面读的就是这份，
+改完文件不必另拷一份。**上传本身（Steam 账号 + 游戏内向导）是 @human 的动作**，本地只做到"文件就绪 + 校验通过"。
+
+**未验证**：进游戏实测这条配方（锻造面板里能不能选中、`HammerMetalStanding` 动画与 500 的时长对不对）——
+需要真人开机；线上仍是 1.7.0，上传后要回读 `appworkshop_108600.acf` 的 `timeupdated` 与已发布副本的
+`mod.info` 才能说"线上是 1.7.1"。
