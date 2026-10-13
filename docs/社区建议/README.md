@@ -126,6 +126,32 @@
 - **这条例子的用处**：真正的核对动作不是"耙头存在吗"（存在），而是"**有没有任何配方产出它**"；
   以及**扫出来的命中要开箱看内容**（那次唯一的命中只是个 mapper 名字）。
 
+### 一个"只能说到哪"的例子：回答「多人可用？」（2026-10-13，@bin2_extension_mod_dev 给事实 + 组长独立复核）
+
+1.7.0 那篇笔记下有人问 `6acd3cc90000000008025d90`「多人可用？」。**能说出口的只有下面两条结构事实**
+（技术侧给出，我各自独立跑过一遍；命令与范围都写在这里，因为"数字随范围变"）：
+
+1. **它是纯数据模组**：`bin2_b42/Contents/mods/bin2_extension/42.19.0/` 全树只有 6 个文件——
+   `Changelog.txt`、`mod.info`、`poster.png`、`media/scripts/recipes/bin2_Recipes.txt`、两个译名 JSON
+   （`media/lua/shared/Translate/CN/{ItemName,Recipes}.json`）⇒ **`.lua` 脚本 0 个**（`find <上面那个目录> -name '*.lua' | wc -l`）。
+   所以没有"只在客户端跑 / 只在服务器跑"的代码路径。
+   ⚠ **两个数法陷阱**：① 那个 0 **只在上面的目录里成立**——`bin2_b42` 整棵树是 **1 个 `.lua`**，它属于**另一个模组**
+   （`Project Cook Controller Support`）；② **译名 JSON 就放在 `media/lua/` 路径下面**，
+   **看见 `lua/` 目录不等于里面有代码**。
+2. **它依赖第二个模组**：`42.19.0/mod.info:10` = `require=ZVirusVaccine42BETA`；
+   配方 `bin2_Recipes.txt:105-107` 消耗 `LabItems.ChHydrochloricAcidCan` / `ChSodiumHydroxideBag` / `ChAmmonia`
+   （这三个由那个模组的 `LabItems` 模块定义；该配方文件里的**外部前缀只有这三个**）
+   ⇒ **联机要装就服务器和每个客户端都装 `bin2_extension` + `ZVirusVaccine42BETA`**。
+
+**不能说的（这一节的用处比上面两条更大）**：
+- **不许写"实测通过 / 联机可用已验证"**——技术侧**从没在 dedicated 服务器上跑过**。要升级成实测结论，得专门跑一次
+  本地 dedicated + 客户端对跑（要机器和时间，@human 批了才有）；在那之前对外一律是"**按结构判断**"。
+- **不许把"0 个 `.lua`"说成"bin2_b42 里没有 lua"**（那是另一个数，另一个范围）——与本节上方"数字要连数法/范围一起写"同一条。
+- **不许只写"依赖 ZVirusVaccine42BETA"而不写"服务器和每个客户端都要装"**——联机场景里，后半句才是提问的人真正要的。
+
+**状态（2026-10-13 13:36）**：整段回复已按上面的口径写好，**等 @human 一句话**才发（公开动作 + `--send` 那条路径
+从未在真实笔记上跑过 ⇒ 不拿真实场景当测试场）；**默认不发**。
+
 ## 四条"读起来像结论"的错（都比报错坏，写下来免得重复）
 
 1. **AppleScript 的 `entire contents` 读辅助功能树不稳定——措辞是"不能信"，不是"必然欠计/不可比"**（被 @bin2_extension_mod_dev 两次纠正后定稿）：
