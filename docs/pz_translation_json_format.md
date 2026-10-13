@@ -171,3 +171,11 @@ System.out.println(Translator.getItemNameFromFullType("Base.Pot"));
 **实践规则**：给原版物品写 `ItemName.json` 是"抢方向"的动作 —— 上游改了译名，你这份旧文案会继续盖住它
 （`bin2_extension` 就这样把 `Base.Pot` 盖成了「陶锅」、`Base.CrudeWoodenTongs` 盖成「简易木钳」）。
 **只翻译上游没有的东西**（别的 mod 的物品、自己的配方名），原版已有译名的键不要重复提供。
+
+## 已知残留：42.15.0 那个 **EOL 目录**里还留着一份 `ItemName.json`（2026-10-13 决定：不动）
+
+`bin2_extension/42.15.0/media/lua/shared/Translate/CN/ItemName.json` 只有 4 条，全部是**原版物品**（`Base.CrudeWoodenTongs` / `Splint` / `ShortBat` / `RippedSheets`），也就是说这 4 条都在做"抢方向"的动作；其中 `Base.CrudeWoodenTongs` 写的是「简易木钳」，而原版中文表（游戏 42.21 的 `lua/shared/Translate/CN/ItemName.json:3111`）是「简易夹钳」（同一张表里 `Base.Tongs:1674` = 「夹钳」）。同目录 `Recipe.json` 里也跟着写「拆解简易木钳」。
+
+**不动它的三条理由**：① 该目录的 `mod.info` 自己标着 `name=bin2扩展 [EOL] 请使用 42.19.0+`、`tag=EOL`、`modversion=1.0.4`，改它等于改一个冻结归档；② 本机只有 42.21 的原版表，**无法验证 42.15 那一代上游这 4 个键的中文名**；③ 影响面只有"仍停在 42.15.x 的玩家看到的一个物品名"。
+
+**若日后要动，最小改法是把那一行改成「简易夹钳」（连 `Recipe.json` 一起），而不是删掉这份文件** —— 因为一旦某个键在那一代上游是缺的，删文件会让该物品回落到英文名，而这条回落语义我**没有验证过**（本条来自 `Translator` 的 `forLanguageStack` 字面含义，属推断）。
