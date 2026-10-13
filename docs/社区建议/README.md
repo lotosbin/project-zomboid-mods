@@ -439,7 +439,7 @@
 | 日期 | 渠道 | 问题（原文摘要） | 出处 | 类型 | 已知答复 |
 |---|---|---|---|---|---|
 | 2026-10-13 | 小红书 | 「多人可用？」（1.7.0 那篇笔记下） | 笔记（1.7.0 篇）＋ 评论 id `6acd3cc90000000008025d90` ＋ 首句「多人可用？」 | 兼容 | **草稿已写好、只用两条可核结构事实**（见下方备忘）；**等 @human 一句话**才发，默认不发 |
-| 2026-10-13 | B 站 | 「EHR 的中文依然不显示是什么原因呢」（其下有人回"需要放到统一汉化模组之后"） | 视频 `BV1DvAVz2EpZ`（aid `116256527091707`）评论区 | 安装与汉化 | **⚠ 已修订（2026-10-13 15:5x，方向反过一次）**：`bin2_extensive_health_rework/Contents/mods/Extensive Health Rework/` 下 `42.15/mod.info` = `modversion=1.1.4`、`versionMin=42.15.0`、**第 9 行有** `loadModAfter=\B42ModTrans_CN,\B42Trans_CN_Simple`； `42/mod.info` = `1.1.3`、`versionMin=42.0.0`、**没有这一行**。**而"对外当前版"是 `42.15/` 那一支**—— `workshop.txt:5` 自己写着「EHR_CN **v1.1.4**，versionMin 42.15.0」；全仓库带 `loadModAfter` 的 **7 个 `mod.info` 全在 42.15+ 分支**（42.15 / 42.19.0 / 42.20 / 42.21），**没有一个裸 `42/` 用它**； `Changelog.txt` 也印证分层（42.15+ 改用 JSON 译名，`.txt` 是旧格式）。 ⇒ **"缺这一行"发生在旧分支上，现代玩家走的是已经有这行的那一支 ⇒ 用它解释那条「中文不显示」的因果链更弱。** **下一步不是加那行，而是先验"这台机器/这些玩家实际加载哪个分支"**（另见本节末尾那条**外部报告**：要留意的是**带这个字段的那一侧**，不是没带的一侧）（本地装一次，看 Mods 界面/日志是 1.1.3 还是 1.1.4）——**这一步没人跑过**。 读数：@哔哩哔哩运营 读两个 `mod.info`（2026-10-13 **15:2x，第一手**）；方向由 @bin2_extension_mod_dev 的 `workshop.txt` / `Changelog.txt` / 全仓库 7 个 `mod.info` 读数定（15:53）；@过程改进组长 **独立复核以上全部读数并订正方向**（15:5x）／**已知答复 = 未答**（按规矩：这一格只记"答没答"；而且**现在没有可核的原因可答**）／**已转出 → @human**：要不要验、要不要修、谁修（`git log` 里该目录 14 次提交全部出自仓库所有者 `lotosbin`，**没有登记责任人**；转出即止，本表不记"修没修"） |
+| 2026-10-13 | B 站 | 「EHR 的中文依然不显示是什么原因呢」（其下有人回"需要放到统一汉化模组之后"） | 视频 `BV1DvAVz2EpZ`（aid `116256527091707`）评论区 | 安装与汉化 | **⚠ 已修订（2026-10-13 15:5x，方向反过一次）**：`bin2_extensive_health_rework/Contents/mods/Extensive Health Rework/` 下 `42.15/mod.info` = `modversion=1.1.4`、`versionMin=42.15.0`、**第 9 行有** `loadModAfter=\B42ModTrans_CN,\B42Trans_CN_Simple`； `42/mod.info` = `1.1.3`、`versionMin=42.0.0`、**没有这一行**。**而"对外当前版"是 `42.15/` 那一支**—— `bin2_extensive_health_rework/workshop.txt:5` 自己写着「EHR_CN **v1.1.4**，versionMin 42.15.0」（⚠ **这个 `workshop.txt` 在模组根目录，不在 `42/` 或 `42.15/` 里**——照目录名去找会扑空，@bin2_extension_mod_dev 第一遍就扑空了）；全仓库带 `loadModAfter` 的 **7 个 `mod.info` 全在 42.15+ 分支**（42.15 / 42.19.0 / 42.20 / 42.21），**没有一个裸 `42/` 用它**； `Changelog.txt` 也印证分层（42.15+ 改用 JSON 译名，`.txt` 是旧格式）。 ⇒ **"缺这一行"发生在旧分支上，现代玩家走的是已经有这行的那一支 ⇒ 用它解释那条「中文不显示」的因果链更弱。** **下一步不是加那行，而是先验"这台机器/这些玩家实际加载哪个分支"**（另见本节末尾那条**外部报告**：要留意的是**带这个字段的那一侧**，不是没带的一侧）（本地装一次，看 Mods 界面/日志是 1.1.3 还是 1.1.4）——**这一步没人跑过**。 读数：@哔哩哔哩运营 读两个 `mod.info`（2026-10-13 **15:2x，第一手**）；方向由 @bin2_extension_mod_dev 的 `bin2_extensive_health_rework/workshop.txt:5` / `Changelog.txt` / 全仓库 7 个 `mod.info` 读数定（15:53）；@过程改进组长 **独立复核以上全部读数并订正方向**（15:5x）／**已知答复 = 未答**（按规矩：这一格只记"答没答"；而且**现在没有可核的原因可答**）／**已转出 → @human**：要不要验、要不要修、谁修（`git log` 里该目录 14 次提交全部出自仓库所有者 `lotosbin`，**没有登记责任人**；转出即止，本表不记"修没修"） |
 
 - **收录范围（2026-10-13 补，很重要）**：**只收"问的是我们自己的模组/补丁"的**。
   挂在**第三方模组**视频/帖子下面的提问**不进这张表**（2026-10-13 那 71 条里绝大多数是这类——它们是"这个面在给谁导流"的观察，
@@ -494,6 +494,12 @@
   `bin2_npc_extension/…/{Bin2NPCExtension,Bin2NPCExtensionVanilla,Bin2NPCExtensionYese}/42.21`、
   `bin2_ProjectALifeNPCs_extensions/…/ALifeStartWithNPC/42.20`、`bin2_tikitown/…/{bin2_tikitown_cn,bin2_tikitown_powerplant_cn}/42.19.0`。
   **`bin2_extension` 自己不用这个字段。**
+- **可复算（2026-10-13 15:5x，技术侧与我各自跑过，输出一致）**：
+  ```bash
+  grep -rl 'loadModAfter' --include=mod.info .            # → 7 个，全在 42.15 / 42.19.0 / 42.20 / 42.21
+  sed -n '5p' bin2_extensive_health_rework/workshop.txt  # → 「…（EHR_CN v1.1.4，versionMin 42.15.0）」（在模组根目录，别去版本子目录找）
+  grep -rn 'loadModAfter\|loadModBefore' bin2_b42/Contents/mods/bin2_extension/   # → 0 命中
+  ```
 - **要把它从"报告"升级成"读数"，最便宜的一次**：本机 `mods` 目录放一个带该字段的模组（现成的就有，EHR_CN 自己就是），
   点一次 `Mod Order → Auto`，看它是否消失——**需要在机器上的人批一次时间**；不做也不影响现在的"默认不动"。
 
