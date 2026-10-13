@@ -139,7 +139,8 @@
    （`Project Cook Controller Support`）；② **译名 JSON 就放在 `media/lua/` 路径下面**，
    **看见 `lua/` 目录不等于里面有代码**。
 2. **它依赖第二个模组**：`42.19.0/mod.info:10` = `require=ZVirusVaccine42BETA`；
-   配方 `bin2_Recipes.txt:105-107` 消耗 `LabItems.ChHydrochloricAcidCan` / `ChSodiumHydroxideBag` / `ChAmmonia`
+   配方 `bin2_Recipes.txt:95` **`Bin2MakeEpoxy`**（产物 `item 2 Base.Epoxy`，第 111 行）的 `inputs` 第 105-107 行消耗
+   `LabItems.ChHydrochloricAcidCan` / `ChSodiumHydroxideBag` / `ChAmmonia`
    （这三个由那个模组的 `LabItems` 模块定义；该配方文件里的**外部前缀只有这三个**）
    ⇒ **联机要装就服务器和每个客户端都装 `bin2_extension` + `ZVirusVaccine42BETA`**。
 
