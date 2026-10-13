@@ -13,7 +13,7 @@
 | 地址 | `110.42.14.5` | 需求方口头指定 |
 | 游戏端口 | `21217`（UDP） | 需求方指定 + Steam 主服务器登记一致 |
 | Steam AppID | `108600`（Project Zomboid） | Steam 主服务器查询，见 §2 |
-| SteamID | `90294690668413958` | 同上 |
+| SteamID | **不是固定身份**，见 §2.2 | 同上 |
 | gamedir | `zomboid` | 同上 |
 | VAC | `secure: true` | 同上 |
 | KOOK 语音/接待频道 | https://kook.vip/PiOoHJ | 需求方指定 |
@@ -37,7 +37,7 @@ scripts/check_server_online.sh <ip>:<port>  # 查别的地址
 
 ```bash
 curl -s "https://api.steampowered.com/ISteamApps/GetServersAtAddress/v1/?addr=110.42.14.5:21217"
-# {"response":{"success":true,"servers":[{"addr":"110.42.14.5:21217","steamid":"90294690668413958",
+# {"response":{"success":true,"servers":[{"addr":"110.42.14.5:21217","steamid":"<每次会话可能不同>",
 #  "appid":108600,"gamedir":"zomboid","region":-1,"secure":true,"lan":false,
 #  "gameport":21217,"specport":0}]}}
 ```
@@ -47,6 +47,21 @@ curl -s "https://api.steampowered.com/ISteamApps/GetServersAtAddress/v1/?addr=11
 - 它读的是 Steam 主服务器的登记表，服务器掉线后**不会立刻**从表里消失，延迟未知。
 - 它**不返回**在线人数、地图、模组列表。要看这些必须走 §4 的凭据通道。
 - 它只能证明「这台机器在 Steam 上登记为 PZ 服务器」，**不能**证明玩家此刻进得去。
+
+### 2.2 `steamid` 不是固定身份（2026-10-13 实测，同一个地址两个值）
+
+| 读数时刻 | `steamid` | 采样 |
+| --- | --- | --- |
+| 2026-10-13 07:47–07:50 | `90294690668413958` | 4 次，值一致 |
+| 2026-10-13 20:09 | `90294719523630086` | 4 次，值一致 |
+
+地址、端口、AppID、`secure` 全程没变，**只有 `steamid` 变了**，且每个时刻内部稳定。
+
+- **不要**把 `steamid` 当成服务器身份写进任何文档或对外文案——它会在会话之间变。
+  （本文档 20:07 那一版把它当固定值写进了 §1，20:10 已改掉。）
+- **推测（未证实）**：它随服务器进程重新注册而变，因此**可能**是一条免凭据的"服务器重启过"信号。
+  目前只有两个时刻的观测，中间隔了 12 小时，无法区分"重启一次"和"重启多次"。
+  要坐实需要**盯一次已知的重启**（重启前后各采几次），在那之前只能当候选信号，不能拿去判断可用性。
 
 ### 2.1 试过但不可用的手段
 
