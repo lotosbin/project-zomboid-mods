@@ -960,6 +960,41 @@ javap -p -c -cp "$WD" zombie.entity.components.crafting.recipe.CraftRecipeManage
   | sed -n '/consumeInputFluidInternal/,/^$/p'      # 看 removeFluid 前后
 ```
 
+### 14.12 用翻译文件当"配方考古"的线索:甜菜→糖 这条链原版没做完
+
+14.1 的扫描只能证明"**今天**没有配方能产出它"。要证明"这是原版没做完,而不是设计如此",
+有一条**独立于脚本**的旁证:**翻译文件里还留着配方的名字,而脚本里已经没有那条配方**。
+
+实测(B42 42.21,`media/lua/shared/Translate/*/Recipes.json`,28 种语言都有这几个键):
+
+| 配方键(只有译名,没有脚本) | 游戏内中文名 |
+|---|---|
+| `PulpSugarBeets` | 压榨甜菜 |
+| `StrainCookedSugarBeetPulp` | 过滤煮熟的甜菜渣 |
+| `CollectSugarBeetSugar` | 收集甜菜糖 |
+
+同一层的两个中间物品也只剩定义、没人引用:`Base.SugarBeetPulpPot`(甜菜渣锅)、
+`Base.SugarBeetSyrupPot`(甜菜糖浆锅)——**没有任何 `inputs`/`outputs`/`itemMapper`/`evolvedrecipe` 提到它们**。
+
+于是整条链的现状是:`base:sugar` 五个成员(`Sugar` 糖 / `SugarBrown` 红糖 / `SugarPacket` 小袋糖 /
+`SugarCubes` 方糖 / `SugarBeetSugarPot` 蒸煮锅(甜菜糖))**没有一个能造出来**,而 7 条烘焙配方
+(蛋糕面糊、各种饼干面团……)靠 `tags[base:sugar]` 取糖;方糖与"蒸煮锅(甜菜糖)"连拆家具/采集都查不到
+(方糖在战利品表里出现)。也就是说 **甜菜→渣→糖浆→糖 这条链在 42.21 只剩名字**。
+
+核对命令(注意:**配方名要精确匹配**,用包含判断会把 `Recipes.json` 里的别的键也命中):
+
+```bash
+G="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/media"
+for n in CollectSugarBeetSugar PulpSugarBeets StrainCookedSugarBeetPulp; do
+  grep -rl "$n" "$G/scripts" "$G/lua" | grep -v /Translate/    # 期望:无输出
+done
+```
+
+**方法上的意义**:翻译文件是**比脚本更慢变的一层**。脚本里"找不到"有两种可能——设计如此,或者
+做了又删/没做完;而译名残留能把后者挑出来。以后遇到"某物品没有产出路径",除了扫脚本,
+值得再查一遍它的**译名键**在不在(在 = 原版曾经有这条配方,补它属于"补完原版"而非"加私货")。
+注意这只是**旁证**,不能单独下结论(译名也可能是废弃文案),要和 14.1 的扫描一起看。
+
 ---
 
 ## 15. 参考链接(真实引用地址)
