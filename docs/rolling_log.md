@@ -3522,7 +3522,7 @@ Tags=PrimitiveForge, category=Tools`，三个工具位一律 `mode:keep`。译�
 
 **只锻头不锻整耙**：原版装配配方已吃 `[GardenHoeHead;RakeHead;ScytheBlade;SpadeHead;…]` + 长棍 + 锤子 + 小刀
 （`recipes_assembly.txt:81`，第 91 行 `Base.Rake = Base.RakeHead`），不重复实现。耙头在原版只能搜刮、
-或拆掉整把耙子（`DismantleLongImplement`）—— 全库 `grep 'Base.RakeHead'` 没有任何**产出**它的配方，
+或拆掉整把钉耙（`Base.Rake`，`DismantleLongImplement`）—— 全库 `grep 'Base.RakeHead'` 没有任何**产出**它的配方，
 只有拆解/装配/焊接在消耗它。
 
 **材料泵等式**（按 `ExtractIronFromSmallItem` / `ExtractIronFromMediumItem` 核）：4 个 1/4 铁条就是
@@ -3564,5 +3564,7 @@ Tags=PrimitiveForge, category=Tools`，三个工具位一律 `mode:keep`。译�
 带的是 `base:metalworkingchisel`，**不接受**）。是我照抄圆锯片/手锯条的工具清单造成的 —— 那两条要的确实是凿。
 已改 `workshop.txt`（两处）、两份 `Changelog.txt`、模组 `README.md`、本文档 14.13，并在 14.13 写下"只能查 tag 不能靠印象"。
 **线上那版描述仍带着这个错名**，要覆盖得再上传一次（@human 的动作，传不传他定）；三个渠道的稿子已按「金属加工冲头」改。
+
+**同一处还有第二个用词问题（@哔哩哔哩运营 提的装配那一步）**：查 `ItemName.json` —— 装配材料是 `Base.LongStick` = **长棍**（我写的对），成品是 `Base.Rake` = **钉耙**（我写成了「耙子」，已改成游戏内名）；而 `Base.LongHandle_RakeHead` 的中文名是「**长手柄 (耙头)**」，那是**武器**（耙头装长手柄），**不是装配材料**，三者别混。
 
 **未验证**：进游戏实测这条配方（锻造面板里能不能选中、`HammerMetalStanding` 动画与 500 的时长对不对）——需要真人开机。
