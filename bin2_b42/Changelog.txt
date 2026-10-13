@@ -4,6 +4,26 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ ------ ]
 
 [ 10/13/2026 ]
+版本 1.7.2 (2026-10-13)
+- 修复: 删除本模组自带的 ItemName.json —— 它把两件原版物品的中文名改错了
+  - 引擎语义: 翻译表是"先加载原版、再加载各 mod,同键后到的覆盖先到的"(Translator 的
+    tryFillMapFromFile 在 containsKey 之后仍然 put;loadFiles 里原版目录先填、mod 目录后填),
+    所以本模组那份"重复的原版译名"一直在生效 —— 字节码层面确认,未在游戏内实测
+  - 实际错的两条: Base.Pot 被改成「陶锅」(原版是「蒸煮锅」)、Base.CrudeWoodenTongs 被改成
+    「简易木钳」(原版是「简易夹钳」)。另外 20 条与原版逐字相同(冗余)、3 条 LabItems.* 与依赖模组
+    ZVirusVaccine42BETA 自带的中文名相同(冗余)
+  - 现在物品名一律来自原版/依赖模组,本模组只保留配方名的翻译(Recipes.json)。这样也避免了
+    "上游改了译名、我们这份旧文案继续盖住"的隐患
+- 修正: 公开文案里的物品名统一改成游戏内名称(1.7.1 那批写错的地方)
+  - 耙头配方要的第三件工具是「金属加工冲头」(Base.MetalworkingPunch),1.7.1 文案误写成「金属加工凿」
+    (Base.MetalworkingChisel,那是圆锯片/手锯条要的,两件物品 Tag 不同)
+  - 装配出来的成品是「钉耙」(Base.Rake),此前文案写成"耙子";装配材料是「长棍」(Base.LongStick)
+  - 1.7.0 那批: 「螺母螺栓」应为「螺母与螺栓」、「简易木钳」应为「简易夹钳」、骨头写明是
+    动物骨头/大型动物骨头/小动物骨头、金属料写明是铁块/钢块/铁废料/钢废料/铁片/钢片
+- 校验: recipe_probe 用游戏自带解析器离线解析全部 12 条配方 = ALL RECIPES PARSED (退出码 0);
+  modinfo_probe 在 42.21 可用 / 42.20 不可用;validate_recipes 全部通过
+
+[ 10/13/2026 ]
 版本 1.7.1 (2026-10-13)
 - 新增: Bin2ForgeRakeHead 锻造耙头 —— 4 个 1/4 铁条 + 5 木炭 + 铁匠锤 + 夹钳 + 金属加工冲头 → 1 耙头 (锻造 7 级)
   - 依据: 原版把锄头 / 铁铲 / 丁字镐 / 镰刀 / 手镰刀 / 各种斧头与锤头都做成了锻造配方,唯独没有耙头;
@@ -23,20 +43,20 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 版本 1.7.0 (2026-10-12)
 - 新增: 5 条配方,补齐原版"配方在消耗、却没有任何从材料做出它们"的材料
   (严格说螺丝有 OpenBox100 开箱一条,但那是战利品转换,不是从材料生产)
-  - Bin2MakeGlue 熬制胶水: 2 骨头 + 1 锅具 + 1 升水 → 2 胶水 (烹饪 2 级)
-  - Bin2MakeNutsBolts 制作螺母螺栓: 1 木炭 + 1 金属块/废料/金属片 + 锤子 + 金属加工钳或夹钳 → 6 螺母螺栓 (金工 1 级)
-  - Bin2MakeScrews 制作螺丝: 1 木炭 + 1 金属块/废料/金属片 + 锤子 + 金属加工钳或夹钳 → 6 螺丝 (金工 1 级)
+  - Bin2MakeGlue 熬制胶水: 2 骨头(动物骨头 / 大型动物骨头 / 小动物骨头 任选) + 1 锅具 + 1 升水 → 2 胶水 (烹饪 2 级)
+  - Bin2MakeNutsBolts 制作螺母与螺栓: 1 木炭 + 1 铁块/钢块/铁废料/钢废料/铁片/钢片(任选) + 锤子 + 金属加工钳或夹钳 → 6 螺母与螺栓 (金工 1 级)
+  - Bin2MakeScrews 制作螺丝: 1 木炭 + 1 铁块/钢块/铁废料/钢废料/铁片/钢片(任选) + 锤子 + 金属加工钳或夹钳 → 6 螺丝 (金工 1 级)
   - Bin2MakeCircularSawblade 制作圆锯片: 2 木炭 + 1 金属板 + 锤子 + 金属加工凿 + 金属加工钳或夹钳 → 1 圆锯片 (金工 2 级)
   - Bin2MakeHacksawBlade 制作手锯条: 1 木炭 + 1 小金属板 + 锤子 + 金属加工凿 → 2 手锯条 (金工 2 级)
   - 锅具 / 锤子(羊角锤·铁匠锤·圆头锤等) / 金属加工凿 / 金属加工钳或夹钳 制作后原样保留,只消耗材料本身
 - 依据: 用新工具 bin2_b42/tools/recipe_gap 扫描 Build 42.21 全部 969 条原版 craftRecipe,
   再算上 itemMapper 映射产出 / evolvedrecipe / 拆家具与采集来源,找出"被配方当材料消耗、
   但没有任何制作途径"的物品。这些物品的数量远超预期:
-  螺母螺栓 被 33 条配方消耗、圆锯片 11 条、螺丝 10 条、胶水 9 条、手锯条 3 条、小手锯条 3 条
+  螺母与螺栓 被 33 条配方消耗、圆锯片 11 条、螺丝 10 条、胶水 9 条、手锯条 3 条、小手锯条 3 条
 - 刻意不做: 小手锯条 (与手锯条重复,且都能回炉)、纽扣 (骨珠可替代)、
   武器刀刃 (KillerBlades / *_NoTang,会破坏锻造平衡)、火柴打火机 (属于搜刮设计)、
   鱼 / 电子 / 带状态物品 (CandleLit、MetalPipe_Broken 等,不是"缺配方"而是设计如此)
-- 安全性: 没有任何一条新配方会形成材料循环 —— 螺母螺栓没有 smeltable 标签(不可回炉),
+- 安全性: 没有任何一条新配方会形成材料循环 —— 螺母与螺栓没有 smeltable 标签(不可回炉),
   圆锯片按 1 金属板 = 4 钢块计,与回炉产出持平,不构成"用 1 块钢刷出无限锯片"
 - 工具: 新增 bin2_b42/tools/recipe_gap/scan_recipe_gaps.py(缺口扫描) ;
   recipe_probe 修好退出码(此前 EXIT trap 会让脚本恒返 1,CI 里无法判断成败)
@@ -189,7 +209,7 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 - 42.15.0 维持 EOL,不再同步新配方
 
 版本 1.0.5 (2026-06-10)
-- 新增 Bin2DisassembleSplint 拆解夹板配方 (与拆解简易木钳相同行为)
+- 新增 Bin2DisassembleSplint 拆解夹板配方 (与拆解简易夹钳相同行为)
 - 夹板拆解: 1 夹板 → 2 短棒 + 1 碎布条
 - 同样支持手持制作,无需工作台 (InHandCraft + CanBeDoneFromFloor)
 - 同步更新 B41 旧版 (42.15.0) 同一变更
@@ -197,14 +217,14 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 - 同步补全 Recipe 翻译 (拆解夹板)
 
 版本 1.0.4 (2026-06-10)
-- 拆解简易木钳改为手持制作 (InHandCraft + CanBeDoneFromFloor),不再依赖工作台
+- 拆解简易夹钳改为手持制作 (InHandCraft + CanBeDoneFromFloor),不再依赖工作台
 - 拆解产出物从木板 (Plank) 改为短棒 (ShortBat)
 - 同步更新 B41 旧版 (42.15.0) 的同一变更
 - 同步补全 ItemName 翻译 (短棒 ShortBat)
 - [EOL] 此版本为 42.15.0 最后一个维护快照,后续仅维护 42.19.0+
 
 版本 1.0.2 (2026-06-10)
-- 修复 bin2_extension 拆解简易木钳配方报错 (item not found: Base.WoodenStick)
+- 修复 bin2_extension 拆解简易夹钳配方报错 (item not found: Base.WoodenStick)
 - 修复 outputs 引用游戏中不存在的物品 ID
   - Base.WoodenStick → Base.Plank (木板 ×2)
   - Base.Rag → Base.RippedSheets (碎布条 ×1)

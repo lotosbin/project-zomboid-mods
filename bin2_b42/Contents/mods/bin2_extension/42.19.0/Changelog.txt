@@ -4,6 +4,20 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ ------ ]
 
 [ 10/13/2026 ]
+版本 1.7.2 (2026-10-13)
+- 修复: 删除本模组自带的 ItemName.json
+  - 翻译表是"原版先加载、mod 后加载,同键后到覆盖先到"(Translator 字节码层面确认,未在游戏内实测),
+    所以那份重复的原版译名一直在生效,其中两条还是错的:
+    Base.Pot 写成「陶锅」(原版「蒸煮锅」)、Base.CrudeWoodenTongs 写成「简易木钳」(原版「简易夹钳」)
+  - 其余 20 条与原版逐字相同、3 条 LabItems.* 与依赖模组 ZVirusVaccine42BETA 自带的中文名相同,都属冗余
+  - 现在物品名一律来自原版/依赖模组,本模组只保留配方名的翻译(Recipes.json)
+- 修正: 文案里的物品名统一改成游戏内名称
+  - 「金属加工凿」→「金属加工冲头」(耙头配方要的是 Base.MetalworkingPunch,不是 Base.MetalworkingChisel)
+  - 「耙子」→「钉耙」(Base.Rake);装配材料是「长棍」(Base.LongStick)
+  - 「螺母螺栓」→「螺母与螺栓」、「简易木钳」→「简易夹钳」;骨头与金属料写明具体物品
+- 校验: recipe_probe 离线解析全部 12 条配方通过 (ALL RECIPES PARSED)
+
+[ 10/13/2026 ]
 版本 1.7.1 (2026-10-13)
 - 新增: Bin2ForgeRakeHead 锻造耙头
   (4 个 1/4 铁条 + 5 木炭 + 铁匠锤 + 夹钳 + 金属加工冲头 → 1 耙头,锻造 7 级,任意锻造炉)
@@ -19,15 +33,15 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 [ 10/12/2026 ]
 版本 1.7.0 (2026-10-12)
 - 新增: 5 条配方,补齐原版"被配方消耗、却无法制作"的材料
-  - Bin2MakeGlue 熬制胶水: 2 骨头 + 1 锅具 + 1 升水 → 2 胶水 (烹饪 2 级)
-  - Bin2MakeNutsBolts 制作螺母螺栓: 1 木炭 + 1 金属料 + 锤子 + 金属加工钳或夹钳 → 6 螺母螺栓 (金工 1 级)
-  - Bin2MakeScrews 制作螺丝: 1 木炭 + 1 金属料 + 锤子 + 金属加工钳或夹钳 → 6 螺丝 (金工 1 级)
+  - Bin2MakeGlue 熬制胶水: 2 骨头(动物骨头 / 大型动物骨头 / 小动物骨头 任选) + 1 锅具 + 1 升水 → 2 胶水 (烹饪 2 级)
+  - Bin2MakeNutsBolts 制作螺母与螺栓: 1 木炭 + 1 铁/钢料(铁块/钢块/铁废料/钢废料/铁片/钢片 任选) + 锤子 + 金属加工钳或夹钳 → 6 螺母与螺栓 (金工 1 级)
+  - Bin2MakeScrews 制作螺丝: 1 木炭 + 1 铁/钢料(同上) + 锤子 + 金属加工钳或夹钳 → 6 螺丝 (金工 1 级)
   - Bin2MakeCircularSawblade 制作圆锯片: 2 木炭 + 1 金属板 + 锤子 + 金属加工凿 + 金属加工钳或夹钳 → 1 圆锯片 (金工 2 级)
   - Bin2MakeHacksawBlade 制作手锯条: 1 木炭 + 1 小金属板 + 锤子 + 金属加工凿 → 2 手锯条 (金工 2 级)
 - 依据: 扫描 Build 42.21 全部 969 条原版 craftRecipe (含 itemMapper 映射产出 / evolvedrecipe /
-  拆家具 / 采集来源) 后,螺母螺栓(33 条配方消耗)、圆锯片(11)、螺丝(10)、胶水(9)、
+  拆家具 / 采集来源) 后,螺母与螺栓(33 条配方消耗)、圆锯片(11)、螺丝(10)、胶水(9)、
   手锯条(3)确实只能搜刮;本次全部补上 (小手锯条与手锯条重复,未做)
-- 安全: 新配方不会形成材料循环 (螺母螺栓不可回炉;圆锯片按 1 金属板 = 4 钢块计与回炉持平)
+- 安全: 新配方不会形成材料循环 (螺母与螺栓不可回炉;圆锯片按 1 金属板 = 4 钢块计与回炉持平)
 - 工具: 新增 bin2_b42/tools/recipe_gap/scan_recipe_gaps.py,可复现本次缺口结论
 - 校验: recipe_probe 离线解析全部 11 条配方通过 (ALL RECIPES PARSED)
 
@@ -44,12 +58,12 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
 - 校验: 新增 bin2_b42/tools/recipe_probe,用游戏自带脚本解析器离线解析全部 6 条配方
 
 [ 06/10/2026 ]
-- 修复: 拆解简易木钳配方 outputs 引用不存在的物品 ID
+- 修复: 拆解简易夹钳配方 outputs 引用不存在的物品 ID
   (Base.WoodenStick → Base.Plank, Base.Rag → Base.RippedSheets)
 - 修复: 补全 B42 配方的 time / timedAction 字段
 - 修复: Recipe.json 翻译键缺 Recipe_ 前缀
 - 修复: inputs 跨 module 引用未带 Base. 前缀
-- 优化: 拆解简易木钳改为手持制作 (InHandCraft + CanBeDoneFromFloor)
+- 优化: 拆解简易夹钳改为手持制作 (InHandCraft + CanBeDoneFromFloor)
 - 优化: 拆解产出物从木板改为短棒 (ShortBat)
 - 新增: Bin2DisassembleSplint 拆解夹板配方
 - 新增: Bin2MakeCheese 制作奶酪配方

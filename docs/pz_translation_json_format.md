@@ -139,3 +139,35 @@ link1 = GitHub = https://github.com/your/link,
 ```
 
 参考: [pzwiki.net/wiki/Mod_Update_and_Alert_System](https://pzwiki.net/wiki/Mod_Update_and_Alert_System)
+
+## ⚠ 合并语义：mod 的翻译会**盖掉**原版（2026-10-13 实测记录）
+
+**结论：同一个键，后加载的赢；加载顺序是"原版文件 → 各 mod"，所以模组里的任何一条翻译都会覆盖上游同名键。**
+`bin2_extension` 因此删掉了自带的 `ItemName.json`（详见仓库该模组 README 与 1.7.2 更新日志）。
+
+证据（`zombie.core.Translator`，本机 jar `javap -p -c` 反汇编，**字节码层面确认，未在游戏内实测**）：
+
+- `loadFiles()` → `forLanguageStack(...)` → `lambda$loadFiles$4`：先对**原版**目录调
+  `tryFillMapFromFile(base, 文件名, map, 语言, identity)`，再调 `tryFillMapFromMods(文件名, map, 语言)`；
+  `tryFillMapFromMods` 遍历 `ZomboidFileSystem.getModIDs()`，对每个 mod 的 `common` 与版本目录各调一次
+  `tryFillMapFromFile` —— **mod 在后面填同一个 map**。
+- 真正的写入在 `lambda$tryFillMapFromFile$0`：`map.containsKey(key)` 之后**仍然**走
+  `map.put(key, transform.apply(value))`（只有当新值为 null/空串时才跳过），即**无条件覆盖**，不是 `putIfAbsent`。
+
+复现这条链的最小探针（无头、不启 Steam；`java` 用游戏自带 JRE，cwd 必须是游戏的 `Contents/Java`）：
+
+```java
+ZomboidFileSystem.instance.init();      // 不初始化它，loadFiles() 会 NPE
+Languages.instance.init();              // 之后 getLanguages() 才有 29 种语言
+Translator.setLanguage(Languages.instance.getIndexByName("CN"));
+Translator.loadFiles();                 // 注意：它会按"游戏设置里的语言"重设 language
+System.out.println(Translator.getItemNameFromFullType("Base.Pot"));
+```
+
+⚠ **`loadFiles()` 会把 `Translator.language` 重置成游戏设置里的语言**（无头环境 = 默认 EN），
+所以上面的探针在本机只能读到英文名（`Cooking Pot`）—— 想读某个语言的值，得先让游戏设置里的语言是它，
+或者绕过 `loadFiles()` 直接反射调用那两个私有方法。
+
+**实践规则**：给原版物品写 `ItemName.json` 是"抢方向"的动作 —— 上游改了译名，你这份旧文案会继续盖住它
+（`bin2_extension` 就这样把 `Base.Pot` 盖成了「陶锅」、`Base.CrudeWoodenTongs` 盖成「简易木钳」）。
+**只翻译上游没有的东西**（别的 mod 的物品、自己的配方名），原版已有译名的键不要重复提供。

@@ -3567,4 +3567,16 @@ Tags=PrimitiveForge, category=Tools`，三个工具位一律 `mode:keep`。译�
 
 **同一处还有第二个用词问题（@哔哩哔哩运营 提的装配那一步）**：查 `ItemName.json` —— 装配材料是 `Base.LongStick` = **长棍**（我写的对），成品是 `Base.Rake` = **钉耙**（我写成了「耙子」，已改成游戏内名）；而 `Base.LongHandle_RakeHead` 的中文名是「**长手柄 (耙头)**」，那是**武器**（耙头装长手柄），**不是装配材料**，三者别混。
 
+**顺手把全模组的物品名过了一遍，抓出一个真 bug（1.7.2）**：拿 `Translate/CN/ItemName.json` 当前 42.21 的表
+逐条比对模组自带的 25 条 —— **22 条 `Base.*`（20 条逐字相同、2 条不同）+ 3 条 `LabItems.*`（与依赖模组
+ZVirusVaccine42BETA 自带的中文名相同）**，也就是说这份文件要么冗余、要么在改上游的名字。而 `Translator` 的合并语义是
+**后加载覆盖先加载**（`lambda$tryFillMapFromFile$0` 在 `containsKey` 之后仍然 `put`；`loadFiles` 里原版目录先填、
+mod 目录后填）；**字节码层面确认，未在游戏内实测**（无头探针能起 `ZombieFileSystem`/`Languages`，但
+`loadFiles()` 会把语言重置成游戏设置里的 EN，要读 CN 得先让设置是 CN）。⇒ 实际上一直在生效的两条是错的：
+`Base.Pot` 被盖成「陶锅」（原版「蒸煮锅」）、`Base.CrudeWoodenTongs` 被盖成「简易木钳」（原版「简易夹钳」）。
+**处置：删掉整个 `ItemName.json`**（物品名交回原版/依赖模组），只保留配方名翻译 `Recipes.json`；
+版本 1.7.1 → **1.7.2**，两份 `Changelog.txt` 与 `workshop.txt` 同步；机制写进 `docs/pz_translation_json_format.md`。
+
 **未验证**：进游戏实测这条配方（锻造面板里能不能选中、`HammerMetalStanding` 动画与 500 的时长对不对）——需要真人开机。
+**也没实测**"翻译覆盖顺序"的运行时表现（只有字节码 + 加载顺序的结构证据）；要坐实需要在游戏设置里把语言切成中文、
+开一次游戏读物品名。
