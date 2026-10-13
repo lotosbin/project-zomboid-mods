@@ -965,13 +965,17 @@ javap -p -c -cp "$WD" zombie.entity.components.crafting.recipe.CraftRecipeManage
 14.1 的扫描只能证明"**今天**没有配方能产出它"。要证明"这是原版没做完,而不是设计如此",
 有一条**独立于脚本**的旁证:**翻译文件里还留着配方的名字,而脚本里已经没有那条配方**。
 
-实测(B42 42.21,`media/lua/shared/Translate/*/Recipes.json`,28 种语言都有这几个键):
+实测(B42 42.21,`media/lua/shared/Translate/*/Recipes.json`;翻译覆盖并不整齐,按实测写):
 
-| 配方键(只有译名,没有脚本) | 游戏内中文名 |
-|---|---|
-| `PulpSugarBeets` | 压榨甜菜 |
-| `StrainCookedSugarBeetPulp` | 过滤煮熟的甜菜渣 |
-| `CollectSugarBeetSugar` | 收集甜菜糖 |
+| 配方键(只有译名,没有脚本) | 游戏内中文名 | 有译名的语言数 |
+|---|---|---|
+| `PulpSugarBeets` | 压榨甜菜 | 25 / 29 |
+| `StrainCookedSugarBeetPulp` | 过滤煮熟的甜菜渣 | 25 / 29 |
+| `CollectSugarBeetSugar` | 收集甜菜糖 | **29 / 29(全部语言)** |
+
+缺这两个键的语言是 `AR` / `NL` / `PT` / `UA` —— 说明译名层本身也是"没跟上"的遗留,
+进一步支持"这几条配方是半途而废的"。**我第一版写成"28 种语言都有",是估的、不是数的**
+(过程改进组长实测后指出,这里已按实测修正 —— 数字必须来自测量,不能来自印象)。
 
 同一层的两个中间物品也只剩定义、没人引用:`Base.SugarBeetPulpPot`(甜菜渣锅)、
 `Base.SugarBeetSyrupPot`(甜菜糖浆锅)——**没有任何 `inputs`/`outputs`/`itemMapper`/`evolvedrecipe` 提到它们**。
@@ -987,7 +991,9 @@ javap -p -c -cp "$WD" zombie.entity.components.crafting.recipe.CraftRecipeManage
 G="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/media"
 for n in CollectSugarBeetSugar PulpSugarBeets StrainCookedSugarBeetPulp; do
   grep -rl "$n" "$G/scripts" "$G/lua" | grep -v /Translate/    # 期望:无输出
+  printf "%s 有译名的语言数 = %s\n" "$n" "$(grep -rl "\"$n\"" "$G"/lua/shared/Translate/*/Recipes.json | wc -l | tr -d ' ')"
 done
+ls -d "$G"/lua/shared/Translate/*/ | wc -l                          # 语言目录总数(29)
 ```
 
 **方法上的意义**:翻译文件是**比脚本更慢变的一层**。脚本里"找不到"有两种可能——设计如此,或者
