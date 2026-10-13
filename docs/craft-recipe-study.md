@@ -1003,6 +1003,45 @@ ls -d "$G"/lua/shared/Translate/*/ | wc -l                          # 语言目�
 
 ---
 
+### 14.13 另一类缺口:同族里"只有它不能锻"(耙头)
+
+14.1 的扫描找的是"被消耗、却没人能造"的物品。还有一类缺口**扫描器不会单独报警**:
+物品**有**一条来源,但同族的兄弟都有**第二条**,只有它缺——玩家能感觉到("别人能锻,我这个不能"),
+名单上看不出来。**耙头(`Base.RakeHead`)就是这一类**(2026-10-13 由社区建议引出,QQ 频道回帖「我想要锻造耙头」)。
+
+现状(两个方法同向):
+
+| 工具头 | 产出它的配方 | 有无锻造 | 另有 `_Forged` 版 |
+|---|---|---|---|
+| `Base.GardenHoeHead` 锄头 | `DismantleLongImplement` + **`Forge_Garden_Hoe_Head`** | **有** | 无(直接锻同名物品) |
+| `Base.SpadeHead` 铲头 | `DismantleLongImplement` | 有(锻的是 `SpadeHead_Forged`) | **有** |
+| `Base.GardenForkHead` 叉头 | `DismantleLongImplement` | 有(锻的是 `GardenForkHead_Forged`) | **有** |
+| `Base.RakeHead` **耙头** | **只有 `DismantleLongImplement`** | **没有** | **没有** |
+
+依据:<游戏>`media/scripts/generated/recipes/recipes_disassembly.txt` 的 `DismantleLongImplement`
+(`Base.RakeHead = Base.Rake`,mapper 语义 = 产出)、`recipes_assembly.txt`(`Base.Rake = Base.RakeHead`)、
+`generated/entities/blacksmith/craftRecipes/recipes_blacksmith_heads.txt` ——
+**15 条 `Forge_*_Head` 里没有耙头**(锄头/叉头/铲头/镰刀/旧斧/手斧/镐/大锤/木斧/爪锤/羊角锤/棍锤/钉锤头/铁匠锤头/锤头都有)。
+
+复现(扫描器侧,两只读数都来自同一份 JSON):
+```bash
+python3 bin2_b42/tools/recipe_gap/scan_recipe_gaps.py --json /tmp/gaps.json   # 全量数据
+python3 -c "import json;d=json.load(open('/tmp/gaps.json'))['produced'];print(d['Base.RakeHead'],d['Base.GardenHoeHead'])"
+# → ['DismantleLongImplement'] ['DismantleLongImplement', 'Forge_Garden_Hoe_Head']
+```
+
+**回炉闸门(加配方前必算,见 14.4)**:耙头 `Tags = base:smeltableironmedium;base:showcondition;base:hasmetal`,
+熔炼 `ExtractIronFromMediumItem` = 1 件 → **2 `IronChunk`**;拟用材料 `tags[base:barstockhalf]`(半根铁条,
+`Base.IronBarHalf`/`SteelBarHalf` 一类)**自身也带 `smeltableironmedium` → 同为 2 `IronChunk`**
+⇒ **收支持平**,与 1.7.0 圆锯片同处置;且与原版 `Forge_Garden_Hoe_Head`(3 木炭 + 1 半根铁条 + 铁匠锤 +
+夹钳 + 金属加工冲头 → 1 锄头,`Blacksmith:4`)同构 ⇒ **不引入原版没有的回路**。
+铁料换算参照:`Forge_Bar_From_Chunk` = 4 `[IronChunk|SteelChunk]` → 1 `IronBlock`;
+`Cut_Iron_Bar_Halves` = 1 `IronBar` → 2 `IronBarHalf`(`recipes_blacksmith_bar.txt` / `recipes_blacksmith_bandsaw.txt`)。
+
+**状态**:技术侧判为**接**(2026-10-13),归 `bin2_extension`;排期与版本由 @human 定,**尚未开工**。
+
+---
+
 ## 15. 参考链接(真实引用地址)
 
 - PZWiki CraftRecipe (B42): <https://pzwiki.net/wiki/CraftRecipe> (oldid=1263201)
