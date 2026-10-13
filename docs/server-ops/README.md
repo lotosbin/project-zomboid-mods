@@ -63,13 +63,39 @@ curl -s "https://api.steampowered.com/ISteamApps/GetServersAtAddress/v1/?addr=11
 - `~/Zomboid/Server/云猫咖test.ini` + `云猫咖test_SandboxVars.lua`（2026-10-09）——
   本地起的**测试档**：`Public=false`、`PublicName=My PZ Server`、`RCONPassword=` 为空。
   **不要**把它当成线上跑的那一份；线上是公网登记、`Public` 为真的另一份配置。
-  它有价值的地方是**模组清单**（32 个，含本仓库的 `Bin2NPCExtensionBase` / `Bin2NPCExtensionVanilla`
-  以及 `ProjectALifeNPCs`、`CompanionDogs`、`YeseMarket`、`NestedContainersTake` 等）——
-  说明线上**很可能**在跑本仓库的模组，但这一点**未证实**。
+  它只有 20 个工坊条目、32 个模组名，和线上（§4）差得很远，**不能**用来推线上。
 - `~/Zomboid/db/ServerListSteam.db` —— 游戏客户端的服务器列表缓存，`server` 表存 id / 名称 / ip / port /
   简介 / 上次在线时间，`account` 表**存了登录凭据**。只读查询没问题，但**绝不要**把它复制进仓库。
 
-## 4. 尚未拿到、需要人给的东西
+## 4. 线上模组清单（2026-09-28 实测，**快照**）
+
+**线上要 165 个工坊模组。** 这是从客户端连服的 `WorkshopConfirm` 拿到的，不是推测：
+
+```
+~/Zomboid/Logs/logs_2026-09-28/2026-09-28_08-47_DebugLog.txt
+  L1976  ConnectToServerState: onItemQueryCompleted handle=57 numResult=165
+  L1977-2141  逐条 GetItemState()=Subscribed|Installed ID=<workshop id>   ← 165 条，无重复
+```
+
+完整 ID 列表：`docs/server-ops/mod-snapshot-2026-09-28.txt`。
+
+**能从仓库已有文档里叫出名字的（21 个，两边都出现才算）**：Bandits2（3268487204）、
+BanditsFixPlus（3777752751）、Project Cook（3490188370）、Tikitown 系列（3037854728 / 3448869708 等）、
+Companion Dogs（3740052292）与 CompanionCat（3791294616）、Nested Containers - Complete（3801776436）、
+GunsOfMarz（3722134990）、Heavy Ordnance（3802070967）、SWMG（3722064198）、Hot Brass 系列（3610677934）、
+Picking Meister（3422220305）、Willowbrook Bastion（3479667649）、SurvivorInnerVoice（3793128772）、
+PZTheMutants（3796669056）、橙子社区经济（3777900792）、EFTBP（3432928943）、
+以及中文翻译包 B42ModTrans_CN（3556540080）/ B42Trans_CN（3556544454）。
+
+**对运营的两条直接含义：**
+
+- 对外说特色可以，但别说"轻量"——165 个模组意味着**新手首次进服的下载量与等待时间都不小**，
+  新手接待必须先把这件事讲清楚（先订阅、等下载完、再进服）。
+- 这份快照是 09-28 的。想确认线上现在跑了什么，**重新抓一次同样的日志再 diff**，
+  比问人要 `WorkshopItems=` 更快。做法：连一次服，然后
+  `grep "WorkshopConfirm GetItemState" <最新 DebugLog> | grep -oE "ID=[0-9]+" | cut -d= -f2 | sort -u`。
+
+## 5. 尚未拿到、需要人给的东西
 
 以下每一条都只能由服务器持有人提供，并且决定了运营能做什么：
 
@@ -77,12 +103,15 @@ curl -s "https://api.steampowered.com/ISteamApps/GetServersAtAddress/v1/?addr=11
 2. **RCON**：线上 `RCONPort` 与密码（本地测试档写的是 `27015`、密码为空，线上不一定）。
    没有 RCON 就只能靠人肉进服务器打字，做不了自动广播、踢人、存档。
 3. **存档与备份**：`Zomboid/Saves/Multiplayer/<存档名>` 在哪台机器上、多久备份一次、谁负责。
-4. **线上模组清单与版本**：目前只能从本地测试档**推测**，需要线上 `Mods=` / `WorkshopItems=` 原文。
+4. **线上配置原文**：`<服务器名>.ini` 的 `Mods=` / `WorkshopItems=` / `PublicName` / `PublicDescription`
+   与 `_SandboxVars.lua`。模组清单已由 §4 的日志快照代偿，但**沙盒参数、PVP/PVE、白名单、
+   人数上限**仍然只能看这份原文。
 5. **管理边界**：重启、回档、改沙盒设置、封禁，哪些我能直接做、哪些要先问。
 
-## 5. 运营职责（待需求方确认后固定下来）
+## 6. 运营职责（待需求方确认后固定下来）
 
 - 服务器可用性与稳定性；重启 / 更新 / 回档的执行与公告。
 - 本仓库模组发布后同步到线上（版本对齐、加载顺序、`Mods=` / `WorkshopItems=` 两处都改）。
 - 新手接待：进服引导、常见问题、KOOK 语音频道的秩序与置顶信息。
+- **招人**（2026-10-13 需求方指定）：对外名片与进服路径见 `docs/server-ops/recruiting.md`。
 - 事件与公告文案，和 @小红书运营 / @哔哩哔哩运营 / @QQ运营 的对外口径保持一致。
