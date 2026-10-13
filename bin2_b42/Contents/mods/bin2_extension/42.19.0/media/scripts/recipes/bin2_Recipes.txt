@@ -216,4 +216,30 @@ module Bin2Recipe
             item 2 Base.HacksawBlade,
         }
     }
+    /* 锻造耙头: 原版 15 种工具头里唯一没有锻造路径的一种(耙头只有"拆钉耙"一条来源,
+       见 docs/craft-recipe-study.md 14.13)。结构与原版 Forge_Garden_Hoe_Head / forge_garden_fork_head 同形:
+       4 个 1/4 铁条 = 1 根铁条, 回炉价值 4 铁块 > 耙头本身 2 铁块 ⇒ 不形成材料循环。
+       不加 NeedToBeLearn: 原版同类配方靠铁匠职业/锻造书授予, 模组配方没有授予来源,
+       加了会在 7 级永远做不了(只有 AutoLearnAll 的等级才认识它)。 */
+    craftRecipe Bin2ForgeRakeHead
+    {
+        time = 500,
+        SkillRequired = Blacksmith:7,
+        timedAction = HammerMetalStanding,
+        xpAward = Blacksmith:70,
+        Tags = PrimitiveForge,
+        category = Tools,
+        inputs
+        {
+            item 4 tags[base:barstockquarter],
+            item 5 tags[base:charcoal],
+            item 1 tags[base:smithinghammer] mode:keep flags[Prop1;MayDegradeLight],
+            item 1 tags[base:tongs] mode:keep flags[Prop2;MayDegradeLight],
+            item 1 tags[base:metalworkingpunch] mode:keep flags[MayDegradeLight],
+        }
+        outputs
+        {
+            item 1 Base.RakeHead,
+        }
+    }
 }

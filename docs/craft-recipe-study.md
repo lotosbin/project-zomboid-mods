@@ -1044,15 +1044,50 @@ python3 -c "import json;d=json.load(open('/tmp/gaps.json'))['produced'];print(d[
 # → ['DismantleLongImplement'] ['DismantleLongImplement', 'Forge_Garden_Hoe_Head']
 ```
 
-**回炉闸门(加配方前必算,见 14.4)**:耙头 `Tags = base:smeltableironmedium;base:showcondition;base:hasmetal`,
-熔炼 `ExtractIronFromMediumItem` = 1 件 → **2 `IronChunk`**;拟用材料 `tags[base:barstockhalf]`(半根铁条,
-`Base.IronBarHalf`/`SteelBarHalf` 一类)**自身也带 `smeltableironmedium` → 同为 2 `IronChunk`**
-⇒ **收支持平**,与 1.7.0 圆锯片同处置;且与原版 `Forge_Garden_Hoe_Head`(3 木炭 + 1 半根铁条 + 铁匠锤 +
-夹钳 + 金属加工冲头 → 1 锄头,`Blacksmith:4`)同构 ⇒ **不引入原版没有的回路**。
-铁料换算参照:`Forge_Bar_From_Chunk` = 4 `[IronChunk|SteelChunk]` → 1 `IronBlock`;
-`Cut_Iron_Bar_Halves` = 1 `IronBar` → 2 `IronBarHalf`(`recipes_blacksmith_bar.txt` / `recipes_blacksmith_bandsaw.txt`)。
+**回炉闸门(加配方前必算,见 14.4)**:耙头 `Tags = base:smeltableironmedium;base:hasmetal`,
+熔炼 `ExtractIronFromMediumItem` = 1 件 → **2 `IronChunk`**;配方材料 `item 4 tags[base:barstockquarter]`
+(`Base.IronBarQuarter`/`SteelBarQuarter`,各自带 `base:smeltableironsmall`)走 `ExtractIronFromSmallItem`
+= 1 件 → **1 `IronChunk`**,**4 件 = 4 `IronChunk` > 产出侧 2 ⇒ 净亏,不形成材料循环**。
+铁料换算:`Cut_Iron_Bar_Halves` = 1 `IronBar` → 2 `IronBarHalf`、`Cut_Iron_Bar_Quarters` = 1 `IronBarHalf` → 2 `IronBarQuarter`
+(`recipes_blacksmith_bandsaw.txt`)⇒ **4 个 1/4 铁条 = 1 整根铁条**(比锄头头的 1 个半根多一倍,与七级难度相称)。
 
-**状态**:技术侧判为**接**(2026-10-13),归 `bin2_extension`;排期与版本由 @human 定,**尚未开工**。
+**已实现(2026-10-13,`Bin2ForgeRakeHead` @ `bin2_extension/42.19.0/media/scripts/recipes/bin2_Recipes.txt`,中文名"锻造耙头")**:
+
+```
+time = 500, SkillRequired = Blacksmith:7, timedAction = HammerMetalStanding
+xpAward = Blacksmith:70, Tags = PrimitiveForge, category = Tools
+inputs : item 4 tags[base:barstockquarter] + item 5 tags[base:charcoal]
+         + item 1 tags[base:smithinghammer] / tags[base:tongs] / tags[base:metalworkingpunch] (三者全 mode:keep)
+outputs: item 1 Base.RakeHead
+```
+
+三个设计决定与理由(**每一条都是可换的一行,不是定论;验收数值见下**):
+
+1. **产出的是 `Base.RakeHead`(头),不是整把钉耙** —— 原版农具全是"锻头 + 装配"两步:
+   `recipes_assembly.txt:81` 的装配配方吃 `[GardenHoeHead;RakeHead;ScytheBlade;SpadeHead;…]` + `Base.LongStick` + 锤子 + 小刀,
+   第 91 行 `Base.Rake = Base.RakeHead` ⇒ 锻出头以后玩家用**原版那条装配**就能得到钉耙,**不需要我们再加装配配方**。
+2. **故意不加 `NeedToBeLearn`** —— 原版同类配方的学习来源是**按配方名白名单**授予的:铁匠职业/特质 `GrantedRecipes`
+   (`character_professions.txt:229`、`character_traits.txt:101`)与锻造书 `LearnedRecipes`(`literature.txt:41`)。
+   模组新增的配方名不在那两份名单里,加了 `NeedToBeLearn` 就变成**只有 `AutoLearnAll` 的等级(8 级)才认识它、7 级永远做不出来**——
+   正好与需求相反。**这条是模组配方与原版配方的一处真实差异,不是遗漏。**
+3. **`Tags = PrimitiveForge`(任意等级的锻造台),没有用 `Forge_Pick_Axe_Head` 那种 `AdvancedForge`(三级炉)** ——
+   形状最接近的原版同类是 `forge_garden_fork_head`(`Blacksmith:8`、农具、`PrimitiveForge`);丁字镐头用 `AdvancedForge`
+   是因为它吃 `PiercedSteelBlock`(钢块)。要改成三级炉限定,只需把这一个词换掉。
+4. 工具位按原版头部配方补齐 `base:metalworkingpunch`(19 条头部/锤头配方里 18 条有,唯一例外是 `Forge_Hand_Scythe_Head`)。
+
+**验收(本机实跑,命令可复算)**:
+```bash
+cd bin2_b42/tools/recipe_probe && ./run.sh      # → ALL RECIPES PARSED, exit 0
+```
+`Bin2ForgeRakeHead` 被引擎解析为 `item 4 tags[base:barstockquarter] keep=false`、三个工具位 `keep=true`、
+`OUT item 1 Base.RakeHead`;全文唯一的 `!! UNKNOWN fullType` 是 3 个 `LabItems.*`(ZVirusVaccine 的物品,
+探针不加载那个 mod,属预期,见该工具 README)。
+
+**副作用(正面,且是原版自己的配方达成的)**:耙头一旦可锻,原版 `MakeRakeHeadWeapon`
+(`recipes_improvised_weapons.txt:472`,`Woodwork:4`,吃 `item 1 [Base.RakeHead]` → `mapper:RakeHeadMapper` 出 `Base.BaseballBat_RakeHead`)
+就不再受"只能拆钉耙拿耙头"的供给约束——即需求方说的"耙头棒球棍不该限量",**不需要我们动那条武器配方**。
+
+**状态**:技术侧判**接**(2026-10-13 13:28);配方**已实现并本地校验通过**,**尚未发布** —— 单独发 1.7.1 还是并入下一版由 @human 定。
 
 ---
 
