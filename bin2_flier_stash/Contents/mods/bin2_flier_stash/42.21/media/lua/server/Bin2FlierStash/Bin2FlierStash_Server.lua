@@ -28,15 +28,17 @@ Events.OnClientCommand.Add(function(module, command, player, args)
 
     if Bin2FlierStash.arm(args.mediaID) then
         print("[Bin2FlierStash] server armed " .. args.mediaID .. " by " .. tostring(who))
-        Bin2FlierStash.notifyArmed(player)
+        Bin2FlierStash.notifyArmed(player)                       -- 单机/本机服务端场景
+        sendServerCommand(player, "Bin2FlierStash", "armed", {})  -- 联机：让客户端弹提示
     end
     -- TODO(联机阶段)：校验这名玩家确实持有/读过这张传单（需要先在真实服务器上确认
     -- 传单物品的 printMedia 是否同步到服务端，因此不在这里写过不了验证的检查）。
 end)
 
--- 服务端侧同样跑"人到了没有"（每秒一次）
+-- 服务端侧同样跑"人到了没有"（每秒一次）——只在专职服务端跑，单机由客户端文件负责
 local lastCheck = 0
 Events.OnPlayerUpdate.Add(function(player)
+    if not isServer() then return end
     local now = getTimestampMs()
     if now - lastCheck < Bin2FlierStash.CHECK_INTERVAL_MS then return end
     lastCheck = now

@@ -81,12 +81,19 @@ end
 installHooks()
 Events.OnGameStart.Add(installHooks)   -- 万一加载顺序不同，进游戏再挂一次
 
--- 单机：自己检查"人到了没有"（联机交给服务端）。每秒一次，别每帧算。
+-- 单机：自己检查"人到了没有"（联机交给服务端，专职服务端交给服务端文件）。每秒一次，别每帧算。
 local lastCheck = 0
 Events.OnPlayerUpdate.Add(function(player)
-    if isClient() then return end
+    if isClient() or isServer() then return end   -- 联机客户端 / 专职服务端都不在这里跑
     local now = getTimestampMs()
     if now - lastCheck < Bin2FlierStash.CHECK_INTERVAL_MS then return end
     lastCheck = now
     pcall(Bin2FlierStash.updateArrival, player)
+end)
+
+-- 联机：服务端确认"地点已登记"后回一条，客户端弹提示（服务端自己没有 HaloTextHelper）
+Events.OnServerCommand.Add(function(module, command, args)
+    if module ~= "Bin2FlierStash" or command ~= "armed" then return end
+    local player = getPlayer()
+    if player then pcall(Bin2FlierStash.notifyArmed, player) end
 end)
