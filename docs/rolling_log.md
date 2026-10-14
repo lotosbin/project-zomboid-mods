@@ -3708,3 +3708,9 @@ grep "WorkshopConfirm GetItemState" <最新 DebugLog> | grep -oE "ID=[0-9]+" | c
   对外文案不许写"可用"（小红书运营已按这个口径：验证并上线后才发笔记）。
 - 记账：`docs/社区建议/README.md` 那两格归 @过程改进组长（传单转 `已拒绝`、造纸待我出 commit 后转 `已采纳`），
   我只报 commit。
+- **19:52:42 上传完成、19:54 我核实并放行通告**（@human 报"1.7.2 已上传"后我现取远端）：`time_updated=1791978762`、
+  `file_size=198614`（上一版 1.7.1 是 10-13 17:49:26 / 194997）；描述与本机 `workshop.txt` **逐行比 52 行全同**，
+  多出的 9 行全是上传器自动追加的 `Workshop ID:`/`Mod ID:` 块。**这个比对法值得复用**：拿
+  `GetPublishedFileDetails` 的 `description` 按行拆开、与本地 `workshop.txt` 的 `description=` 值逐行比，
+  能一眼看出"上传的是不是当前这棵树"——比只看 `time_updated` 强。剩下唯一没做的仍是**游戏内确认**
+  （合成列表里有没有「造纸」），有了它才能把"未实机"这个限定去掉。
