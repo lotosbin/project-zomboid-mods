@@ -1126,6 +1126,75 @@ PY
 
 ---
 
+### 14.15 造纸(`Base.SheetPaper2`):2 处命中、0 条产出,以及"一次做几张"是怎么定的
+
+社区(小红书评论,2026-10-14)说"纸张只能搜刮";@human 19:41 定**优先做这条**(并同时定"不做单机的模组",传单那条停止)。
+
+**事实面(三方独立核过,口径一致)**
+
+- **产出它的配方 = 0**:全 `media/scripts` 树里 `SheetPaper2` **只有 2 处命中** —— 物品定义 `generated/items/literature.txt:1833`、配方 `generated/recipes/recipes_traps.txt:411`;而 411 落在 `MakeFirecracker`(爆竹,配方块从 399 行开始)的 `inputs{}` 里,`outputs{}` 是 `Base.Firecracker_Crafted`。
+- **拿到的路只有搜刮**:Lua 侧共 **132 处**命中,拆开是 —— 搜刮口 **99 处**(80 `server/Items/ProceduralDistributions.lua` + 12 `server/Items/Distributions.lua` + 6 `Distribution_*Junk.lua` + 1 `shared/Foraging/Categories/Trash.lua` 翻垃圾桶)、世界摆件 2 处(`StoryClutter_Definitions.lua`)、营火燃料 **2 处**(`server/Camping/camping_fuel.lua:23` 与 `:107`,都写 `SheetPaper2 = 5/60.0`,该表以**小时**为单位 ⇒ **5 分钟/张**)、其余 29 处是各语言翻译表。**非搜刮的用途只有营火燃料这一条。**
+- **需求面(第三方模组,不要给我们自己记账)**:依赖模组 `ZVirusVaccine42BETA`(工坊条目 **`3615135168`**,`mod.info` 定义物品域 `LabItems`)的实验室链条在吃纸 —— `generated/entities/lab/craftRecipes/recipes_LabEasel.txt` 的 **5 条配方(画架,画五种海报)里 1 条要 12 张、4 条各要 6 张**,`recipes_LabChemistrySet.txt` 要 1 张;**42.14 与 42.20 两份版本同数**,而且这些配方块写在 **`module Base`** 里 ⇒ 吃的是同一个 `Base.SheetPaper2`。(小红书运营 2026-10-14 19:45 报、我同日独立复算,数一致。)
+
+**形状决策:为什么是"1 木板 → 12 张",不是"木屑 → 1 张"**
+
+- **产量按需求面定,不按"能造出一张"定**:实验室画架最大单条消费是 **12 张**,所以一次给 12 张,一条配方刚好够一次消费,不必为一次画架重复 12 遍同一动作。
+- **材料选木板不选木屑(`Base.Splinters`)**:木屑虽是劈原木/大树枝的副产物(`recipes_carpentry.txt` 的 `ChopLog` / `ChopLargeBranch` 各产 1 个,**全树没有任何配方消耗它**),但它的燃料值是"重量 × 2/3"(见 `camping_fuel.lua` 头部注释;`0.2 × 2/3 ≈ 8 分钟/个`),**要保持不造燃料泵,一个木屑最多换 1.6 张纸** ⇒ 木屑版一条配方最多 2 张,对 12 张/次的链条没有意义。木屑这条想法因此**被否掉**(记在这里,免得下次有人重提)。
+- **不构成燃料泵(两个方向都验)**:
+  - 燃料:`camping_fuel.lua:19` `Plank = 2.0`(**2 小时**)vs 产物 `12 × 5 分钟 = 1 小时` ⇒ 做成纸反而少一半燃料。
+  - 重量:`Plank` **3.0** vs `12 × 0.1 = 1.2`。
+  - 木板来源:`SawLogs`(1 原木 + 锯 → **3 木板**,`recipes_carpentry.txt`),1 原木的燃料是 6 小时,换算后仍不亏。
+- **工具位/工序照本模组 `制盐`(14.6)**:锅具 `mode:keep flags[ItemCount]`、`-fluid 1.0 categories[Water] mode:mixture`。**不加 `NeedToBeLearn`**(理由同 14.13:原版靠职业/书本白名单授予,模组配方名不在名单里)。**不新增物品、不新增图标、不替换原版文件。**
+
+**引擎侧校验(用游戏自己的解析器,不是正则)**
+
+```
+cd bin2_b42/tools/recipe_probe && ./run.sh        # 13 条全解析, exit 0
+```
+
+新增那条的解析结果(逐行,`$G` = 游戏 `Contents/Java/media/scripts`):
+
+```
+### Bin2MakePaper : OK  fullType=Bin2Recipe.Bin2MakePaper time=120 category=Cooking tags=[AnySurfaceCraft, Cooking]
+    ioLines=4 (itemInputs=2 outputs=1)
+    IN  [Item] item 1 [Base.Plank]                      keep=false destroy=false
+    IN  [Item] item 1 [Base.Saucepan;…;Base.Kettle_Copper] mode:keep flags[ItemCount]  keep=true itemCount=true
+    IN  [Fluid] fluid 1.0 categories[Water] mode:mixture  fluidMode=Mixture amount=1.0
+    OUT [Item] item 12 Base.SheetPaper2
+ALL RECIPES PARSED
+```
+
+另两条静态校验(本机跑过):
+
+```bash
+G="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app"
+# ① 每条 craftRecipe 都有中文名:13 条配方 / Recipes.json 缺键 0
+# ② 脚本里引用的每个 Base.* 都有物品定义(精确边界 item <名>$):40 个 / 找不到 0
+python3 - "$G" <<'PY'
+import json,os,re,sys
+S=os.path.join(sys.argv[1],"Contents","Java","media","scripts")
+R="bin2_b42/Contents/mods/bin2_extension/42.19.0/media/scripts/recipes/bin2_Recipes.txt"
+T="bin2_b42/Contents/mods/bin2_extension/42.19.0/media/lua/shared/Translate/CN/Recipes.json"
+txt=open(R,encoding="utf-8").read()
+recipes=re.findall(r"craftRecipe\s+([A-Za-z_]\w*)",txt); tr=json.load(open(T,encoding="utf-8"))
+print("配方 %d 条; 缺翻译键: %s" % (len(recipes),[r for r in recipes if r not in tr] or "无"))
+ids=sorted({m for m in re.findall(r"\bBase\.[A-Za-z0-9_]+",txt)}); found=set()
+for dp,_,fns in os.walk(S):
+    for fn in fns:
+        if fn.endswith(".txt"):
+            t=open(os.path.join(dp,fn),errors="ignore").read()
+            for i in ids:
+                if re.search(r"^\s*item\s+"+re.escape(i.split(".",1)[1])+r"\s*$",t,re.M): found.add(i)
+print("引用 Base.* %d 个; 找不到定义: %s" % (len(ids),sorted(set(ids)-found) or "无"))
+PY
+```
+
+**版本落点**:并进 **1.7.2**(而不是单开 1.7.3)。依据是**远端读数**:2026-10-14 19:4x `GetPublishedFileDetails(3628652563)` 仍是 `time_updated=1791884966`(2026-10-13 17:49:26)、`file_size=194997`,与本机 10:26 的读数逐字相同 ⇒ **1.7.2 从未发布**,版本号不必跳,线上描述里那处错名与这条新配方可以一次上传一起覆盖。
+
+**边界(没验的部分)**:① 引擎解析通过 ≠ 合成界面里点得出来 —— **没有在游戏里跑过**,UI 可见性/`timedAction` 表现要在游戏里确认;② 与实验室配方联动的实际玩法(12 张够不够、画架配方能不能出)属第三方模组的地盘,我们只补纸;③ 流体扣减的机制依据见 14.11(扣 `amount`,不是抽干整锅)。
+
+---
+
 ## 15. 参考链接(真实引用地址)
 
 - PZWiki CraftRecipe (B42): <https://pzwiki.net/wiki/CraftRecipe> (oldid=1263201)

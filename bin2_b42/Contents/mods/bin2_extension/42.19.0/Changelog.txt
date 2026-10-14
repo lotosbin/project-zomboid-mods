@@ -15,7 +15,14 @@ link2 = Ko-Fi = https://steamcommunity.com/linkfilter/?u=https://ko-fi.com/lotos
   - 「金属加工凿」→「金属加工冲头」(耙头配方要的是 Base.MetalworkingPunch,不是 Base.MetalworkingChisel)
   - 「耙子」→「钉耙」(Base.Rake);装配材料是「长棍」(Base.LongStick)
   - 「螺母螺栓」→「螺母与螺栓」、「简易木钳」→「简易夹钳」;骨头与金属料写明具体物品
-- 校验: recipe_probe 离线解析全部 12 条配方通过 (ALL RECIPES PARSED)
+- 新增: Bin2MakePaper 造纸 (1 木板 + 1 锅具 + 1 升水 → 12 纸张,烹饪 1 级,任意表面;10-14 补入
+  —— 1.7.2 当时还没上传,所以并进这一版,不另起版本号)
+  - 原版纸张 (Base.SheetPaper2) 只能搜刮:全 scripts 树里它只出现在物品定义与"爆竹陷阱"配方的
+    输入清单里,没有任何配方产出它;本配方补的是这条缺口,不新增物品、不新增图标
+  - 一次 12 张是按消费量定的:依赖模组 ZVirusVaccine42BETA 的实验室链条里,画架 5 条配方中
+    1 条要 12 张、4 条各要 6 张,化学反应台 1 张 ⇒ 一次正好够最大单条消费
+  - 不构成燃料泵:1 木板是 2 小时营火燃料,12 张纸只有 1 小时;木板由 1 原木锯成 3 块
+- 校验: recipe_probe 离线解析全部 13 条配方通过 (ALL RECIPES PARSED)
 
 [ 10/13/2026 ]
 版本 1.7.1 (2026-10-13)

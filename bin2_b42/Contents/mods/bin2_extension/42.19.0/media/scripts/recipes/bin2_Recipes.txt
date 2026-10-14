@@ -242,4 +242,32 @@ module Bin2Recipe
             item 1 Base.RakeHead,
         }
     }
+    /* 造纸: 木板 + 水 -> 纸张 (见 docs/craft-recipe-study.md 14.15)
+       原版纸张 Base.SheetPaper2 只能搜刮 —— 全 scripts 树 2 处命中, 没有一条配方产出它;
+       配方消费者只有爆竹陷阱 (recipes_traps.txt:411, MakeFirecracker 的 OR 输入列表),
+       另有营火燃料 5 分钟/张 (camping_fuel.lua:23), 以及第三方模组 ZVirusVaccine42BETA
+       的实验室链条 (画架 5 条配方里 1 条要 12 张、4 条各要 6 张, 化学反应台 1 张)
+       —— 一次 12 张正好对上单条最大消费量, 不必为画架重复 12 次同一动作。
+       不加 NeedToBeLearn: 原版同类配方靠职业/书本白名单授予, 模组配方名不在名单里。
+       安全: 不构成燃料泵 —— 1 木板 = 2 小时营火燃料 (camping_fuel.lua:19),
+       产物 12 张纸只有 1 小时; 重量 3.0 -> 1.2。木板来源: 1 原木锯成 3 块 (SawLogs)。 */
+    craftRecipe Bin2MakePaper
+    {
+        time = 120,
+        timedAction = Making,
+        Tags = AnySurfaceCraft;Cooking,
+        category = Cooking,
+        SkillRequired = Cooking:1,
+        xpAward = Cooking:5,
+        inputs
+        {
+            item 1 [Base.Plank],
+            item 1 [Base.Saucepan;Base.SaucepanCopper;Base.Pot;Base.PotForged;Base.Kettle;Base.Kettle_Copper] mode:keep flags[ItemCount],
+            -fluid 1.0 categories[Water] mode:mixture,
+        }
+        outputs
+        {
+            item 12 Base.SheetPaper2,
+        }
+    }
 }
