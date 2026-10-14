@@ -1,885 +1,1018 @@
 {
- "Item_BallPeenHammer_Forged": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   675,
-   328,
-   31,
-   30
-  ],
-  "items": [
-   {
-    "fullType": "Base.BallPeenHammerForged",
-    "cn": "圆头锤 (锻造)"
-   }
-  ]
- },
- "Item_BlacksmithTongs": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   102,
-   102,
-   32,
-   32
-  ],
-  "items": [
-   {
-    "fullType": "Base.Tongs",
-    "cn": "夹钳"
-   }
-  ]
- },
- "Item_Bone": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   442,
-   133,
-   32,
-   31
-  ],
-  "items": [
-   {
-    "fullType": "Base.AnimalBone",
-    "cn": "动物骨头"
-   }
-  ]
- },
- "Item_BoneShort2": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   125,
-   855,
-   29,
-   28
-  ],
-  "items": [
-   {
-    "fullType": "Base.LargeAnimalBone",
-    "cn": "大型动物骨头"
-   }
-  ]
- },
- "Item_Bones": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   34,
-   468,
-   32,
-   30
-  ],
-  "items": [
-   {
-    "fullType": "Base.SmallAnimalBone",
-    "cn": "小动物骨头"
-   }
-  ]
- },
- "Item_Charcoal": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   93,
-   946,
-   29,
-   24
-  ],
-  "items": [
-   {
-    "fullType": "Base.Charcoal",
-    "cn": "木炭"
-   }
-  ]
- },
- "Item_Cheese": {
-  "pack": "UI.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   371,
-   372,
-   21,
-   29
-  ],
-  "items": [
-   {
-    "fullType": "Base.Cheese",
-    "cn": "奶酪"
-   }
-  ]
- },
- "Item_Cheesecloth": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   811,
-   202,
-   31,
-   30
-  ],
-  "items": [
-   {
-    "fullType": "Base.CheeseCloth",
-    "cn": "奶酪布"
-   }
-  ]
- },
- "Item_CircularSawBlade": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   430,
-   865,
-   27,
-   27
-  ],
-  "items": [
-   {
-    "fullType": "Base.CircularSawblade",
-    "cn": "圆锯片"
-   }
-  ]
- },
- "Item_CokeCoal": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   254,
-   660,
-   29,
-   30
-  ],
-  "items": [
-   {
-    "fullType": "Base.Coke",
-    "cn": "焦炭"
-   }
-  ]
- },
- "Item_CopperKettle": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   124,
-   965,
-   28,
-   32
-  ],
-  "items": [
-   {
-    "fullType": "Base.Kettle_Copper",
-    "cn": "铜制水壶"
-   }
-  ]
- },
- "Item_CopperPot": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   432,
-   835,
-   27,
-   28
-  ],
-  "items": [
-   {
-    "fullType": "Base.SaucepanCopper",
-    "cn": "铜平底煮锅"
-   }
-  ]
- },
- "Item_EpoxyApplicator": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   31
-  ],
-  "rect": [
-   950,
-   33,
-   31,
-   31
-  ],
-  "items": [
-   {
-    "fullType": "Base.Epoxy",
-    "cn": "环氧树脂"
-   }
-  ]
- },
- "Item_Glue": {
-  "pack": "UI.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   295,
-   330,
-   26,
-   25
-  ],
-  "items": [
-   {
-    "fullType": "Base.Glue",
-    "cn": "胶水"
-   }
-  ]
- },
- "Item_HammerStone": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   374,
-   432,
-   32,
-   29
-  ],
-  "items": [
-   {
-    "fullType": "Base.HammerStone",
-    "cn": "石锤"
-   }
-  ]
- },
- "Item_Hammer_Forged": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   816,
-   596,
-   26,
-   32
-  ],
-  "items": [
-   {
-    "fullType": "Base.HammerForged",
-    "cn": "羊角锤 (锻造)"
-   }
-  ]
- },
- "Item_HotChisel_Forged": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   609,
-   395,
-   31,
-   31
-  ],
-  "items": [
-   {
-    "fullType": "Base.MetalworkingChisel",
-    "cn": "金属加工凿"
-   }
-  ]
- },
- "Item_IronBar_Tenth": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   365,
-   497,
-   7,
-   9
-  ],
-  "items": [
-   {
-    "fullType": "Base.IronPiece",
-    "cn": "铁片"
-   }
-  ]
- },
- "Item_IronChunk": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   1011,
-   296,
-   11,
-   15
-  ],
-  "items": [
-   {
-    "fullType": "Base.IronChunk",
-    "cn": "铁块"
-   }
-  ]
- },
- "Item_IronScrap": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   779,
-   226,
-   31,
-   31
-  ],
-  "items": [
-   {
-    "fullType": "Base.IronScrap",
-    "cn": "铁废料"
-   }
-  ]
- },
- "Item_Kettle": {
-  "pack": "UI.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   419,
-   184,
-   30,
-   31
-  ],
-  "items": [
-   {
-    "fullType": "Base.Kettle",
-    "cn": "水壶"
-   }
-  ]
- },
- "Item_MetalSheetSmall": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   912,
-   234,
-   31,
-   31
-  ],
-  "items": [
-   {
-    "fullType": "Base.SmallSheetMetal",
-    "cn": "小金属板"
-   }
-  ]
- },
- "Item_NutsBolts": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   739,
-   350,
-   30,
-   30
-  ],
-  "items": [
-   {
-    "fullType": "Base.NutsBolts",
-    "cn": "螺母与螺栓"
-   }
-  ]
- },
- "Item_Pliers_Forged": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   68,
-   102,
-   32,
-   32
-  ],
-  "items": [
-   {
-    "fullType": "Base.MetalworkingPliers",
-    "cn": "金属加工钳"
-   }
-  ]
- },
- "Item_Pot": {
-  "pack": "UI.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   159,
-   248,
-   29,
-   30
-  ],
-  "items": [
-   {
-    "fullType": "Base.Pot",
-    "cn": "蒸煮锅"
-   }
-  ]
- },
- "Item_Pot_Forged": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   737,
-   446,
-   30,
-   29
-  ],
-  "items": [
-   {
-    "fullType": "Base.PotForged",
-    "cn": "粗制蒸煮锅"
-   }
-  ]
- },
- "Item_Rag": {
-  "pack": "UI.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   164,
-   139,
-   31,
-   30
-  ],
-  "items": [
-   {
-    "fullType": "Base.RippedSheets",
-    "cn": "碎布条"
-   }
-  ]
- },
- "Item_Salt": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   786,
-   723,
-   25,
-   31
-  ],
-  "items": [
-   {
-    "fullType": "Base.Salt",
-    "cn": "盐"
-   }
-  ]
- },
- "Item_SaucepanEmpty": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   710,
-   134,
-   31,
-   30
-  ],
-  "items": [
-   {
-    "fullType": "Base.Saucepan",
-    "cn": "平底煮锅"
-   }
-  ]
- },
- "Item_Sawblade": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   136,
-   136,
-   32,
-   32
-  ],
-  "items": [
-   {
-    "fullType": "Base.HacksawBlade",
-    "cn": "手锯条"
-   }
-  ]
- },
- "Item_Screws": {
-  "pack": "UI.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   31,
-   346,
-   30,
-   25
-  ],
-  "items": [
-   {
-    "fullType": "Base.Screws",
-    "cn": "螺丝"
-   }
-  ]
- },
- "Item_SheetMetal": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   476,
-   233,
-   32,
-   26
-  ],
-  "items": [
-   {
-    "fullType": "Base.SheetMetal",
-    "cn": "金属板"
-   }
-  ]
- },
- "Item_ShortHandle": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   0,
-   923,
-   29,
-   29
-  ],
-  "items": [
-   {
-    "fullType": "Base.ShortBat",
-    "cn": "短棒"
-   }
-  ]
- },
- "Item_SmithingHammer": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   851,
-   594,
-   26,
-   26
-  ],
-  "items": [
-   {
-    "fullType": "Base.SmithingHammer",
-    "cn": "铁匠锤"
-   }
-  ]
- },
- "Item_Splint": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   170,
-   304,
-   32,
-   31
-  ],
-  "items": [
-   {
-    "fullType": "Base.Splint",
-    "cn": "夹板"
-   }
-  ]
- },
- "Item_SteelBar_Tenth": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   0,
-   1012,
-   8,
-   9
-  ],
-  "items": [
-   {
-    "fullType": "Base.SteelPiece",
-    "cn": "钢片"
-   }
-  ]
- },
- "Item_SteelBar_Whole": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   641,
-   383,
-   30,
-   32
-  ],
-  "items": [
-   {
-    "fullType": "Base.SteelBar",
-    "cn": "钢条"
-   }
-  ]
- },
- "Item_SteelChunk": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   818,
-   1006,
-   11,
-   15
-  ],
-  "items": [
-   {
-    "fullType": "Base.SteelChunk",
-    "cn": "钢块"
-   }
-  ]
- },
- "Item_SteelScrap": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   238,
-   366,
-   32,
-   29
-  ],
-  "items": [
-   {
-    "fullType": "Base.SteelScrap",
-    "cn": "钢废料"
-   }
-  ]
- },
- "Item_Sugar": {
-  "pack": "UI.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   380,
-   276,
-   22,
-   29
-  ],
-  "items": [
-   {
-    "fullType": "Base.Sugar",
-    "cn": "糖"
-   }
-  ]
- },
- "Item_TwigTongs": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   34,
-   693,
-   32,
-   32
-  ],
-  "items": [
-   {
-    "fullType": "Base.CrudeWoodenTongs",
-    "cn": "简易夹钳"
-   }
-  ]
- },
- "Item_Vinegar": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   870,
-   890,
-   16,
-   32
-  ],
-  "items": [
-   {
-    "fullType": "Base.Vinegar2",
-    "cn": "醋"
-   }
-  ]
- },
- "Item_ViseGrip": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   410,
-   724,
-   30,
-   30
-  ],
-  "items": [
-   {
-    "fullType": "Base.ViseGrips",
-    "cn": "老虎钳"
-   }
-  ]
- },
- "Item_WeldingRods": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   169,
-   853,
-   31,
-   31
-  ],
-  "items": [
-   {
-    "fullType": "Base.WeldingRods",
-    "cn": "焊条"
-   }
-  ]
- },
- "Item_WoodCharcoal": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   266,
-   892,
-   30,
-   29
-  ],
-  "items": [
-   {
-    "fullType": "Base.CharcoalCrafted",
-    "cn": "自制木炭"
-   }
-  ]
- },
- "Item_Pot_Water": {
-  "pack": "UI.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   0,
-   66,
-   32,
-   31
-  ],
-  "items": []
- },
- "Item_WaterDrop": {
-  "pack": "UI2.pack",
-  "size": [
-   32,
-   32
-  ],
-  "rect": [
-   919,
-   779,
-   19,
-   31
-  ],
-  "items": []
- }
+  "Item_BallPeenHammer_Forged": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      675,
+      328,
+      31,
+      30
+    ],
+    "items": [
+      {
+        "fullType": "Base.BallPeenHammerForged",
+        "cn": "圆头锤 (锻造)"
+      }
+    ]
+  },
+  "Item_BlacksmithTongs": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      102,
+      102,
+      32,
+      32
+    ],
+    "items": [
+      {
+        "fullType": "Base.Tongs",
+        "cn": "夹钳"
+      }
+    ]
+  },
+  "Item_Bone": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      442,
+      133,
+      32,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.AnimalBone",
+        "cn": "动物骨头"
+      }
+    ]
+  },
+  "Item_BoneShort2": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      125,
+      855,
+      29,
+      28
+    ],
+    "items": [
+      {
+        "fullType": "Base.LargeAnimalBone",
+        "cn": "大型动物骨头"
+      }
+    ]
+  },
+  "Item_Bones": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      34,
+      468,
+      32,
+      30
+    ],
+    "items": [
+      {
+        "fullType": "Base.SmallAnimalBone",
+        "cn": "小动物骨头"
+      }
+    ]
+  },
+  "Item_Charcoal": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      93,
+      946,
+      29,
+      24
+    ],
+    "items": [
+      {
+        "fullType": "Base.Charcoal",
+        "cn": "木炭"
+      }
+    ]
+  },
+  "Item_Cheese": {
+    "pack": "UI.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      371,
+      372,
+      21,
+      29
+    ],
+    "items": [
+      {
+        "fullType": "Base.Cheese",
+        "cn": "奶酪"
+      }
+    ]
+  },
+  "Item_Cheesecloth": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      811,
+      202,
+      31,
+      30
+    ],
+    "items": [
+      {
+        "fullType": "Base.CheeseCloth",
+        "cn": "奶酪布"
+      }
+    ]
+  },
+  "Item_CircularSawBlade": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      430,
+      865,
+      27,
+      27
+    ],
+    "items": [
+      {
+        "fullType": "Base.CircularSawblade",
+        "cn": "圆锯片"
+      }
+    ]
+  },
+  "Item_CokeCoal": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      254,
+      660,
+      29,
+      30
+    ],
+    "items": [
+      {
+        "fullType": "Base.Coke",
+        "cn": "焦炭"
+      }
+    ]
+  },
+  "Item_CopperKettle": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      124,
+      965,
+      28,
+      32
+    ],
+    "items": [
+      {
+        "fullType": "Base.Kettle_Copper",
+        "cn": "铜制水壶"
+      }
+    ]
+  },
+  "Item_CopperPot": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      432,
+      835,
+      27,
+      28
+    ],
+    "items": [
+      {
+        "fullType": "Base.SaucepanCopper",
+        "cn": "铜平底煮锅"
+      }
+    ]
+  },
+  "Item_EpoxyApplicator": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      31
+    ],
+    "rect": [
+      950,
+      33,
+      31,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.Epoxy",
+        "cn": "环氧树脂"
+      }
+    ]
+  },
+  "Item_Glue": {
+    "pack": "UI.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      295,
+      330,
+      26,
+      25
+    ],
+    "items": [
+      {
+        "fullType": "Base.Glue",
+        "cn": "胶水"
+      }
+    ]
+  },
+  "Item_HammerStone": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      374,
+      432,
+      32,
+      29
+    ],
+    "items": [
+      {
+        "fullType": "Base.HammerStone",
+        "cn": "石锤"
+      }
+    ]
+  },
+  "Item_Hammer_Forged": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      816,
+      596,
+      26,
+      32
+    ],
+    "items": [
+      {
+        "fullType": "Base.HammerForged",
+        "cn": "羊角锤 (锻造)"
+      }
+    ]
+  },
+  "Item_HotChisel_Forged": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      609,
+      395,
+      31,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.MetalworkingChisel",
+        "cn": "金属加工凿"
+      }
+    ]
+  },
+  "Item_IronBar_Tenth": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      365,
+      497,
+      7,
+      9
+    ],
+    "items": [
+      {
+        "fullType": "Base.IronPiece",
+        "cn": "铁片"
+      }
+    ]
+  },
+  "Item_IronChunk": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      1011,
+      296,
+      11,
+      15
+    ],
+    "items": [
+      {
+        "fullType": "Base.IronChunk",
+        "cn": "铁块"
+      }
+    ]
+  },
+  "Item_IronScrap": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      779,
+      226,
+      31,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.IronScrap",
+        "cn": "铁废料"
+      }
+    ]
+  },
+  "Item_Kettle": {
+    "pack": "UI.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      419,
+      184,
+      30,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.Kettle",
+        "cn": "水壶"
+      }
+    ]
+  },
+  "Item_MetalSheetSmall": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      912,
+      234,
+      31,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.SmallSheetMetal",
+        "cn": "小金属板"
+      }
+    ]
+  },
+  "Item_NutsBolts": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      739,
+      350,
+      30,
+      30
+    ],
+    "items": [
+      {
+        "fullType": "Base.NutsBolts",
+        "cn": "螺母与螺栓"
+      }
+    ]
+  },
+  "Item_Pliers_Forged": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      68,
+      102,
+      32,
+      32
+    ],
+    "items": [
+      {
+        "fullType": "Base.MetalworkingPliers",
+        "cn": "金属加工钳"
+      }
+    ]
+  },
+  "Item_Pot": {
+    "pack": "UI.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      159,
+      248,
+      29,
+      30
+    ],
+    "items": [
+      {
+        "fullType": "Base.Pot",
+        "cn": "蒸煮锅"
+      }
+    ]
+  },
+  "Item_Pot_Forged": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      737,
+      446,
+      30,
+      29
+    ],
+    "items": [
+      {
+        "fullType": "Base.PotForged",
+        "cn": "粗制蒸煮锅"
+      }
+    ]
+  },
+  "Item_Rag": {
+    "pack": "UI.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      164,
+      139,
+      31,
+      30
+    ],
+    "items": [
+      {
+        "fullType": "Base.RippedSheets",
+        "cn": "碎布条"
+      }
+    ]
+  },
+  "Item_Salt": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      786,
+      723,
+      25,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.Salt",
+        "cn": "盐"
+      }
+    ]
+  },
+  "Item_SaucepanEmpty": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      710,
+      134,
+      31,
+      30
+    ],
+    "items": [
+      {
+        "fullType": "Base.Saucepan",
+        "cn": "平底煮锅"
+      }
+    ]
+  },
+  "Item_Sawblade": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      136,
+      136,
+      32,
+      32
+    ],
+    "items": [
+      {
+        "fullType": "Base.HacksawBlade",
+        "cn": "手锯条"
+      }
+    ]
+  },
+  "Item_Screws": {
+    "pack": "UI.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      31,
+      346,
+      30,
+      25
+    ],
+    "items": [
+      {
+        "fullType": "Base.Screws",
+        "cn": "螺丝"
+      }
+    ]
+  },
+  "Item_SheetMetal": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      476,
+      233,
+      32,
+      26
+    ],
+    "items": [
+      {
+        "fullType": "Base.SheetMetal",
+        "cn": "金属板"
+      }
+    ]
+  },
+  "Item_ShortHandle": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      0,
+      923,
+      29,
+      29
+    ],
+    "items": [
+      {
+        "fullType": "Base.ShortBat",
+        "cn": "短棒"
+      }
+    ]
+  },
+  "Item_SmithingHammer": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      851,
+      594,
+      26,
+      26
+    ],
+    "items": [
+      {
+        "fullType": "Base.SmithingHammer",
+        "cn": "铁匠锤"
+      }
+    ]
+  },
+  "Item_Splint": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      170,
+      304,
+      32,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.Splint",
+        "cn": "夹板"
+      }
+    ]
+  },
+  "Item_SteelBar_Tenth": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      0,
+      1012,
+      8,
+      9
+    ],
+    "items": [
+      {
+        "fullType": "Base.SteelPiece",
+        "cn": "钢片"
+      }
+    ]
+  },
+  "Item_SteelBar_Whole": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      641,
+      383,
+      30,
+      32
+    ],
+    "items": [
+      {
+        "fullType": "Base.SteelBar",
+        "cn": "钢条"
+      }
+    ]
+  },
+  "Item_SteelChunk": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      818,
+      1006,
+      11,
+      15
+    ],
+    "items": [
+      {
+        "fullType": "Base.SteelChunk",
+        "cn": "钢块"
+      }
+    ]
+  },
+  "Item_SteelScrap": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      238,
+      366,
+      32,
+      29
+    ],
+    "items": [
+      {
+        "fullType": "Base.SteelScrap",
+        "cn": "钢废料"
+      }
+    ]
+  },
+  "Item_Sugar": {
+    "pack": "UI.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      380,
+      276,
+      22,
+      29
+    ],
+    "items": [
+      {
+        "fullType": "Base.Sugar",
+        "cn": "糖"
+      }
+    ]
+  },
+  "Item_TwigTongs": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      34,
+      693,
+      32,
+      32
+    ],
+    "items": [
+      {
+        "fullType": "Base.CrudeWoodenTongs",
+        "cn": "简易夹钳"
+      }
+    ]
+  },
+  "Item_Vinegar": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      870,
+      890,
+      16,
+      32
+    ],
+    "items": [
+      {
+        "fullType": "Base.Vinegar2",
+        "cn": "醋"
+      }
+    ]
+  },
+  "Item_ViseGrip": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      410,
+      724,
+      30,
+      30
+    ],
+    "items": [
+      {
+        "fullType": "Base.ViseGrips",
+        "cn": "老虎钳"
+      }
+    ]
+  },
+  "Item_WeldingRods": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      169,
+      853,
+      31,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.WeldingRods",
+        "cn": "焊条"
+      }
+    ]
+  },
+  "Item_WoodCharcoal": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      266,
+      892,
+      30,
+      29
+    ],
+    "items": [
+      {
+        "fullType": "Base.CharcoalCrafted",
+        "cn": "自制木炭"
+      }
+    ]
+  },
+  "Item_Pot_Water": {
+    "pack": "UI.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      0,
+      66,
+      32,
+      31
+    ],
+    "items": []
+  },
+  "Item_WaterDrop": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      919,
+      779,
+      19,
+      31
+    ],
+    "items": []
+  },
+  "Item_RakeHead": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      510,
+      115,
+      32,
+      16
+    ],
+    "items": [
+      {
+        "fullType": "Base.RakeHead",
+        "cn": "耙头"
+      }
+    ]
+  },
+  "Item_Rake": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      253,
+      546,
+      29,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.Rake",
+        "cn": "钉耙"
+      }
+    ]
+  },
+  "Item_IronBar_Quarter": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      852,
+      1004,
+      13,
+      15
+    ],
+    "items": [
+      {
+        "fullType": "Base.IronBarQuarter",
+        "cn": "铁条 (1/4)"
+      }
+    ]
+  },
+  "Item_Punch_Forged": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      62,
+      833,
+      29,
+      29
+    ],
+    "items": [
+      {
+        "fullType": "Base.MetalworkingPunch",
+        "cn": "金属加工冲头"
+      }
+    ]
+  },
+  "Item_Shaft": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      170,
+      204,
+      32,
+      32
+    ],
+    "items": [
+      {
+        "fullType": "Base.LongStick",
+        "cn": "长棍"
+      }
+    ]
+  },
+  "Item_HuntingKnife": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      68,
+      271,
+      32,
+      31
+    ],
+    "items": [
+      {
+        "fullType": "Base.HuntingKnife",
+        "cn": "猎刀"
+      }
+    ]
+  },
+  "Item_BlowTorch": {
+    "pack": "UI2.pack",
+    "size": [
+      32,
+      32
+    ],
+    "rect": [
+      408,
+      262,
+      32,
+      27
+    ],
+    "items": [
+      {
+        "fullType": "Base.BlowTorch",
+        "cn": "丙烷喷灯"
+      }
+    ]
+  }
 }
