@@ -86,19 +86,31 @@ scripts/check_server_online.sh <ip>:<port>  # 查别的地址
 
 ```bash
 curl -s "https://api.steampowered.com/ISteamApps/GetServersAtAddress/v1/?addr=110.42.14.5"
-# 该主机上登记着 33 台 PZ 服（2026-10-13 实测）；21217 在列，16261 不在
+# 该主机上登记着 37 台 PZ 服（2026-10-14 实测；10-13 是 33 台）；21217 在列，16261 不在
 ```
 
-### 3.1 `steamid` 不是固定身份（同一地址两个时刻两个值）
+### 3.1 `steamid` 不是固定身份（同一地址三个时刻三个值）
 
 | 读数时刻 | `steamid` | 采样 |
 | --- | --- | --- |
 | 2026-10-13 07:47–07:50 | `90294690668413958` | 4 次一致 |
 | 2026-10-13 20:09 | `90294719523630086` | 4 次一致 |
+| 2026-10-14 09:02 | `90294836172265478` | 1 次 |
 
 地址、端口、AppID、`secure` 全程没变，**只有 `steamid` 变了**。
 **不要**把它当服务器身份写进文档或对外文案；**推测（未证实）**它随进程重新注册而变，
-可能是一条免凭据的重启信号，但两次观测隔了 12 小时，分不清重启次数，暂不当结论。
+可能是一条免凭据的重启信号。10-14 复查时配置逐字未变而它又换了一个值 —— 这既不证实也不推翻，
+因为不知道 `ResetID` 是否随重启变。**要坐实得盯一次已知的重启。**
+
+### 3.2 已知假阴性：脚本会间歇性报"请求失败"（**不是服务器掉线**）
+
+2026-10-14 由哔哩哔哩运营定位：本机系统 DNS 解析出的 Steam 边缘 IP 不可达 ——
+症状是 **ping 得通、TCP 443 挂死**，而同刻 `store.steampowered.com` 正常；
+换公共解析给的 IP 再 `curl --resolve` 就通。
+
+⇒ **`check_server_online.sh` 的失败（退出码 2）不能当服务器信号。**
+判断服务器在不在，**以 RCON（§2）为准**；脚本只用来查"有没有登记在 Steam 列表里"。
+（我最初把它写成"网络抖动"，是没做定位就下结论，已更正。）
 
 ### 3.2 我这边跑不通的手段（别人跑得通，见末行）
 
@@ -158,9 +170,33 @@ curl -s "https://api.steampowered.com/ISteamApps/GetServersAtAddress/v1/?addr=11
 
 ## 7. 一处配置与文案互相矛盾（未定，需需求方拍板）
 
-`PublicName` / `PublicDescription` 都写 **PVE 生存**，但 RCON 实测 **`PVP=true`**
-（`PVPMeleeDamageModifier=30.0`、`PVPFirearmDamageModifier=50.0`）。
-对外文案照抄"PVE"之前，先确认这是**有意开着 PVP**（靠社区约定不打架）还是**漏改**。
+`PublicName` / `PublicDescription` 都写 **PVE 生存 · 友善互助**，但 RCON 实测 PvP 是开着的。
+2026-10-14 把相关开关全部读了出来（原样）：
+
+```
+PVP=true                        PVPMeleeDamageModifier=30.0
+PVPFirearmDamageModifier=50.0   PVPMeleeWhileHitReaction=false
+SafetySystem=true               ShowSafety=true
+SafetyToggleTimer=2             SafetyCooldownTimer=3
+War=false                       PlayerSafehouse=true
+SafehouseAllowTrepass=false     SafehouseAllowLoot=false
+SafehouseAllowFire=false
+```
+
+**机制解读（标注：未实测，运营没有游戏客户端）**：`SafetySystem=true` 意味着玩家默认处于
+"安全"状态、**要主动解除安全才打得到人**；所以这里的 `PVP=true` 更接近"**能互相打、但要主动解除安全**"，
+而不是"进去就会被打"。另有降低伤害的两个修饰符（近战 30% / 枪械 50%）。
+
+**这不是一个措辞问题，是一个意图问题，两条修法互斥：**
+
+1. **本意就是 PvE** ⇒ 正确的修法是**把 `PVP` 关掉（一条 RCON 命令）**，
+   而不是让三个渠道的文案绕开事实。
+2. **本意是有意开着 PvP**（靠社区约定不打架）⇒ 那 `PublicDescription` 里的
+   「PVE生存 · 友善互助」就该改，并说明"能互相打、要主动解除安全"。
+
+**在这句话拿到之前：不改线上配置，也不对外宣称"不会被打"。** 三个渠道目前的一致做法是
+**干脆不写玩法模式**（比写"纯 PVE"诚实）。谁要写，最小诚实句是：
+「标着 PVE；PvP 伤害是开着的（近战 30%、枪械 50%，要主动关掉安全才能打到人）」。
 
 KOOK 短链也有两个，**都活着**（都 301 到 `kookapp.cn`，HTTP 200）：
 
