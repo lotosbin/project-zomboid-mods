@@ -49,6 +49,21 @@
   读取时必须把各包 payload 直接拼接**，用换行拼会把长行弄断——我第一次就数出了 134/71 这种假数字）。
 - 读在线人数、广播、踢人、存档、改名。
 
+**只读助手：`scripts/pz_rcon.py`**（2026-10-14 新增）。不含凭据（从本机 ini 读，也不回显），
+**硬编码只允许 `players` / `help` / `showoptions` 三个只读命令**，写操作直接拒绝：
+
+```bash
+python3 scripts/pz_rcon.py players                 # 在线人数
+python3 scripts/pz_rcon.py showoptions | grep -E "PublicName|Mods="
+python3 scripts/pz_rcon.py sample                  # 追加一行到活动采样 CSV
+```
+
+**活动采样：`docs/server-ops/activity-samples.csv`**（时刻 / 服务器 / 人数 / 上限 / 来源）。
+起因：2026-10-14 三个渠道要判断"① 晚上到底有没有人"——单点读数（09:02 的 0 人）证明不了任何事，
+② 在那个点也是 0。**要下结论只能攒时间点**，所以按时刻记流水，别人的 A2S 读数也对到这张表上。
+记 `source` 列是因为：**同机同刻的 A2S 与 RCON 只算仪器交叉验证，不算多一个样本**；真正的
+证据是**不同时刻**。
+
 **边界仍未定**：重启 / 回档 / 改沙盒 / 封禁要不要先问需求方，§8 第 5 条还空着。
 
 ## 3. 外部存活检查（不需要凭据）
