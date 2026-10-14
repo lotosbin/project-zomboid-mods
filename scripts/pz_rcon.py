@@ -165,7 +165,9 @@ def main():
     new_file = not os.path.exists(args.csv)
     os.makedirs(os.path.dirname(args.csv), exist_ok=True)
     with open(args.csv, "a", newline="", encoding="utf-8") as fh:
-        writer = csv.writer(fh)
+        # lineterminator 必须显式给 "\n"：csv.writer 默认写 "\r\n"，而这仓库要 LF，
+        # 否则每跑一次采样都会在共享工作树里留下一条"只见行尾"的假 diff。
+        writer = csv.writer(fh, lineterminator="\n")
         if new_file:
             writer.writerow(["timestamp", "host_port", "players", "max_players", "names", "source"])
         writer.writerow([now, f"{args.host}:{port}", count, max_players, ";".join(names), "rcon"])
