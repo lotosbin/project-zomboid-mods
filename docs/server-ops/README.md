@@ -167,6 +167,18 @@ curl -s "https://api.steampowered.com/ISteamApps/GetServersAtAddress/v1/?addr=11
 
 **别再引用本文档早期那个 165**：它是 **2026-09-28/09-29 的快照**，来源是客户端连服日志
 `ConnectToServerState: onItemQueryCompleted numResult=165`（`docs/server-ops/mod-snapshot-2026-09-28.txt`）。
+
+### 5.1 「本仓库的模组有没有都上到线上？」——查过了，这条检查没有判别力
+
+2026-10-14 做过一次：仓库里 `workshop.txt` 带 id 的 13 个、`mod.info` 里带 id 的 33 个，
+与线上 `WorkshopItems`(185) / `Mods`(209) 求交集，结果是 **工坊条目中 5 个在线上、模组 id 中 8 个在线上**。
+看着像"缺了很多"，**但这个差集不构成结论**：缺的那批主要是**服务器本来就不该加载**的东西——
+标题图（`ZomboidTitleCover`）、Mac 视点（`ViewpointMac`）、创意工坊上传修复（`ZBWorkshopUploadFix`）、
+各版本历史 modpack（`bin2_B42_13_Collection` 等）。
+
+**可用的判据只有一条**：拿**具体某个模组**问"它现在在线上跑不跑"，用 `Mods=` 里有没有它的 id 回答。
+整体求差集得不出"漏部署"，别据此报问题。真要做部署核对，得**逐个模组对版本号**，
+而版本号目前 RCON 读不到（`Mods=` 只有 id、没有版本）。
 两个独立来源（连服日志的 165 与 `-0929` 配置的 165）互相印证，所以那个数没错——**只是过期了**。
 
 对外可以说「一百多个工坊条目、还在加」；要写死就写 **185**（带日期）。
