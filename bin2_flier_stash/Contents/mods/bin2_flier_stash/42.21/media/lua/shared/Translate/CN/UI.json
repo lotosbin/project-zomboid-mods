@@ -1,0 +1,5 @@
+{
+  "$schema": "https://raw.githubusercontent.com/SirDoggyJvla/pz-translation-data/refs/heads/main/PZ_Translation_Schemas/UI.schema.json",
+  "UI_Bin2FlierStash_Armed": "这张传单标出了一处地点 —— 到那儿去，有东西在等着。",
+  "UI_Bin2FlierStash_Arrived": "就是这里 —— 它们闻着味儿来了。"
+}

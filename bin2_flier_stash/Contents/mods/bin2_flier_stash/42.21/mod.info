@@ -1,0 +1,12 @@
+name=bin2 传单寻宝 (bin2_flier_stash)
+id=bin2_flier_stash
+poster=poster.png
+modversion=1.0.0
+versionMin=42.21.0
+description=读完传单/海报后，它点亮的那片区域会"藏"下一小群携带稀有战利品的丧尸 —— 给"按地图跑过去看看"一个理由。
+description=<LINE>流程：读传单（或点传单窗口底部的"点亮地图"按钮）→ 该地点被标记为"有东西" → 你走到那片区域时，身边会冒出一小群丧尸，其中几只身上带着稀有战利品；同一个地点每个存档只会开一次。
+description=<LINE>不改原版文件、不新增物品与图标：点亮坐标直接读原版 PrintMediaDefinitions 表，战利品全部是原版物品。
+description=<LINE>⚠ 边界：原版只在客户端用过那两个刷怪函数，**联机（dedicated）未经实测**；单机为目标场景。
+tags=QoL;Loot;Adventure
+author=bin^2
+category=content
