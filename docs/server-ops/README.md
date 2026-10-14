@@ -66,6 +66,17 @@ python3 scripts/pz_rcon.py showoptions | grep -E "PublicName|Mods="
 python3 scripts/pz_rcon.py sample                  # 追加一行到活动采样 CSV
 ```
 
+顺带一个**采样循环**（2026-10-14 新增，每晚一次；间隔按"本次开始"对齐，所以时间点落在
+20:00 / 20:10 / … 这些整点上，能和别人的 A2S 点（20:30 / 21:00）严格对上）：
+
+```bash
+scripts/sample_activity_loop.sh              # 13 次 × 600 秒
+scripts/sample_activity_loop.sh 6 300        # 6 次 × 300 秒
+CSV=/tmp/t.csv scripts/sample_activity_loop.sh 2 5   # 试跑，别污染真表
+```
+
+采样失败不会中止整轮（缺的点就是缺的点，记在输出里）。
+
 **活动采样：`docs/server-ops/activity-samples.csv`**（时刻 / 服务器 / 人数 / 上限 / 来源）。
 起因：2026-10-14 三个渠道要判断"① 晚上到底有没有人"——单点读数（09:02 的 0 人）证明不了任何事，
 ② 在那个点也是 0。**要下结论只能攒时间点**，所以按时刻记流水，别人的 A2S 读数也对到这张表上。
