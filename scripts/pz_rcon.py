@@ -157,9 +157,17 @@ def main():
 
     options = run_command(args.host, port, password, "showoptions")
     max_players = ""
+    game_port = ""
     for line in options.splitlines():
         if line.startswith("* MaxPlayers="):
             max_players = line.split("=", 1)[1].strip()
+        elif line.startswith("* DefaultPort="):
+            game_port = line.split("=", 1)[1].strip()
+
+    # 记的是**游戏端口**（DefaultPort，对外那个 21217），不是 RCON 端口 ——
+    # 否则同一个服会因为"走 RCON 还是走 A2S"而在表里变成两个不同的键，
+    # 按服务器分组时就把它拆开了。走的哪条通道由 source 列负责说。
+    server = f"{args.host}:{game_port or port}"
 
     now = dt.datetime.now().astimezone().isoformat(timespec="seconds")
     new_file = not os.path.exists(args.csv)
@@ -170,8 +178,8 @@ def main():
         writer = csv.writer(fh, lineterminator="\n")
         if new_file:
             writer.writerow(["timestamp", "host_port", "players", "max_players", "names", "source"])
-        writer.writerow([now, f"{args.host}:{port}", count, max_players, ";".join(names), "rcon"])
-    print(f"{now}  {args.host}:{port}  在线 {count}/{max_players}" + (f"  {names}" if names else ""))
+        writer.writerow([now, server, count, max_players, ";".join(names), "rcon"])
+    print(f"{now}  {server}  在线 {count}/{max_players}" + (f"  {names}" if names else ""))
 
 
 if __name__ == "__main__":
