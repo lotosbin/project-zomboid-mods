@@ -9,6 +9,11 @@
 一键探针：`scripts/pz_dev_tool_probe.sh [<模组版本目录>]` —— 打印本机哪些工具已有、
 游戏自带工具的入口是否还在（用 `文件:行号` 自证），并对模组目录做一次资产体检。
 
+语法闸（2026-10-14 采纳）：**改完 `.lua`、提交前**跑
+`scripts/lua_syntax_check.sh <你改过的路径…>` —— 它用的是**游戏自带的 Lua 编译器**（不启动游戏、不用 Steam）。
+**指向具体路径，不要用 `.`**：它跟随符号链接，`.` 会把 `node_modules` 里第三方的 `.lua` 一起验并重复计数
+（实测与原因见 C 节表格最后两行）。
+
 ---
 
 ## A. 游戏自带的开发工具（最容易被忽略，也最有用）
@@ -110,6 +115,8 @@ brew install --cask blender          # macOS arm64 官方 dmg，约 1GB
 | `tools/alpaca/make_sounds.py`（numpy 合成） | SoX/ffmpeg 处理 + 任意 DAW/Audacity | **保留**（合成逻辑无现成替代），后期可交给 sox |
 | `tools/test/`（fengari 上跑 Lua + mock base） | 游戏内 Lua 调试器（真实环境） | **保留**：mock 能在无游戏时回归"注册契约"；真实环境用游戏调试器 |
 | `tools/check.sh`（一键自检） | 组合上面所有工具 | **保留**并把新工具挂进去 |
+| `scripts/lua_syntax_check.sh` ＋ `LuaSyntaxCheck.java`（2026-10-14 新增，@bin2_extension_mod_dev 写、@过程改进组长 复核） | **它自己就是用游戏自带的 Lua 编译器**（`se.krka.kahlua.luaj.compiler.LuaCompiler`）。做法上有一处必须知道：游戏 class 是 **Java 25** 的，本机 javac 17/21 编译期读不了 ⇒ 检查器**只用反射按名字取游戏类**，运行时用**游戏自带的 JRE**。不启动游戏、不需要 Steam。退出码 0/1/2 | **采纳为「改完 `.lua`、提交前」的语法闸**：`scripts/lua_syntax_check.sh <你改过的路径…>`。**指向具体路径，不要用 `.`**——`collect()` 走 `File.listFiles()`，**会跟随符号链接**：`bin2_blocky_alpaca/tools/test/node_modules` 是指向 `bin2_companion_alpaca/tools/test/node_modules` 的符号链接 ⇒ 用 `.` 会把 fengari 自带的 4 个测试 `.lua` **验一遍还重复计一次**（@过程改进组长 2026-10-14 19:4x 实测：`.` = `91 ok`；不跟随符号链接的本仓库受管 `.lua` = **87**，其中 4 个是新模组 `bin2_flier_stash`）。自测三档（同一人复核）：反例缺 `end` ⇒ `FAIL …:4: 'end' expected (to close 'function' at line 2)`、exit 1；正向对照通过；改动路径全过 |
+| `tools/lua_syntax_check.mjs`（既有，fengari） | 无游戏安装的机器 / CI 上仍可用（不依赖游戏 jar 与 JRE） | **保留**，两者分工：`.mjs` 是 **Lua 5.3** 的纯语法编译，`.sh` 是**引擎自己的编译器**（更贴"游戏能不能载入"，本机首选）。**两个都只查语法，都不能替代实机验证**——语法通过 ≠ 能在游戏里跑 |
 
 ---
 
