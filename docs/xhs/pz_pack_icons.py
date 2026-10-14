@@ -40,12 +40,20 @@ def parse_pack(path):
     """→ [dict(name=页名, entries={精灵名: (x,y,w,h,ox,oy,cellW,cellH)}, png_slice=(start,end))]"""
     with open(path, "rb") as f:
         b = f.read()
-    if b[:4] != b"PZPK":
-        raise ValueError("不是 PZPK：" + path)
-    page_count = struct.unpack_from("<I", b, 0x0C)[0]
+    if b[:4] == b"PZPK":
+        page_count = struct.unpack_from("<I", b, 0x0C)[0]
+        p = 0x0C
+    else:
+        # 旧格式（UI.pack / IconsMoveables.pack / ApCom.pack …）：没有 magic、没有总页数，
+        # 头 4 字节是版本号（UI.pack=8、IconsMoveables.pack=1），一页接一页读到文件尾；
+        # 每页 PNG 之后跟一个 4 字节分隔符 0xDEADBEEF（2026-10-14 解 Item_Paper/Item_Plank 时试出来的）。
+        # 页内结构与 PZPK 相同（nameLen / name / entryCount / 4 字节 / entryCount×条目）。
+        page_count = None
+        p = 0x04
     pages = []
-    p = 0x0C
-    while p < len(b) and len(pages) < page_count:
+    while p < len(b) and (page_count is None or len(pages) < page_count):
+        if p + 8 > len(b):
+            break
         name_len = struct.unpack_from("<I", b, p)[0]
         if not 0 < name_len < 64:
             break
@@ -65,6 +73,8 @@ def parse_pack(path):
         end = b.find(b"IEND", start) + 8
         pages.append(dict(name=name, entries=entries, png_slice=(start, end)))
         p = end
+        if page_count is None and b[p:p + 4] == b"\xef\xbe\xad\xde":   # 旧格式的页尾分隔符
+            p += 4
     return pages
 
 
