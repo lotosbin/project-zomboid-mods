@@ -38,9 +38,15 @@
 ## 离线校验
 
 ```bash
-# 用游戏自带的 Lua 编译器过语法（不启动游戏）
+# 一次性自检：战利品物品 ID 是否都存在于游戏物品定义 + getText 的键是否都在本模组 UI.json + Lua 语法
+python3 bin2_flier_stash/tools/check_mod_assets.py
+
+# 只查语法（游戏自带的 Lua 编译器，不启动游戏）
 scripts/lua_syntax_check.sh bin2_flier_stash
 ```
+
+`check_mod_assets.py` 的两档自测（2026-10-14 实测）：正常状态 **17/17 战利品 ID 全过**（会打印每个 ID 的定义文件）、
+故意把一个 ID 改成 `Base.NailsXXX` 时**精确报出那一条并 exit 1**；随后已还原。
 
 ## 已知边界（别当成已验证）
 
