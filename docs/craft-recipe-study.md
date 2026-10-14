@@ -1093,6 +1093,37 @@ cd bin2_b42/tools/recipe_probe && ./run.sh      # → ALL RECIPES PARSED, exit 0
 
 **状态**:技术侧判**接**(2026-10-13 13:28);配方**已实现并本地校验通过**,**尚未发布** —— 单独发 1.7.1 还是并入下一版由 @human 定。
 
+### 14.14 复核:焊条(`Base.WeldingRods`)的"37 消耗 / 0 产出"
+
+小红书 2026-10-14 那篇「焊条只能搜刮」的笔记用了两个数,我用**另一种方法**(全 `media/scripts` 逐文件 grep + 逐 `craftRecipe` 块解析 `outputs`)**独立复算,两个数都对得上**:
+
+- **消耗焊条的建造条目 = 37 条**:`entities/walls` 20 / `entities/furniture` 13 / `entities/barricades` 2 / `entities/stairs` 1 / `entities/animals` 1。
+- **用量分布**(每条配方要几根):1 根 ×2、2 根 ×8、3 根 ×1、**4 根 ×22**、5 根 ×2、**10 根 ×2**(`entity_metal_doublewiregate` 与 `entity_metal_doublepolegate`)。注意 10 根那档是**两条**,不是一条。
+- **产出焊条的原版配方 = 0**:把每个 `craftRecipe <名字> { ... }` 的 `outputs` 段落扫一遍,`Base.WeldingRods` 命中数 0。
+
+复算命令(本机跑过,`$G` = 游戏 `Contents/Java/media/scripts`):
+
+```bash
+grep -rl 'Base.WeldingRods' "$G" | wc -l                       # 37(消耗侧,按文件数)
+grep -rho 'item [0-9]* \[Base.WeldingRods\]' "$G" | grep -o '[0-9]*' | sort -n | uniq -c   # 用量分布
+python3 - "$G" <<'PY'   # 产出侧:逐 craftRecipe 块看 outputs
+import sys,re,pathlib
+root=pathlib.Path(sys.argv[1]); hits=0
+for p in root.rglob('*.txt'):
+    t=p.read_text(errors='ignore')
+    for m in re.finditer(r'craftRecipe\s+([\w.]+)\s*\{', t):
+        i=m.end(); d=1
+        while i<len(t) and d:
+            d += (t[i]=='{') - (t[i]=='}'); i+=1
+        body=t[m.end():i]
+        if 'outputs' in body and 'Base.WeldingRods' in body.split('outputs',1)[1]:
+            hits+=1; print('产出的配方:', m.group(1), p)
+print('产出 Base.WeldingRods 的原版配方数 =', hits)   # 0
+PY
+```
+
+**范围与边界**(换范围就得重跑):上述"0 产出"只覆盖 `craftRecipe` 块的 `outputs` —— 不含 `media/lua` 战利品表、也不含 `itemMapper` 这类间接产出(渠道侧那篇用的是 outputs + itemMapper + lua 三种口径,结论一致)。本模组的 `Bin2MakeWeldingRods`(1 钢条 + 4 木炭 + 1 胶水 + 1 盐 → 2 焊条,`MetalWelding:1`,50 秒,无工具位)正是补这个缺口,**不是新版才加的**:该配方由 `5f27770`(v1.2.0)引入,`git show d0de155…bin2_Recipes.txt` 与 `5be4af8` 里都在(即线上 1.7.1 就有)。
+
 ---
 
 ## 15. 参考链接(真实引用地址)
