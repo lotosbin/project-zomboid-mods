@@ -160,6 +160,11 @@ def main():
     ap.add_argument("--ini", default=DEFAULT_INI)
     ap.add_argument("--csv", default=DEFAULT_CSV)
     ap.add_argument("--raw-log", default=DEFAULT_RAW_LOG)
+    ap.add_argument(
+        "--alert-on-players",
+        action="store_true",
+        help="采样时若有人在线（含人数>0 但名字读不出），打印 ALERT_PLAYERS_PRESENT 并以退出码 3 结束",
+    )
     args = ap.parse_args()
 
     port, password = read_credentials(args.ini)
@@ -223,6 +228,22 @@ def main():
     print(f"{now}  {server}  在线 {count}/{max_players}" + (f"  {names}" if names else ""))
     if names:
         print(f"原始字节 hex：{players_raw.hex()}")
+
+    # 「有人了」是要立刻通知渠道的事件（他们的稿子能不能提前发就看这个），
+    # 而这一轮采样是跑在**无人值守的后台作业**里的 —— 作业只在**结束时**叫醒我。
+    # 所以有人时就用一个独特的退出码**主动结束这轮作业**，让我在采到人的后几秒内被叫醒，
+    # 而不是等到 22:00 收尾才看到"20:20 进来过一个人"（那时人早走了，
+    # 渠道也没法在同一刻做 A2S 交叉验证——晚一分钟这条证据就废了）。
+    # **触发条件含 `count > 0` 而不只是"名字非空"**：恰好是"人数>0 但名字读不出"那一种，
+    # 最需要渠道那侧的 A2S 来补（他们的读数是另一条独立通道），所以那种更要立刻叫醒人。
+    # 代价：后面没跑的点要等处理完再补一轮，这是刻意的取舍。
+    if args.alert_on_players and (names or count > 0):
+        print(
+            f"ALERT_PLAYERS_PRESENT\t{now}\t{server}\tcount={count}"
+            f"\tnames={'/'.join(names) if names else '(读不出)'}"
+            f"\traw={players_raw.hex()}"
+        )
+        sys.exit(3)
 
 
 if __name__ == "__main__":
