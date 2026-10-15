@@ -24,6 +24,14 @@
     python3 scripts/pz_rcon.py showoptions | grep -E "PublicName|Mods="
     python3 scripts/pz_rcon.py sample            # 追加一行到活动采样 CSV
     python3 scripts/pz_rcon.py sample --csv /tmp/x.csv
+
+原始字节
+--------
+有人时，除 CSV 那行外另把 `players` 应答的**原始 payload 字节**（hex）追加到
+`docs/server-ops/activity-names-raw.log`。原因：名字要拿去和"本人"比对时，
+对方要的是**原始字节**而不是解码后的字符串（传输里可能被编成控制字节）。
+采样多在无人值守时跑，**解码再落盘就等于把原始字节丢了**——
+之后回头补是补不回来的（人可能已经下线），所以必须在采样的那一刻留存。
 """
 
 import argparse
@@ -39,6 +47,10 @@ DEFAULT_INI = os.path.expanduser("~/Zomboid/Server/呼噜世界41.ini")
 DEFAULT_CSV = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "docs", "server-ops", "activity-samples.csv",
+)
+DEFAULT_RAW_LOG = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "docs", "server-ops", "activity-names-raw.log",
 )
 
 # RCON 包类型（Source RCON）
@@ -78,6 +90,10 @@ def _recv_exact(sock, n):
 
 
 def read_packet(sock):
+    """返回 payload 的**原始字节**（已剥掉包长/req_id/类型头与结尾的两个 NUL）。
+
+    刻意不解码：解码交给调用方，需要留存原始字节的地方（名字）才能拿到无损的那一份。
+    """
     header = _recv_exact(sock, 4)
     if header is None:
         return None
@@ -85,11 +101,11 @@ def read_packet(sock):
     data = _recv_exact(sock, size)
     if data is None:
         return None
-    return data[8:-2].decode("utf-8", "replace")
+    return data[8:-2]
 
 
 def drain(sock, idle=3.0, max_packets=500):
-    """读到 idle 秒内没有新包为止。
+    """读到 idle 秒内没有新包为止，返回拼接后的原始字节。
 
     坑：`showoptions` 的一条长行会跨 RCON 包分片，所以各包 payload 必须**直接拼接**。
     用 "\\n" 拼会把长行弄断，`Mods`/`WorkshopItems` 会被数成 134/71 这种假数字。
@@ -105,10 +121,11 @@ def drain(sock, idle=3.0, max_packets=500):
             break
         parts.append(packet)
         sock.settimeout(idle)
-    return "".join(parts)
+    return b"".join(parts)
 
 
 def run_command(host, port, password, command):
+    """执行只读命令，返回应答的**原始字节**。"""
     if command.split()[0] not in READONLY:
         sys.exit(f"拒绝：本脚本只允许只读命令 {READONLY}（收到 {command!r}）")
 
@@ -142,20 +159,22 @@ def main():
     ap.add_argument("--host", default=DEFAULT_HOST)
     ap.add_argument("--ini", default=DEFAULT_INI)
     ap.add_argument("--csv", default=DEFAULT_CSV)
+    ap.add_argument("--raw-log", default=DEFAULT_RAW_LOG)
     args = ap.parse_args()
 
     port, password = read_credentials(args.ini)
 
     if args.command != "sample":
-        sys.stdout.write(run_command(args.host, port, password, args.command))
+        sys.stdout.write(run_command(args.host, port, password, args.command).decode("utf-8", "replace"))
         return
 
-    text = run_command(args.host, port, password, "players")
+    players_raw = run_command(args.host, port, password, "players")
+    text = players_raw.decode("utf-8", "replace")
     count, names = parse_players(text)
     if count is None:
         sys.exit(f"读不出人数，原始输出：{text[:200]!r}")
 
-    options = run_command(args.host, port, password, "showoptions")
+    options = run_command(args.host, port, password, "showoptions").decode("utf-8", "replace")
     max_players = ""
     game_port = ""
     for line in options.splitlines():
@@ -179,7 +198,31 @@ def main():
         if new_file:
             writer.writerow(["timestamp", "host_port", "players", "max_players", "names", "source"])
         writer.writerow([now, server, count, max_players, ";".join(names), "rcon"])
+
+    # 有人时另存**原始字节**（hex）。CSV 的 names 列是解码后的字符串，已经把
+    # 传输层的东西洗掉了（QQ运营 同一个人 10:41 读成 hex c0bb450162696e32、
+    # 10:50 读成干净的 62696e32 ⇒ 前 4 字节是传输产物，不是名字的一部分）。
+    # 采样无人值守，**解码再落盘就等于把原始字节丢了**，回头补不回来（人可能已下线）。
+    if names:
+        os.makedirs(os.path.dirname(args.raw_log), exist_ok=True)
+        # 末列那份"人看的"文本必须转义：这是 TSV，且 `players` 应答里本来就可能
+        # 带 `\n`（多行）或制表符，直接写会让一条记录裂成两条、把后面所有行错位。
+        # 权威字段始终是 hex 那列，文本列只是给人读的。
+        readable = (
+            text.strip()
+            .replace("\\", "\\\\")
+            .replace("\t", "\\t")
+            .replace("\r", "\\r")
+            .replace("\n", "\\n")
+        )
+        with open(args.raw_log, "a", encoding="utf-8") as fh:
+            fh.write(
+                f"{now}\t{server}\t{count}\t{players_raw.hex()}\t{readable}\n"
+            )
+
     print(f"{now}  {server}  在线 {count}/{max_players}" + (f"  {names}" if names else ""))
+    if names:
+        print(f"原始字节 hex：{players_raw.hex()}")
 
 
 if __name__ == "__main__":
