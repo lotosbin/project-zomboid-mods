@@ -211,7 +211,27 @@ curl -s "https://api.steampowered.com/ISteamApps/GetServersAtAddress/v1/?addr=11
 
 1. **管理边界**：重启 / 回档 / 改沙盒 / 封禁，哪些我能直接做、哪些必须先问。
 2. **存档与备份**：`Zomboid/Saves/Multiplayer/<存档名>` 在哪台机器、多久一次、谁负责。
-   （RCON 实测 `BackupsCount=1`、`BackupsPeriod=0`、`BackupsOnStart=false` —— 看着**不像**有定期备份。）
+   **2026-10-15 复核（RCON 权威，线上实读）——「没有自动备份」这件事现在是确定的，不是"看着像"**：
+
+   ```
+   BackupsPeriod=0              BackupsOnStart=false
+   BackupsOnVersionChange=false BackupsCount=1
+   SaveWorldEveryMinutes=0
+   ```
+
+   后果是确定的：**这台服不产出任何自动备份文件** ⇒ **出事后没有可回滚的东西**，
+   而"回档"是我职责里明写的一项（§8）。`BackupsCount=1` 只在"有备份被触发"时才有意义，
+   而两个触发开关**都是关的**，所以它现在等于没用。
+   另：`BackupsCount` 的默认是 5、这里被设成最小值 1，加上两个开关主动关掉，
+   **看得出是有人特意关的**（常见的理由是备份把盘占满了）——所以这不是"漏配"，
+   **改它之前要知道当初为什么关**。
+   最小改法（若当初是嫌占盘）：只开 `BackupsOnStart=true` ＋ `BackupsCount` 设小（1–2），
+   即"每次重启留一份、只留最近一两份"，占用最小、仍能回滚到上一次重启。
+
+   **我做不到这件事**：手头只有 RCON，且 `scripts/pz_rcon.py` 硬编码只允许只读命令；
+   `~/.ssh/config` 里没有这台主机 ⇒ **要开备份，得由有服务器文件访问的人改 ini 后重启**。
+   我看不到的：云厂商层面的磁盘快照（若开了，那是另一条回滚路径，但**不归我验证**）。
+   `SaveWorldEveryMinutes=0`（不定时存盘）**值已证、影响未证**，和备份一起看为宜。
 3. **名字**（§1.1）与 **KOOK 短链**（§7）各一句。
 4. **上线窗口**：什么时段能重启/更新而不影响玩家。
 
