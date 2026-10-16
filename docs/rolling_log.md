@@ -2739,7 +2739,7 @@ Jeem 的拒绝码，落到了 `ReasonUpstream` 兜底。最糟的是降级**写�
 | --- | --- |
 | `require` 会把 **chunk 的返回值**交给 Lua | `zombie/Lua/LuaManager$GlobalObject.require(String)`：遍历 `LuaManager.paths`（= 所有启用模组的 `media/lua` 根）→ `ZomboidFileSystem.getAbsolutePath(path + name + ".lua")` 找到就 `LuaManager.RunLua`，返回值直接返回；找不到则 `DebugType.Lua.warn` + 返回 null |
 | 一个文件每次 Lua 会话**只执行一次** | `LuaManager.RunLuaInternal(String, boolean)` 开头 `if (loaded.contains(path)) return loadedReturn.get(path);` —— 按**绝对路径**缓存；执行后 `loaded.add(path)`，返回值非空则 `loadedReturn.put(path, value)` |
-| 所有模组的 **shared 一定早于任何 client/server** | `LuaManager.LoadDirBase()` 依次 `LoadDirBase("shared")` / `LoadDirBase("client")`；`GameServer` 走 `("shared")/("client",true)/("server")`；`LoadDirBase(String,boolean)` 按 `ZomboidFileSystem.getModIDs()` 顺序遍历，对每个模组的 `<commonDir|versionDir>/media/lua/<层>` 调 `searchFolders`，最后逐个 `RunLua` |
+| 所有模组的 **shared 一定早于任何 client/server** | `LuaManager.LoadDirBase()` 依次 `LoadDirBase("shared")` / `LoadDirBase("client")`；`GameServer` 走 `("shared")/("client",true)/("server")`；`LoadDirBase(String,boolean)` 按 `ZomboidFileSystem.getModIDs()` 顺序遍历，对每个模组的 `<commonDir\|versionDir>/media/lua/<层>` 调 `searchFolders`，最后逐个 `RunLua` |
 | **勾选模组会自动拉起它的 `require`** | `media/lua/client/OptionScreens/ModSelector/ModSelectorModel.lua:398 forceActivateMods`：递归启用 `modInfo:getRequire()` 里的依赖；取消勾选顺着 `neededFor` 反向级联关闭。`:138 correctAndSaveModOrder` 把被依赖者排在依赖者之前 |
 
 ⇒ 公共层放 `media/lua/shared/`、用 `require` 的返回值当模块句柄，是引擎**原生支持**的写法；
@@ -3920,3 +3920,23 @@ grep "WorkshopConfirm GetItemState" <最新 DebugLog> | grep -oE "ID=[0-9]+" | c
   与我"本机侧"的判断互为旁证。QQ 群稿已上剪贴板等人工粘（**粘没粘读不到**，不记成"已发布"）。
 - **发稿后窗口**：22:20 起另起 12 点（10 分钟一个，到 00:10），**有人进来会以退出码 3 叫醒我**。
 - 口径守住：**13 个点够说"发稿那一刻是空服"，不够说"永远没人"，更不能用它评价这次发布的效果。**
+
+## 2026-10-16 全天 · 过程改进组长：复盘入库（一个读数只支持它读到的那个层面）
+
+- 产物：`docs/develop_log_2026-10-16.md`（当日过程复盘）、`docs/社区建议/README.md`（第 6 条取证坑 ＋ 归属表新行 ＋ 小红书行补上午回收）。
+- 今天是**发布日**：招人帖按 22:00 默认走 —— **B 站已发布**（动态 `1259806086517489665`，`pub_ts 1792159862`；登录态与匿名两遍回读、正文与冻结文件逐字一致、
+  撤回路径已登记；**文件侧我独立读过**：598 字节、md5 `c2aa7bf1d65821d3aaedb6de7898935b`）、**QQ 线稿就绪待人工粘**（780 B，**粘没粘读不到**，
+  只记"已就绪"不记"已发布"）、**小红书线到 23:40 未报**（我 dm 问一句，未答前记"未报"）。
+- 三条互不相干的线收敛到同一句纪律——**读数只支持它读到的那个层面、也只支持它读到的那个时刻**：
+  ① 我：AuthenticZ 提问拆成**名字层／内容层／变更史层**（线上清单里有该条目 ＋ 上游条目 `time_updated` = 2026-09-14），最强说法**不能写「没换过」**；
+  ② 服务器侧：**名义整点 ≠ 实际落表时刻**（名义 21:40 那点落 22:06:31，晚 26 分钟）⇒「发稿前门没开」只能用**发稿前最后一个实际读数 22:06:31**；
+  ③ 渠道侧：@哔哩哔哩运营 **自己**把「20:06–22:06 各点全 0」校准成「最后发稿前读数 22:06:31」，两行发稿后读数不并入。
+- 第二句话：**慢与异常的归因先查本机**——服务器侧 20:14 报「RCON 变慢」、20:36 自己撤回（真因：同机 PZ 客户端 + OBS、负载 7–11、流量走 Clash TUN），
+  「A2S 不可靠」也一样（**是他自己的 challenge 报文位置写错**）；@QQ运营 22:10 那边 A2S 慢了 4 分钟 ⇒ 两个独立通道同时慢、互为旁证。
+- 结构观察两处：**同一件事三条线的「留档能力」差三档**（能回读／只能备稿／连发没发都读不到）⇒ 发布前就该定死"谁记、记什么字段"；
+  **跨线对账需要共同的时刻基准**，只写名义整点的错**会往"发稿前没人"这个有利方向骗人**。
+- 我自己的错：10:1x 我在账本写「**两个读数都还没人读**」，而内容层 **10:09:49 就已经被读掉了** ⇒ 当场更正（`7b9d03d`）。
+  教训：**「还没人读／尚未发生」这类状态句天然会过期，写时必须带「截至 HH:MM」**。
+- 边界：**B 站那条动态本身我核不到**（壳页 + 接口 `-352`）；服务器侧全部读数、A2S 关键字 `pvp` 均按自报记；小红书招人帖状态未报；1.7.2 QQ 群通告粘没粘读不到。
+- 待 @human（全部带默认动作，清单在复盘第六节）：**AuthenticZ 那条评论回不回**（默认不回）、**1.7.2 QQ 群通告粘不粘**、招人帖 QQ 线粘贴、
+  649 归属、服务器素材六类事实（今天多一条：`[CN][PVE]` 与 A2S 关键字 `pvp` 的**对外可见矛盾**）、传单 19:41 那句话的解释等。
