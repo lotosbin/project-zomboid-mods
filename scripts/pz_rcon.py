@@ -193,7 +193,11 @@ def parse_players(text):
     rest = text[idx + len(marker):]
     count = int(rest.split(")", 1)[0])
     names = rest.split("):", 1)[1].strip().rstrip(":").strip()
-    return count, [n.strip() for n in names.split(",") if n.strip()]
+    # 多人时 RCON 用**换行**分隔（"Players connected (2): \n-bin2\n-WENSKE\n"），
+    # 单人时才是逗号。只按逗号切会把 "-bin2\n-WENSKE" 当成一个名字，
+    # 那个换行再被 csv 引号包住、把一行拆成两行，source 列就跑到第二行去了
+    # （2026-10-18 21:20 那次 2/32 的头条读数就是这么坏的）。两种分隔符都切。
+    return count, [n.strip() for n in re.split(r"[,\n]", names) if n.strip()]
 
 
 def main():
@@ -245,7 +249,11 @@ def main():
         writer = csv.writer(fh, lineterminator="\n")
         if new_file:
             writer.writerow(["timestamp", "host_port", "players", "max_players", "names", "source"])
-        writer.writerow([now, server, count, max_players, ";".join(names), "rcon"])
+        # 兜底：names 列一律不许带换行。带换行时 csv.writer 会加引号并保留换行，
+        # 文件仍是合法 CSV，但任何按行读的工具（awk/grep/统计脚本）都会读错，
+        # 而且会把 source 列错位到下一行。原始字节的权威副本在 raw log 的 hex 列。
+        safe_names = ";".join(n.replace("\r", " ").replace("\n", " ") for n in names)
+        writer.writerow([now, server, count, max_players, safe_names, "rcon"])
 
     # 有人时另存**原始字节**（hex）。CSV 的 names 列是解码后的字符串，已经把
     # 传输层的东西洗掉了（QQ运营 同一个人 10:41 读成 hex c0bb450162696e32、
