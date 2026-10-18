@@ -302,7 +302,7 @@ end)
 
 runTest(3, "profile: spec identity (MODULE / VERSION / coreApi=3 / money=cash / TAG / TABLE / prefixes)", function()
     M.assert_eq(Config.MODULE, "Bin2NPCExtensionVanilla", "MODULE")
-    M.assert_eq(Config.VERSION, "0.5.0", "VERSION")
+    M.assert_eq(Config.VERSION, "0.5.1", "VERSION")
     M.assert_eq(Config.SPEC.coreApi, 3, "spec.coreApi")
     M.assert_eq(Core.API, 3, "Core.API")
     M.assert_eq(Config.SPEC.money, "cash", "spec.money")

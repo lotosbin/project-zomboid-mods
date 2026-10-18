@@ -28,7 +28,7 @@ end
 
 local NS = Core.namespace({
     module = "Bin2NPCExtensionVanilla",
-    version = "0.5.0",
+    version = "0.5.1",
     coreApi = 3,
 
     -- 存档与沙盒：三个口味各一套，互不串档、互不覆盖对方的选项

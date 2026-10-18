@@ -160,6 +160,23 @@ local function factory(NS)
         end
     end
 
+    --[[
+        转居民**成功**时的统一收尾：记下基地、写说明、**清掉我们下的 A-Life 命令**。
+
+        为什么必须清命令：`DecisionLoop.orders` 是 A-Life 的**持久意图**，不是一次性动作。
+        他之前是我们的跟随/守卫，那份 follow/hold 还留在表里；人一旦成为 Jeem 的居民，
+        行为就该由 Jeem 的居民系统（以及基地控制器那类模组）接管。不清它，他就会一直跟着你、
+        或者一直站在那个锚点上 —— 而契约此时已经是"居民"，Maintain 的 8 秒重下**不会再跑**，
+        于是没有任何东西会把它清掉。表象就是工坊反馈的那句："选了居民，人还是一直跟随/站岗，
+        只有禁用本模组、改用基地控制器才正常。"
+    ]]
+    local function settleResident(contract, baseId, noteText)
+        contract.baseId = baseId
+        note(contract, noteText)
+        Alife.clearOrder(contract.uid)
+        return true, "resident"
+    end
+
     -- 玩家与 NPC 的距离（服务端权威；Jeem 自己不校验距离，我们补上）
     local function withinReach(player, uid, radius)
         local record = Alife.record(uid)
@@ -224,10 +241,18 @@ local function factory(NS)
                     而人一直好好地当着队友（本轮线上 bug）。
                 ]]
                 local entry = Jimmy.residentEntry(record)
-                if entry ~= nil and Jimmy.canManage(player, entry.baseId) then
-                    contract.baseId = entry.baseId
-                    note(contract, nil)
-                    return true, "resident"
+                if entry ~= nil then
+                    --[[
+                        他已经是居民：岗位**以事实为准**。`canManage` 只决定提示怎么写，不决定岗位 ——
+                        把已经是居民的人降级成跟随，等于每 8 秒给他下一次 follow，直接与 Jeem 的
+                        居民 AI 抢人（本轮工坊反馈的机制就在这里）。
+                    ]]
+                    local mine, knownMine = Jimmy.canManage(player, entry.baseId)
+                    local notYours = (knownMine == true and mine ~= true)
+                    Config.always("resident conversion for " .. tostring(uid) .. ": already a resident (base "
+                        .. tostring(entry.baseId) .. ")"
+                        .. (notYours and "; this base is not manageable by this player" or ""))
+                    return settleResident(contract, entry.baseId, notYours and "resident:not_yours" or nil)
                 end
 
                 local count, why, joined, baseId = Jimmy.recruit(player, uid)
@@ -236,21 +261,24 @@ local function factory(NS)
                     note(contract, nil)
                     -- R.recruit 收编的是整支小队：被一起带进来的成员也改过来
                     Service.adoptJoined(player, joined, baseId)
+                    Alife.clearOrder(uid)
                     return true, "resident"
                 end
 
                 if tostring(why) == "resident" then
-                    -- 检查与调用之间他成了居民（同小队一起入住 / Jeem 自己的右键「邀请入住」）
+                    --[[
+                        Jeem 自己说他已经是居民了（`Server.lua:577`：`if R.residentOf(record) then
+                        return nil, "resident" end`）—— 这句话的含义是"他已经是居民"，**不是失败**。
+                        再问一次只为把基地写对；问不到就当玩家的，不写误导性的说明。
+                    ]]
                     local fresh = Jimmy.residentEntry(Alife.record(uid))
-                    if fresh ~= nil and Jimmy.canManage(player, fresh.baseId) then
-                        contract.baseId = fresh.baseId
-                        note(contract, nil)
-                        return true, "resident"
-                    end
-                    degraded = "resident:not_yours"        -- 是**别人**的居民：如实说不归你管
-                else
-                    degraded = "resident:" .. tostring(why)
+                    local freshBase = fresh ~= nil and fresh.baseId or contract.baseId
+                    local mine, knownMine = fresh == nil and true or Jimmy.canManage(player, fresh.baseId)
+                    local notYours = (fresh ~= nil and knownMine == true and mine ~= true)
+                    return settleResident(contract, freshBase, notYours and "resident:not_yours" or nil)
                 end
+
+                degraded = "resident:" .. tostring(why)
                 -- 降级路径必须留痕：沙盒 DebugLog 默认关着，这里用 always
                 Config.always("resident conversion refused for " .. tostring(uid) .. ": "
                     .. tostring(why) .. " (" .. Jimmy.explain(why) .. "), falling back to follow")
@@ -301,6 +329,8 @@ local function factory(NS)
                 contract.mode = Config.MODE_RESIDENT
                 contract.baseId = baseId
                 note(contract, nil)
+                -- 同一条 crew 邀请进来的其他人也在跟随/站岗：命令一样要清，见 settleResident 的说明
+                Alife.clearOrder(tostring(contract.uid))
                 changed = changed + 1
                 Config.always("contract " .. tostring(contract.uid)
                     .. " came in with the same crew invite; mode corrected to resident")

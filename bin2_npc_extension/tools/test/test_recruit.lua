@@ -660,6 +660,29 @@ runTest(12, "resident mode with Jeem: recruit called, baseId stored; no_beds deg
     M.assert_truthy(camp ~= nil, "camp exists in the base store")
     M.assert_truthy((tonumber(camp and camp.bedsOverride) or 0) >= 3, "camp beds were bumped for the resident")
     M.assert_truthy(M.count_calls("BaseAreas.transmit") >= 1, "BaseAreas.transmit was called")
+
+    -- 4) 工坊反馈（2026-10-18）：选了「居民」，人却一直跟着你 / 一直站着。
+    --    机制：`DecisionLoop.orders` 是 A-Life 的持久意图，转居民成功时不清理就永远留着；
+    --    而契约变成 resident 之后 Maintain 的 8 秒重下不会再跑 —— 没有任何东西会清掉它。
+    resetWorld({ balance = 10000 })
+    M.giveBase(4)
+    local uid4 = M.addActor({ uid = "palife:resident:4" })
+    d(M.player, "HireExisting", { uid = uid4, mode = "follow", requestId = U("r12d") })
+    M.assert_truthy(ProjectALife.DecisionLoop.orders[uid4] ~= nil, "a follower carries a follow order")
+    d(M.player, "SetMode", { uid = uid4, mode = "resident", requestId = U("r12e") })
+    local contract4 = Contracts.get(Store.node(M.player, false), uid4)
+    M.assert_eq(contract4 and contract4.mode, "resident", "SetMode turned him into a resident")
+    M.assert_falsy(ProjectALife.DecisionLoop.orders[uid4],
+        "becoming a resident clears the A-Life follow order")
+    -- 旧存档/上游改动留下的分叉：契约写着跟随、事实是居民 -> 下一 tick 按事实纠正，且一条命令都不下
+    contract4.mode = "follow"
+    local ordersBefore = M.count_calls("DecisionLoop.setOrder")
+    M.advanceMs(9000)
+    Maintain.tick()
+    M.assert_eq(contract4.mode, "resident", "a stale follow contract is corrected back to resident")
+    M.assert_falsy(ProjectALife.DecisionLoop.orders[uid4], "no follow order is issued to a resident")
+    M.assert_eq(M.count_calls("DecisionLoop.setOrder"), ordersBefore,
+        "Maintain issued no order at all while he is a Jeem resident")
 end)
 
 -- ===========================================================================
@@ -715,13 +738,17 @@ runTest(14, "dismiss: residents leave via Jeem, orders are forgotten, contracts 
     d(M.player, "HireExisting", { uid = uid, mode = "follow", requestId = U("r14hire") })
     d(M.player, "SetMode", { uid = uid, mode = "resident", requestId = U("r14a") })
     M.assert_truthy(Jimmy.isResident(Alife.record(uid)), "actor became a resident")
+    -- 签约时的 follow 命令必须在转居民那一刻就被清掉（否则他会一直跟着你）
+    M.assert_falsy(ProjectALife.DecisionLoop.orders[uid],
+        "the hire-time follow order is cleared when he becomes a resident")
     M.advanceMs(1000)
     local payload = d(M.player, "Dismiss", { uid = uid, requestId = U("r14b") })
     M.assert_eq(resultCode(payload), "dismissed", "dismiss code")
     M.assert_eq(M.count_calls("Residents.leaveOne"), 1, "Residents.leaveOne called")
     M.assert_eq(M.calls_named("Residents.leaveOne")[1] and M.calls_named("Residents.leaveOne")[1].uid, uid,
         "leaveOne got the uid")
-    M.assert_eq(M.count_calls("DecisionLoop.forget"), 1, "DecisionLoop.forget called")
+    -- 两次：转居民时一次、解雇时再一次
+    M.assert_eq(M.count_calls("DecisionLoop.forget"), 2, "DecisionLoop.forget called on both paths")
     M.assert_falsy(ProjectALife.DecisionLoop.orders[uid], "DecisionLoop.orders entry is gone")
     M.assert_falsy(Jimmy.isResident(Alife.record(uid)), "the actor is no longer a resident")
     local node = Store.node(M.player, false)

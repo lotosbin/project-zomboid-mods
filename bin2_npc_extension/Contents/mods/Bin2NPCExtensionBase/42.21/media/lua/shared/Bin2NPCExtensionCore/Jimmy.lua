@@ -46,13 +46,27 @@ local function factory(NS)
         返回 `{ baseId = ..., index = ... }` 或 nil。这个返回值就是"事实"：
         我们契约里的 `mode` 只是它的**缓存**，两边不一致时一律以它为准
         （见 Service.applyMode 的幂等红线、Maintain.reconcile）。
+
+        第二个返回值 `known` 区分"问到了"与"问不到"：
+
+          * `entry ~= nil, true`   —— 是居民
+          * `entry == nil, true`   —— 问到了：不是居民
+          * `entry == nil, false`  —— **问不到**（Jeem 没暴露 `residentOf` / 调用抛错 / 返回形状不认识）
+
+        这个区分是必须的。`residentOf` 是 Jeem 的**半稳定**接口，一旦上游改签名，把"问不到"
+        当成"不是居民"就等于**自动把所有人的居民岗位降级成跟随**；而跟随契约每 8 秒会重下一条
+        follow 命令，玩家看到的正是"选了居民，人却一直跟着我，只有禁用本模组才正常"
+        （本轮工坊反馈）。问不到时什么都不改，让事实先留着。
     ]]
     function Jimmy.residentEntry(record)
         local _, _, residents = parts()
-        if residents == nil or type(residents.residentOf) ~= "function" then return nil end
+        if residents == nil or type(residents.residentOf) ~= "function" then return nil, false end
         local ok, value = pcall(residents.residentOf, record)
-        if ok and type(value) == "table" then return value end
-        return nil
+        if not ok then return nil, false end
+        if type(value) == "table" then return value, true end
+        -- nil / false 是"问到的不算居民"；其它形状（字符串 id、布尔 true）说明上游改了契约，当问不到
+        if value == nil or value == false then return nil, true end
+        return nil, false
     end
 
     -- 兼容旧名：只问"是不是居民"
@@ -63,21 +77,27 @@ local function factory(NS)
     --[[
         这个基地归玩家管吗（`BaseAreas.canManage`，Store.lua:330）。
 
-        只在"他已经是居民了"这条幂等路径上用：如果那个基地是个**别人的**基地，
-        那我们并没有达成玩家点「居民」的目的，不能谎报成功。
-        上游没暴露 canManage 时乐观放行 —— 只读判断，宁可如实一点也不要卡住玩家。
+        只用来决定"**提示怎么写**"，不用来决定岗位（岗位以 residentEntry 的事实为准）：
+        把已经是居民的人降级成跟随，等于每 8 秒给他下一次 follow，与 Jeem 的居民 AI 抢人。
+
+        与 residentEntry 一样区分三态：返回 `value, known`。
+        `known == false` 表示**问不到**（基地表里没这个 id / 拿不到 who / pcall 抛错），
+        这时调用方**不该**写"这不是你的基地"这类断言 —— 猜错了就是给玩家一条假说明。
+        上游没暴露 canManage 时乐观放行（只读判断，宁可如实一点也不要卡住玩家）。
     ]]
     function Jimmy.canManage(player, baseId)
-        if type(baseId) ~= "string" or baseId == "" then return false end
+        if type(baseId) ~= "string" or baseId == "" then return false, true end
         local _, baseAreas = parts()
-        if baseAreas == nil or type(baseAreas.base) ~= "function" then return false end
+        if baseAreas == nil or type(baseAreas.base) ~= "function" then return false, false end
         local okBase, base = pcall(baseAreas.base, baseId)
-        if not okBase or type(base) ~= "table" then return false end
-        if type(baseAreas.canManage) ~= "function" then return true end
+        if not okBase then return false, false end
+        if type(base) ~= "table" then return false, false end
+        if type(baseAreas.canManage) ~= "function" then return true, true end
         local who = Jimmy.who(player)
-        if who == nil then return false end
+        if who == nil then return false, false end
         local ok, value = pcall(baseAreas.canManage, base, who.key, who.faction, who.admin)
-        return ok and value == true
+        if not ok then return false, false end
+        return value == true, true
     end
 
     -- 把 Jeem 的失败码翻译成人话（它自带 explain；我们只做 pcall 包装）

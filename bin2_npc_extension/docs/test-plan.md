@@ -1,4 +1,4 @@
-# Bin2NPCExtension 进游戏测试清单（T1~T20 / M1~M4 / Y1~Y16 / V1~V12）
+# Bin2NPCExtension 进游戏测试清单（T1~T20 / M1~M4 / Y1~Y17 / V1~V12）
 
 > 前提：本物品有 **1 个公共层 + 3 个口味**（橙子社区经济 / YeseMarket / 原版钞票）。
 > 下面 T / M 两组以**橙子口味**为准；Y 组是 YeseMarket 口味；V 组是原版钞票口味。
@@ -19,7 +19,7 @@ ln -sfn "$PWD/bin2_npc_extension/Contents/mods/Bin2NPCExtensionVanilla" ~/Zomboi
 
 | 组 | 用例 | 期望 | 失败时先看 |
 | --- | --- | --- | --- |
-| A 加载 | T1 单人新档启动 | `loaded v0.5.0 \| economy=true(server=true) alife=true jeem=…`；`client ready … page=true`；无 ERROR | 橙子经济是否启用；`loadModAfter` 是否生效 |
+| A 加载 | T1 单人新档启动 | `loaded v0.5.1 \| economy=true(server=true) alife=true jeem=…`；`client ready … page=true`；无 ERROR | 橙子经济是否启用；`loadModAfter` 是否生效 |
 | A 加载 | T2 主菜单 Mods 列表 | mod 名/描述/海报正常，`require` 不报缺依赖 | `mod.info` 的 `require`/`id` |
 | B 入口 | T3 打开橙子经济主界面 | 首页出现「NPC 招募」按钮（在「社区中心」左边），中文标题不溢出 | `Entry.install` 是否有 `recruit page registered` 日志 |
 | B 入口 | T4 按 Ctrl+Alt+N | 直接打开招募页；与其它模组/原版按键不冲突 | T3 是否通过 |
@@ -73,7 +73,7 @@ T7：结果=通过/失败；console 关键行=<粘贴 5~10 行>；截图=<文件
 离线先过一遍变体自己的套件（生成物，含公共层侧边栏模块的 5 条断言）：
 
 ```bash
-tools/test-yese/run_lua_test.sh --quick   # → 45/45 passed, ALL PASS
+tools/test-yese/run_lua_test.sh --quick   # → 46/46 passed, ALL PASS
 ```
 
 | 组 | 用例 | 期望 | 失败时先看 |
@@ -93,6 +93,7 @@ tools/test-yese/run_lua_test.sh --quick   # → 45/45 passed, ALL PASS
 | Y 公共 | Y14 公共层缺失 / 版本不符 | 勾了口味但没勾公共层（或只更新了一半）时：控制台一行 `[Bin2NPCExtension][ERROR] Bin2NPCExtensionBase is missing or not enabled…` 或 `public layer mismatch: … coreApi …`，功能不生效但**不报错、不崩** | 公共层与该口味都要启用；`mod.info` 的 `require=\Bin2NPCExtensionBase` 正常会自动勾上公共层 |
 | Y 界面 | Y9 招募页里的雇员/候选列表 | 每行是四行信息的卡片样式，点击能选中（高亮），滚动正常 | 列表用 `CreateList` + `doDrawItem`；若报 `call nil`，说明又用了橙子独有的 `CreateCardGrid` |
 | Y 侧边栏 | Y15 屏幕**左侧原版图标栏**（心/背包/建造那一列）最下方出现交易站图标 | 进游戏后看那一列：最下方多出一个交易站图标，与原版按钮同宽、间距一致；鼠标悬停显示「幸存者交易站：打开/关闭交易站窗口。快捷键 Ctrl+Alt+N 打开招募面板。」 | 控制台应有一条 `sidebar icon hooked into ISEquippedItem (left column, below the vanilla buttons)` 且**只有一条**；两条以上就是没走公共层那次幂等判据（`docs/design.md` §13.4.1） |
+| Y 岗位 | Y17 把一名**跟随中的雇员**改成「居民」 | 点「居民 → 应用岗位」后：面板岗位变「居民」、说明为空；他**不再跟着你走**，也不站在签约时的锚点上，而是交给 Jeem 的居民系统（有基地控制器那类模组时，他会去干基地的活）；再切回「跟随」能立刻恢复跟随 | `Service.applyMode` 的居民分支是否走到 `settleResident`（日志 `resident conversion for <uid>: already a resident (base …)` 或 `resident: …`）；`console.txt` 里不该出现 `order suppressed for <uid>` 反复刷屏（出现一次说明有旧存档分叉被纠正，属正常；每秒都出现才是问题） |
 | Y 侧边栏 | Y16 点这个图标开关「幸存者交易站」 | 点一次开出交易站窗口（标题 `幸存者交易站`）、图标变 `On` 态；再点一次窗口关闭、图标回 `Off` 态；窗口被右上角 × 关掉后再点图标仍能开；此时按 Ctrl+Alt+N 打开的仍是**招募页**（不是交易站首页） | `Entry.isMarketOpen` / `Entry.toggleMarket`；`YeseMarket.Open(playerNum)` 只吃一个参数且不返回窗口，`YeseMarket.Window` 是唯一句柄（`client/ui/shell.lua` 的 `close()` 会把句柄置 nil） |
 
 ## 原版钞票口味（`Bin2NPCExtensionVanilla`）补充用例
@@ -136,7 +137,7 @@ PATH="$NODE:$PATH" node tools/lua_syntax_check.mjs Contents/mods/Bin2NPCExtensio
 | `tools/modinfo_probe/run.sh` | 四个 mod.info 能否被游戏解析；`require=` 依赖的名字对不对；**两个口味共 20 张**侧边栏贴图能否从 `media.version`（`<mod>/42.21/media`）解析到 | `ALL MOD.INFO PARSED` + 两段 `ALL PATHS RESOLVED`（Vanilla `NPC_*` 10/10 + Yese `Trade_*` 10/10） |
 | `python3 tools/check_base.py` | 见 `docs/design.md` §12.5 / §13.6 | `公共层零身份 + 3 个口味互不撞车：OK` |
 | `python3 tools/fork_variant.py --check` | YeseMarket 变体仍是生成物 | `变体与生成器一致（mod N 文件 / test 5 文件）` |
-| `python3 tools/extract_base.py --from-git 33f24e3` | 公共层仍等价于抽取前那份代码 + 逐条列出的替换 | `公共层 12 个文件与机械搬移结果一致。` |
+| `python3 tools/extract_base.py --from-git 33f24e3` | 公共层仍等价于抽取前那份代码（**手改必须登记**在脚本的 `HAND_EDITS` 里） | `公共层 12 个文件：9 个与机械搬移结果逐字一致，3 个是登记过的手改基线` |
 
 > 离线检查**证明不了**的事（不要去 `console.txt` 之外找证据）：实机 `getTexture` 是否真拿到图、
 > 128 档侧边栏下图标会不会超出屏幕底部、钞票在世界里的实际掉落率。
@@ -161,7 +162,7 @@ PATH="$NODE:$PATH" node tools/lua_syntax_check.mjs Contents/mods/Bin2NPCExtensio
 | V 共存 | V9 三个口味同时启用，同一个 NPC 只能被一边雇走 | 同时启用三个口味，在橙子口味界面雇一名 NPC，再到钞票口味界面点同一名 NPC 的「收编」 | 第二个界面报「已被其他玩家雇佣」；**钱一分不掉**、不写契约 | `Service.takenBySibling` 遍历 `Config.SIBLING_MODULES`（三个口味时必须列全，见 `docs/design.md` §13.6） |
 | V 界面 | V10 改「侧边栏尺寸」后图标跟着换、不重复 | 游戏选项里把侧边栏尺寸从 1 改到 5（48→128），每档看一眼 | 图标跟着换尺寸档；面板高度把图标算在内；**不出现第二个图标**、也不残留旧图标 | 原版改尺寸会**整体重建**面板（`ISEquippedItem.lua:1059-1068`）⇒ 引用必须挂在面板自己身上；另见 V1 的 hook 日志只有一条 |
 | V 界面 | V11 分屏时 player 1 没有图标 | 2 人分屏，看 2P 那半屏的左侧 | 2P 只有两只手（mainHand/offHand），没有按钮列、也没有我们的图标 —— **这是原版设计**，不是 bug | 原版按钮列整段包在 `if self.chr:getPlayerNum() == 0 then`；我们的 `attach` 对非 0 号玩家直接返回 true |
-| V 联机 | V12 专用服务器上日志正确 | 起专用服（或主机），看服务端日志那一行 | `loaded v0.5.0 \| money=true(cash) alife=… jeem=… \| hooks active=… inactive=…`；**没有**「<经济模组> is missing」这类误报 | 上游口味的缺失告警只在 `MONEY_KIND == "upstream"` 时发；`cash` 的 `available()` 恒 true |
+| V 联机 | V12 专用服务器上日志正确 | 起专用服（或主机），看服务端日志那一行 | `loaded v0.5.1 \| money=true(cash) alife=… jeem=… \| hooks active=… inactive=…`；**没有**「<经济模组> is missing」这类误报 | 上游口味的缺失告警只在 `MONEY_KIND == "upstream"` 时发；`cash` 的 `available()` 恒 true |
 
 > V4/V5/V7 是这一组里**最值得先跑**的三条：它们覆盖的正是原版钞票最难的三件事
 > （穿戴容器、破捆找零、发包同步），而这三件事在单机下"错了也看不出来"。

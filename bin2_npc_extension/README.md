@@ -98,8 +98,8 @@ bin2_npc_extension/
 │   ├── check_base.py                               公共层隔离守卫（零身份 / coreApi / 口味不撞车 / sibling 列全且不自指 / money 合法）
 │   ├── fork_variant.py                             YeseMarket 口味 + 它的测试套件（防两份分叉）
 │   ├── modinfo_probe/                              用游戏自己的解析器验 mod.info 与贴图路径（Java，无需 Steam）
-│   ├── test/                                       橙子口味的离线逻辑测试（45 条；公共层模块的通用断言也在这里）
-│   ├── test-yese/                                  YeseMarket 口味的同名套件（生成物，45 条 + 变体专有断言）
+│   ├── test/                                       橙子口味的离线逻辑测试（46 条；公共层模块的通用断言也在这里）
+│   ├── test-yese/                                  YeseMarket 口味的同名套件（生成物，46 条 + 变体专有断言）
 │   └── test-vanilla/                               原版钞票口味的同名套件（50 条断言，50/50 通过）
 └── Contents/mods/
     ├── Bin2NPCExtensionBase/42.21/                 ← 公共层（共享逻辑，只有这一份）
@@ -173,16 +173,16 @@ bin2_npc_extension/
 | 手段 | 结果（2026-10-12） |
 | --- | --- |
 | Lua 语法检查（**四个**模组，30 个文件） | `files=30 failed=0`（含测试脚本共 36 个文件） |
-| 离线逻辑测试 —— 橙子口味（mock A-Life / Jeem / 橙子经济，45 条断言） | `45/45 passed` → `ALL PASS`（含公共层侧边栏模块的 5 条） |
-| 离线逻辑测试 —— YeseMarket 口味（同 45 条 + 变体自己的导航行/交易站图标断言，生成物） | `45/45 passed` → `ALL PASS` |
+| 离线逻辑测试 —— 橙子口味（mock A-Life / Jeem / 橙子经济，46 条断言） | `46/46 passed` → `ALL PASS`（含公共层侧边栏模块的 6 条、居民岗位清命令的 5 条断言） |
+| 离线逻辑测试 —— YeseMarket 口味（同 46 条 + 变体自己的导航行/交易站图标断言，生成物） | `46/46 passed` → `ALL PASS` |
 | 离线逻辑测试 —— 原版钞票口味（`tools/test-vanilla/`） | `50/50 passed, 0 failed` / `ALL PASS`（钱的原版物品栏 mock + 侧边栏挂接 + 窗口命令） |
 | 公共层隔离守卫 | `公共层零身份 + 3 个口味互不撞车：OK`（含 `Core.API = 3`、`money=cash, upstream`） |
 | 变体与生成器一致性 | `变体与生成器一致（mod 11 文件 / test 5 文件）` |
-| 抽取等价性复核 | `公共层 12 个文件与机械搬移结果一致`（合计改动 379 行，全部逐条列出；手写的 `Namespace` / `Cash` / `Sidebar` 不在那 12 个里） |
+| 抽取等价性复核 | `公共层 12 个文件：9 个与机械搬移结果逐字一致，3 个是登记过的手改基线`（`Jimmy`/`Service`/`Maintain` 的居民岗位修复；合计改动 379 行。手写的 `Namespace` / `Cash` / `Sidebar` 不在那 12 个里） |
 | 侧边栏图标资产 | `图标齐全且尺寸正确（2 套 x 5 档 x 2 态 = 20 张）`（48x36 … 128x96 RGBA） |
 | mod.info（游戏自己的解析器） | **四个模组** `ALL MOD.INFO PARSED`，三条 `require=Bin2NPCExtensionBase[ok]` |
 | 贴图路径（游戏自己的解析器） | `ALL PATHS RESOLVED`：**20 张**侧边栏图（Vanilla 的 `NPC_*` + YeseMarket 的 `Trade_*`）全部由 `media.version`（`<mod>/42.21/media`）解析 |
-| 工坊探针（游戏自己的解析器） | `readWorkshopTxt=true`、tags 全在白名单、`validatePreviewImage=OK`、简介 7893 字节 / 提交 7918 字节（上限 8000；v0.5.0 加了交易站说明后从 7848 涨上来的，已精简回限内） |
+| 工坊探针（游戏自己的解析器） | `readWorkshopTxt=true`、tags 全在白名单、`validatePreviewImage=OK`、简介 7816 字节 / 提交 7841 字节（上限 8000；v0.5.0 加交易站说明后曾涨到 8608 超限，两轮精简后回到限内） |
 | 仓库级 `check_all.sh` | `ALL CHECKS PASSED (18 item(s))` |
 
 > **本表只写实测过的数字。** 原版钞票口味的游戏内行为（`docs/test-plan.md` V1~V12）
@@ -191,6 +191,11 @@ bin2_npc_extension/
 
 离线测试抓出并修掉了 4 个真缺陷（关闭闸门缺失、周期重下丢 `quiet`、退款不写流水、
 派遣后不校验 actor 是否还在），详见 `docs/design.md` §8.1。
+
+工坊反馈还抓出一个：**选了「居民」，人却一直跟随/站岗**。根因是转居民成功后没清掉我们下给
+A-Life 的 `follow`/`hold`（那是持久意图），而契约变成居民后 8 秒重下不再跑、没有东西会再清它；
+另外 `residentEntry`/`canManage` 把"问不到"和"不是居民"混在一起，会把居民岗位自动降级成跟随。
+两条都修了，详见 `docs/design.md` §11.9。**热键不是原因**：本模组只注册了 `Ctrl+Alt+N` 一个键。
 
 ```bash
 # Lua 语法检查（本机无 lua 解释器，用仓库自带 fengari）
@@ -208,8 +213,9 @@ tools/test-vanilla/run_lua_test.sh     # 原版钞票口味的套件（50 条断
 python3 tools/check_base.py
 # 变体仍是生成物（防有人手改）
 python3 tools/fork_variant.py --check
-# 抽取等价性复核（把公共层与抽取前那份代码逐字比对）
+# 抽取等价性复核（把公共层与抽取前那份代码逐字比对；手改必须登记在脚本的 HAND_EDITS 里）
 python3 tools/extract_base.py --from-git 33f24e3
+python3 tools/extract_base.py --from-git 33f24e3 --print-hashes   # 改完公共层后取哈希填基线
 # 用游戏自己的解析器读 mod.info（确认 require=Bin2NPCExtensionBase 被认出来）
 # 以及确认 42.21/media/ui/... 的贴图能被引擎解析到
 tools/modinfo_probe/run.sh

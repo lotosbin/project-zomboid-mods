@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import hashlib
 import os
 import subprocess
 import sys
@@ -796,6 +797,34 @@ CLIENT_BOOTSTRAP = [
     ),
 ]
 
+# ---------------------------------------------------------------------------
+# 手改基线：抽取完成**之后**对公共层做的有意修改
+#
+# 抽取当时（提交 33f24e3）公共层与机械搬移结果逐字一致。之后每一次有意的修改都必须在这里
+# 登记一次（文件名 -> sha256(包装后内容) + 一句原因），这样 --check 依然能红：
+#
+#   * 机械结果对不上、又没登记   -> 红：有人悄悄改了公共层
+#   * 登记过、但内容又变了       -> 红：改了却忘了更新基线
+#
+# 更新方法：`python3 tools/extract_base.py --print-hashes`（会打印每个文件当前的哈希）。
+# 这是"手改"变成显式动作的唯一代价，比一句"允许手改"的注释可靠。
+# ---------------------------------------------------------------------------
+HAND_EDITS = {
+    "Jimmy.lua": (
+        "91fd70e841ba0e398845dfd3b8a85d13e12da738135f8c0333c210a96718eea7",
+        "2026-10-18 居民身份/基地归属改成三态：问不到（上游改了 residentOf / canManage 签名）"
+        "不等于不是居民，否则会把居民岗位自动降级成跟随",
+    ),
+    "Service.lua": (
+        "0236a12bfff8cfe94d2b11a1da5e0c198f3fc3860de6ba49a6389c355b5043f3",
+        "2026-10-18 转居民成功后清掉我们下的 A-Life 跟随/站岗命令（工坊反馈：选了居民人还一直跟随）",
+    ),
+    "Maintain.lua": (
+        "fb6ab4edb01ea9de926b7cc42d59b9ff3eb9c19c02fb684276df68f675ca6d34",
+        "2026-10-18 每个 tick 的「绝不与 Jeem 抢人」红线 + 问不到时不降级",
+    ),
+}
+
 FILES = [
     ("Config.lua", "shared/Bin2NPCExtension/Config.lua", CONFIG),
     ("Text.lua", "shared/Bin2NPCExtension/Text.lua", TEXT),
@@ -824,6 +853,11 @@ WRAP_HEADER = """--[[
     这条"公共层零身份"的不变量由 tools/check_base.py 守着。
 ]]
 """
+
+
+def digest(text):
+    """包装后内容的 sha256 —— 手改基线用它，不依赖行号/时间戳。"""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def read(path):
@@ -932,6 +966,8 @@ def main():
     parser.add_argument("--verbose", action="store_true", help="逐行打印差异")
     parser.add_argument("--from-git", metavar="REF", default=None,
                         help="从该提交读抽取前的源文件（复核历史抽取时用）")
+    parser.add_argument("--print-hashes", action="store_true",
+                        help="打印手改基线需要登记的 sha256（改完公共层后运行）")
     args = parser.parse_args()
 
     print("源  : Contents/mods/%s/%s" % (SOURCE_MOD, VERSION_DIR))
@@ -940,22 +976,53 @@ def main():
     results = build(args.verbose, args.from_git)
     report(results, True)
 
+    if args.print_hashes:
+        dest_root = os.path.join(MODS_DIR, BASE_MOD, VERSION_DIR, "media", "lua", "shared", CORE)
+        print()
+        print("把下面这些哈希填进 HAND_EDITS（公共层文件当前内容的 sha256）：")
+        for base_name in results:
+            path = os.path.join(dest_root, base_name)
+            if os.path.isfile(path):
+                print('    "%s": ("%s", "…原因…"),' % (base_name, digest(read(path))))
+        return 0
+
     dest_root = os.path.join(MODS_DIR, BASE_MOD, VERSION_DIR, "media", "lua", "shared", CORE)
     if not args.write:
         problems = []
+        mechanical = 0
+        hand_edited = []
         for base_name, (_, _, _, wrapped) in results.items():
             path = os.path.join(dest_root, base_name)
             if not os.path.isfile(path):
                 problems.append("缺失：" + base_name)
-            elif read(path) != wrapped:
-                problems.append("内容不一致（有人手改了公共层？）：" + base_name)
+                continue
+            actual = read(path)
+            if actual == wrapped:
+                mechanical += 1
+                continue
+            entry = HAND_EDITS.get(base_name)
+            if entry is None:
+                problems.append("内容不一致（有人手改了公共层，又没登记基线？）：" + base_name)
+                continue
+            if entry[0] != digest(actual):
+                problems.append("手改基线与文件内容不符（改了却忘了更新基线？）：" + base_name)
+                continue
+            hand_edited.append((base_name, entry[1]))
         print()
         if problems:
-            print("公共层与「从口味机械搬移」的结果不一致（%d 处）：" % len(problems))
+            print("公共层与「从口味机械搬移 + 登记过的手改」的结果不一致（%d 处）：" % len(problems))
             for line in problems:
                 print("  " + line)
+            print()
+            print("改完公共层之后请跑：python3 tools/extract_base.py --print-hashes")
             return 1
-        print("公共层 %d 个文件与机械搬移结果一致。" % len(results))
+        if hand_edited:
+            print("公共层 %d 个文件：%d 个与机械搬移结果逐字一致，%d 个是登记过的手改基线："
+                  % (len(results), mechanical, len(hand_edited)))
+            for name, reason in hand_edited:
+                print("  * %s —— %s" % (name, reason))
+        else:
+            print("公共层 %d 个文件与机械搬移结果一致。" % len(results))
         return 0
 
     for base_name, (_, _, _, wrapped) in results.items():

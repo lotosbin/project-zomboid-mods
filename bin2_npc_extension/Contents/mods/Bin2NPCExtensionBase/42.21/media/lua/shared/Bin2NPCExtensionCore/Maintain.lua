@@ -61,18 +61,25 @@ local function factory(NS)
         local record = Alife.record(contract.uid)
         if record == nil or record.lifecycle ~= "active" then return false end
 
-        local entry = Jimmy.residentEntry(record)
+        local entry, known = Jimmy.residentEntry(record)
         local mode = Config.normalizeMode(contract.mode)
         if entry ~= nil and mode ~= Config.MODE_RESIDENT then
             contract.mode = Config.MODE_RESIDENT
             contract.baseId = entry.baseId
             contract.note = nil
+            -- 他已经是居民：我们之前下的跟随/站岗命令必须清掉（见 Service 里的 settleResident）
+            Alife.clearOrder(contract.uid)
             Config.always("reconcile: " .. tostring(contract.uid) .. " is a Jeem resident (base "
                 .. tostring(entry.baseId) .. ") but this contract said " .. tostring(mode)
                 .. "; corrected to resident")
             return true
         end
-        if entry == nil and mode == Config.MODE_RESIDENT then
+        --[[
+            `known == false` 是"**问不到**"（上游改了 `residentOf` 的签名 / 调用抛错），
+            不是"不是居民"。这时什么都不改：把问不到当成"不是居民"会自动把所有人的居民岗位
+            降级成跟随，而跟随契约每 8 秒重下一次 follow —— 正是那句"选了居民却一直跟着我"。
+        ]]
+        if known and entry == nil and mode == Config.MODE_RESIDENT then
             contract.mode = Config.MODE_FOLLOW
             contract.baseId = nil
             contract.note = "left_residence"
@@ -104,6 +111,30 @@ local function factory(NS)
     Config.onlinePlayers = onlinePlayers
 
     --[[
+        「绝不与 Jeem 抢人」的红线（每个 tick 查一次，只读）。
+
+        契约写着跟随/站岗、但事实是他已经是 Jeem 的居民时：把岗位改成居民、清掉我们下的命令，
+        本轮**不下任何命令**。为什么不能只靠 reconcile：它 30 秒才跑一次，而指令重下是 8 秒一次 ——
+        中间那几次 follow 正好会把居民从他该待的地方拖走。工坊反馈的"选了居民，人还是一直跟随、
+        只有禁用本模组改用基地控制器才正常"，机制就是这里。
+    ]]
+    local function suppressForResident(contract)
+        if Jimmy.available() ~= true then return false end
+        if Config.normalizeMode(contract.mode) == Config.MODE_RESIDENT then return false end
+        local record = Alife.record(contract.uid)
+        if record == nil or record.lifecycle ~= "active" then return false end
+        local entry = Jimmy.residentEntry(record)
+        if entry == nil then return false end
+        contract.mode = Config.MODE_RESIDENT
+        contract.baseId = entry.baseId
+        contract.note = nil
+        Alife.clearOrder(contract.uid)
+        Config.always("order suppressed for " .. tostring(contract.uid)
+            .. ": he is a Jeem resident (base " .. tostring(entry.baseId) .. "), not ours to command")
+        return true
+    end
+
+    --[[
         每 tick 调用（Bootstrap 自己做节流，这里按 ~1 秒粒度跑）。
     ]]
     function Maintain.tick()
@@ -127,6 +158,7 @@ local function factory(NS)
                         elseif record.lifecycle == "active" then
                             -- 先对账（会把 mode 改回事实），再按对账后的岗位决定要不要重下指令
                             if reconcile(contract, now) then dirty = true end
+                            if suppressForResident(contract) then dirty = true end
                             local mode = Config.normalizeMode(contract.mode)
                             if contract.note == "pending" or mode == Config.MODE_FOLLOW
                                     or mode == Config.MODE_GUARD then

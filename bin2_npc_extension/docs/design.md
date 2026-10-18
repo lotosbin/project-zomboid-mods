@@ -5,7 +5,7 @@
 > 依赖：公共层零依赖；三个口味都要 `ProjectALifeNPCs`（需要）与 `ProjectALifeJimmy`（可选）；
 > 橙子口味另需 `OrangeCommunityEconomy`，YeseMarket 口味另需 `YeseMarket`，
 > **原版钞票口味（§13）不需要任何经济模组**
-> 版本：0.5.0（2026-10-12）｜ 工坊 id：3813914438（已发布，public）
+> 版本：0.5.1（2026-10-18）｜ 工坊 id：3813914438（已发布，public）
 > 状态：橙子口味已进游戏跑通基础流程；**YeseMarket 与 原版钞票 口味尚未进游戏验证**；
 > 完整清单（`docs/test-plan.md`）未跑完
 
@@ -471,6 +471,42 @@ follow   → Alife.orderFollow(player, uid, quiet)
 > 2. 幂等不是可选项：UI 上任何一个"应用当前设置"的按钮，都会把同一个请求重复发出去。
 > 3. 不可观测 = 不可诊断：降级必须留下始终可见的日志，拒绝码必须有本地化文案。
 
+### 11.9 第四轮（工坊反馈）：选了「居民」，人却一直跟随/站岗（v0.5.1 修复）
+
+**现象**（工坊评论，2026-10-18）：NPC 选「居民」后**还是一直跟随或者站岗**；
+玩家取消订阅本模组、改用基地控制器管理 NPC 就一切正常。玩家自己怀疑"是不是本模组的按键和
+基地控制器冲突了"。
+
+**热键不是原因**：本模组只注册了 **一个**按键 `Ctrl+Alt+N`（`ClientBootstrap` 里自己查
+`isCtrlKeyDown()`，不占用游戏的 `Bind` 表），三个口味共用同一条路径；面板上那三个是按钮不是按键。
+
+**真因（两条，都在"命令"这一层）**：
+
+| 根因 | 代码位置 | 机制 |
+| --- | --- | --- |
+| 转居民成功后**不清**我们下的命令 | `Service.applyMode` 的居民分支 | `DecisionLoop.orders` 是 A-Life 的**持久意图**（不是一次性动作）。他之前是跟随/守卫，那份 `follow`/`hold` 还留在表里；人一旦成为居民，契约就变成 `resident`，而 `Maintain` 的 8 秒重下**只跑跟随/守卫** —— 于是**没有任何东西会再清掉它**，他就一直跟着你 / 一直站在那个锚点上 |
+| 兜底路径会把居民**降级成跟随** | `Maintain.reconcile`（30 秒）+ `Service.applyMode` 的 `canManage` 门槛 | 旧代码把 `Jimmy.residentEntry()` / `canManage()` 的 `nil/false` 一律当成"不是居民"。而这两个都是 Jeem 的**半稳定**接口：上游改签名 / 记录形状变了 / 拿不到 `who` 时它们同样返回 `nil/false`。一旦被读成"不是居民"，`reconcile` 就把契约改回 `follow`，随后每 8 秒重下一次 follow —— 与基地控制器抢人 |
+
+**修法（三条不变量）**：
+
+1. **事实优先**：`residentEntry` / `canManage` 都改成三态（`值, 是否问到了`）。
+   `known == false`（问不到）时**什么都不改** —— 绝不把"问不到"当成"不是居民"。
+2. **转居民就交出指挥权**：`settleResident()` 统一收尾（已经是居民 / `R.recruit` 成功 /
+   "他已经是居民"的拒绝码 / 同小队一起入住 `adoptJoined`）—— 写 `baseId`、写说明、
+   **`Alife.clearOrder(uid)`**。`reconcile` 纠正回居民时同样清。
+3. **绝不与 Jeem 抢人**：`Maintain.tick` 每个 tick 先问一次事实（只读）；契约写着跟随/站岗、
+   但他已经是居民时，按事实改岗位、清命令，**本轮一条命令都不下**。为什么不能只靠 30 秒的
+   `reconcile`：指令重下是 8 秒一次，中间那几次 follow 正好会把居民拖走。
+
+顺带：`canManage` 返回 false 但"问不到"时，不再写「这不是你的基地」这种断言（猜错就是给玩家一条假说明）。
+
+**离线覆盖**：用例 12 追加"跟随中的雇员转居民 → `orders[uid]` 被清空"、"旧存档分叉（契约写跟随、
+事实是居民）→ 下一 tick 按事实纠正且 `DecisionLoop.setOrder` 调用次数不变"；用例 14 追加
+"签约时的 follow 命令在转居民那一刻就被清掉"，并把解雇路径的 `forget` 计数改成两次
+（转居民一次 + 解雇一次）。用例 36 继续钉住"重复应用同一岗位是幂等"，不受这次收尾影响。
+
+**没验证的**：游戏内观感（人是否真的去干基地的活）——见 `docs/test-plan.md` 的 Y17。
+
 ---
 
 ## 12. 公共层抽取（v0.3.0：`Bin2NPCExtensionBase`）
@@ -539,7 +575,7 @@ Bin2NPCExtension = NS
 | 工具 | 守什么 |
 | --- | --- |
 | `tools/check_base.py` | ① 公共层里不出现任何口味身份字面量（身份值从各口味 Profile 的 spec 里**反推**出来，含工坊 id 与中文片段）；② `coreApi` 与 `Core.API` 相等、`module` 与 `mod.info` 的 id 一致、`modversion` 与 spec 的 `version` 一致；③ 各口味的 `module/tag/sandboxTable/textPrefix/playerPrefix/flowItem` **两两不同**（撞车=写同一张表/抢同一套选项/互相盖翻译键）；④ `sibling` 必须指向**其它**口味（不能是自己），并且**必须列全**其它每一个口味 —— 漏一个就留出一个「同一个 NPC 被两边同时雇走」的漏洞；⑤ `money` 必须是公共层支持的收钱方式（见 §13.2） |
-| `tools/extract_base.py --from-git <抽取前的提交>` | 抽取那次机械搬移的**可复现差异报告**（本次：12 个文件一致、274 行改动）。Base 之后被手改过它当然会报差异 —— 那是预期的，之后事实来源就是 Base |
+| `tools/extract_base.py --from-git <抽取前的提交>` | 抽取那次机械搬移的**可复现差异报告**（本次：12 个文件、379 行改动）。之后对 Base 的有意修改必须登记进脚本顶部的 `HAND_EDITS`（文件 → sha256 + 原因），`--check` 仍会红：**未登记的手改**（有人悄悄改了公共层）与**登记后又被改**（忘了更新基线）都报错；`--print-hashes` 打印当前哈希 |
 | `tools/fork_variant.py --check` | YeseMarket 口味 + 它的测试套件仍是生成物，没有被手改 |
 | 两套离线测试（各 40 条） | 行为没变 —— 这才是"抽取没改坏东西"的**持续**保证，文本 diff 只是迁移那一次的快照 |
 
