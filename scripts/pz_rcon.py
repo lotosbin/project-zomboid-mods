@@ -22,8 +22,12 @@ challenge 的位置，不是服务器的毛病，已更正。）
 
 凭据
 ----
-从本机 `~/Zomboid/Server/呼噜世界41.ini` 读 `RCONPort` / `RCONPassword`。
-**脚本本身不含凭据，输出也不回显凭据。**
+从本机 ini 读 `RCONPort` / `RCONPassword`。**脚本本身不含凭据，输出也不回显凭据。**
+
+**不再写死档案名**：服务器档案会被改名（`呼噜世界41.ini` → `呼噜世界5.ini`），
+写死路径会让采样整夜静默失败（2026-10-18 就是这么挂的）。解析顺序：
+`$PZ_INI` > `--ini`（且文件存在）> `~/Zomboid/Server/` 下**最近修改的、`RCONPassword` 非空的** ini。
+实际用到的文件会打印到 stderr，便于事后核对。
 
 用法
 ----
@@ -45,12 +49,13 @@ import argparse
 import csv
 import datetime as dt
 import os
+import re
 import socket
 import struct
 import sys
 
 DEFAULT_HOST = "110.42.14.5"
-DEFAULT_INI = os.path.expanduser("~/Zomboid/Server/呼噜世界41.ini")
+DEFAULT_INI_DIR = os.path.expanduser("~/Zomboid/Server")
 DEFAULT_CSV = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "docs", "server-ops", "activity-samples.csv",
@@ -66,6 +71,37 @@ EXECCOMMAND = 2
 RESPONSE_VALUE = 0
 
 READONLY = ("players", "help", "showoptions")
+
+
+def resolve_ini(explicit):
+    """解析要读凭据的 ini。档案名会被改，所以不写死路径（见模块 docstring）。"""
+    if explicit and os.path.isfile(explicit):
+        return explicit
+    env = os.environ.get("PZ_INI")
+    if env and os.path.isfile(env):
+        return env
+    cands = []
+    if os.path.isdir(DEFAULT_INI_DIR):
+        for name in os.listdir(DEFAULT_INI_DIR):
+            if not name.endswith(".ini"):
+                continue
+            path = os.path.join(DEFAULT_INI_DIR, name)
+            try:
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    txt = fh.read()
+            except OSError:
+                continue
+            # 必须有非空 RCONPassword 和有效 RCONPort，否则连不上，不该被选中
+            if re.search(r"^RCONPassword=\S", txt, re.M) and re.search(
+                r"^RCONPort=\d", txt, re.M
+            ):
+                cands.append((os.path.getmtime(path), path))
+    if not cands:
+        sys.exit(f"找不到带非空 RCONPassword 的 ini：{DEFAULT_INI_DIR}")
+    cands.sort(reverse=True)
+    picked = cands[0][1]
+    print(f"[ini] 使用 {picked}", file=sys.stderr)
+    return picked
 
 
 def read_credentials(ini_path):
@@ -164,7 +200,7 @@ def main():
     ap = argparse.ArgumentParser(description="只读查询 PZ 服务器（RCON）")
     ap.add_argument("command", help="players | help | showoptions | sample")
     ap.add_argument("--host", default=DEFAULT_HOST)
-    ap.add_argument("--ini", default=DEFAULT_INI)
+    ap.add_argument("--ini", default=None, help="指定 ini；不给则自动找（见 resolve_ini）")
     ap.add_argument("--csv", default=DEFAULT_CSV)
     ap.add_argument("--raw-log", default=DEFAULT_RAW_LOG)
     ap.add_argument(
@@ -174,7 +210,7 @@ def main():
     )
     args = ap.parse_args()
 
-    port, password = read_credentials(args.ini)
+    port, password = read_credentials(resolve_ini(args.ini))
 
     if args.command != "sample":
         sys.stdout.write(run_command(args.host, port, password, args.command).decode("utf-8", "replace"))
