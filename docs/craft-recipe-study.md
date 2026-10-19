@@ -1287,6 +1287,17 @@ Tailoring 126 条(剪布、拆衣、缝补)是多数派;Carving 42 条全是削�
 
 另两条:16 条配方 / `Recipes.json` 缺键 0、多余键 0;`Base.Sponge` 与 `Base.Pillow` 各有且只有 1 处物品定义。
 
+**平衡面补一条(2026-10-19,@小红书运营 提出、本机复核)**:吃海绵的那两条原版配方**都带 `NeedToBeLearn = true`** —— `MakeCraftedGasMaskFilter`(`recipes_gasmasks.txt:96`,`:100` 处 `NeedToBeLearn = true`)和 `RechargeFilters`(`:121`,`:125` 处同样是 true);顺带 `MakeImprovisedGasMask`(`:152`)在 `:157` 也是 true。含义:
+
+```bash
+F="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/media/scripts/generated/recipes/recipes_gasmasks.txt"
+awk '/craftRecipe (MakeCraftedGasMaskFilter|RechargeFilters)/{n=$2} /NeedToBeLearn/{print NR": "n}' "$F"
+# 100: MakeCraftedGasMaskFilter ->         NeedToBeLearn = true,
+# 125: RechargeFilters ->         NeedToBeLearn = true,
+```
+
+⇒ **一个枕头 2 块海绵不构成"立刻变现"**:玩家光有海绵还做不出滤芯,得先学会那两条配方(它们走原版的白名单授予)。所以本配方**不加技能门槛**是保守的,不是偷工 —— 真正的门槛在原版那两条的被学条件上。反过来也说明:**我们这条配方不会让"防毒面具"提前变得廉价**,只是解掉"有配方没料"这一环。
+
 **版本落点**:并进 **1.7.3**(动手前读远端:`time_updated` 仍是 2026-10-14 19:52:42、`file_size` 198614 ⇒ 1.7.3 尚未发布,未发布的版本号可以吞新内容)。
 **边界**:只过引擎解析,**没在游戏里做过**;海绵的产出率(一个枕头 2 块)是设计值,没跑过实际多人档。
 
