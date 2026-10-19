@@ -339,6 +339,10 @@ module Bin2Recipe
        形状 (常识 + 游戏内已有的东西, 不新增任何物品/图标): 枕芯就是海绵/纤维填充,
        把枕头裁开取海绵。
        - 门槛: 要剪刀或锋利刀 (原版拆布/裁剪同款 tags[base:scissors;base:sharpknife], 保留 + 会磨损)。
+       - 类目: Tailoring(缝纫)。原版用 base:scissors / base:sharpknife 的配方统计 (2026-10-19 扫
+         generated/recipes/ 全树): Tailoring 126 条 (剪布/拆衣/缝补)、Carving 42 条 (削骨)、
+         Cooking 29 条但全是开罐开缸开袋、Miscellaneous 4 条。拆枕头是剪开织物, 按多数派挂
+         Tailoring; 原先写 Cooking 的话玩家在烹饪类目里找不到它。
        - 产量 2: 1 个枕头 (1.0 重量) 出 2 块海绵 (各 0.1) —— 一块够一条防毒面具滤芯
          (两条配方各吃 1 块), 所以一个枕头 = 两份滤芯的量; 枕头是卧室常见物, 不构成稀缺泵。
        - 安全: 不是燃料泵 —— 枕头自身带 base:isfirefuel + FireFuelRatio 0.25, 而海绵只带
@@ -349,7 +353,7 @@ module Bin2Recipe
         time = 30,
         timedAction = Making,
         Tags = InHandCraft;CanBeDoneFromFloor,
-        category = Cooking,
+        category = Tailoring,
         inputs
         {
             item 1 [Base.Pillow],

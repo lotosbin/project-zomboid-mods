@@ -1268,12 +1268,22 @@ grep -rn 'item [0-9]* Base\.Sponge' "$S/generated/recipes/"           # 0 处 =>
 **校验(本机跑过)**:
 
 ```
-### Bin2MakeSponge : OK  fullType=Bin2Recipe.Bin2MakeSponge time=30 category=Cooking tags=[InHandCraft, CanBeDoneFromFloor]
+### Bin2MakeSponge : OK  fullType=Bin2Recipe.Bin2MakeSponge time=30 category=Tailoring tags=[InHandCraft, CanBeDoneFromFloor]
     IN  [Item] item 1 [Base.Pillow]                                  keep=false
     IN  [Item] item 1 tags[base:scissors;base:sharpknife] mode:keep flags[MayDegradeLight]   keep=true
     OUT [Item] item 2 Base.Sponge
 ALL RECIPES PARSED      # 16 条全 OK, exit 0
 ```
+
+**类目(Tailoring,不是 Cooking)**:第一版写的 `category = Cooking`,@小红书运营 提了一句"枕头出现在烹饪类目里,玩家想不到去那儿找"——他是对的。查原版用 `base:scissors` / `base:sharpknife` 的配方按类目分布(扫 `generated/recipes/` 全树,2026-10-19):
+
+```bash
+G="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java"
+# 统计脚本见本节的 python 片段;输出:Tailoring 126 / Carving 42 / Cooking 29 / Assembly 8 /
+# Weaponry 6 / Metalworking 6 / (none) 5 / Miscellaneous 4 / Farming 2 / ...
+```
+
+Tailoring 126 条(剪布、拆衣、缝补)是多数派;Carving 42 条全是削骨;`Cooking` 那 29 条**全是开罐/开缸/开袋**(`OpenWaterRationCanWithKnifeOrSharpStoneFlake` 那类)。拆枕头是"剪开织物",按多数派挂 **Tailoring**;改完重跑 probe 仍是 16 条 `ALL RECIPES PARSED`、exit 0。教训是通用的:**类目决定玩家找不找得到它,别按"这东西最后用来干什么"归类,按"这个动作在原版属于哪一族"归类**。
 
 另两条:16 条配方 / `Recipes.json` 缺键 0、多余键 0;`Base.Sponge` 与 `Base.Pillow` 各有且只有 1 处物品定义。
 
