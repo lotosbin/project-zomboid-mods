@@ -12,6 +12,11 @@
   **冲头 `Base.MetalworkingPunch` ≠ 凿 `Base.MetalworkingChisel`** —— 圆锯片/手锯条要的是凿,耙头要的是冲头;
   原版锻造配方覆盖锄头/铁铲/丁字镐/镰刀/各种斧头与锤头,唯独没有耙头 —— 耙头只能搜刮或拆整把钉耙(Base.Rake);
   设计理由与回炉算式见 `docs/craft-recipe-study.md` 14.13)
+- [x] 造纸: 1 木板 + 1 锅具 + 1 升水 → 12 纸张 (烹饪 1 级,任意表面;原版纸张只能搜刮、0 条产出配方;
+  一次 12 张按依赖模组 `ZVirusVaccine42BETA` 实验室链条的最大单条消费量定;见 14.15)
+- [x] 造纸甲: 12 纸张 + 4 管道胶带 → 1 杂志胸甲 (缝纫 1 级) / 4 纸张 + 2 管道胶带 → 1 杂志护臂 (左)。
+  产出直接用原版"期刊护甲"那两件 (`Base.Cuirass_Magazine` / `Base.VambraceMagazine_Left`),不新增物品;
+  传单 `Base.Flier` 没有 `base:magazine` 标签,所以纸甲走「纸张」不做传单版 (见 14.16)
 
 ## 缺口是怎么找出来的
 

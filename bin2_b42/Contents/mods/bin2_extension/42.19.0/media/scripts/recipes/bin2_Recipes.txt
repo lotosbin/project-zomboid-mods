@@ -270,4 +270,59 @@ module Bin2Recipe
             item 12 Base.SheetPaper2,
         }
     }
+    /* 造纸甲: 把造纸的产物接进原版已有的"期刊护甲"体系。
+       需求出处: 小红书评论 id 6acf63ad000000000702761c「传单可以制作护甲吧, 不过实验室模组
+       缺少造纸的模组,纸张只能搜索」+ 同向补充 id 6acf640e0000000011035d1c「书本之类的好像
+       都能做护甲」; 分析见 docs/xhs/需求分析-2026-10-19.md (2026-10-19)。
+       事实面 (2026-10-19 读游戏安装目录 media/scripts): 原版有两条期刊护甲配方,
+       generated/recipes/recipes_tailoring_armor.txt:351 MakeBodyMagazineArmor
+       = 8 本期刊 + 4 管道胶带 -> Base.Cuirass_Magazine (杂志胸甲);
+       :372 MakeForearmMagazineArmor = 1 本期刊 + 2 管道胶带 -> Base.VambraceMagazine_Left
+       (杂志护臂 (左))。期刊口径 = tags[base:magazine], 物品定义里 141 条 Tags 行含它
+       (含报纸、画册); 传单 Base.Flier 只带 base:fastread;base:picture, 不在其中。
+       复算: grep -c 'Tags.*base:magazine' .../media/scripts/generated/items/literature.txt 等。
+       Base.SheetPaper2 (纸张) 全 scripts 树只出现在物品定义与爆竹陷阱配方的一个输入里,
+       做护甲的配方 0 条 -> 这里新增两条, 直接产出原版那两件护甲: 不新增物品、不新增图标,
+       玩家拿到的就是原版护甲 (含 breakwhenwet 标签与护臂 ConditionMax=1)。
+       用量: 胸甲 12 张 = 正好一次造纸的产量 (Bin2MakePaper 出 12 张), 让"木板 -> 纸 -> 护甲"
+       一次闭环; 护臂 4 张。对标原版: 期刊 0.5 重量/本 x 8 = 4.0, 与杂志胸甲自身 4.0 重量
+       恰好相等; 纸 0.1 重量/张 => 12 张只有 1.2 —— 比期刊路径轻, 代价是多花 1 木板 + 1 升水
+       + 120 秒造纸。这是设计取舍, 不是质量守恒 (游戏不校验配方质量)。
+       工具位: 两条都不要工具 (原版同款也只有期刊 + 胶带)。手位照原版: 纸 = Prop2 副手,
+       胶带 = Prop1 主手 (flags 含义见 docs/craft-recipe-study.md 129-130 行)。
+       不加 NeedToBeLearn: 原版这两条靠期刊白名单/研究授予, 模组配方名不在名单里,
+       加了就只有 AutoLearnAll 那个等级才认识它。 */
+    craftRecipe Bin2MakePaperArmorBody
+    {
+        time = 100,
+        timedAction = CraftArmourPiece,
+        Tags = AnySurfaceCraft,
+        category = Tailoring,
+        SkillRequired = Tailoring:1,
+        inputs
+        {
+            item 12 [Base.SheetPaper2] flags[Prop2],
+            item 4 [Base.DuctTape] flags[Prop1],
+        }
+        outputs
+        {
+            item 1 Base.Cuirass_Magazine,
+        }
+    }
+    craftRecipe Bin2MakePaperArmorForearm
+    {
+        time = 100,
+        timedAction = CraftArmourPiece,
+        Tags = InHandCraft,
+        category = Tailoring,
+        inputs
+        {
+            item 4 [Base.SheetPaper2] flags[Prop2],
+            item 2 [Base.DuctTape] flags[Prop1],
+        }
+        outputs
+        {
+            item 1 Base.VambraceMagazine_Left,
+        }
+    }
 }

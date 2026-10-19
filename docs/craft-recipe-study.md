@@ -1193,6 +1193,57 @@ PY
 
 **边界(没验的部分)**:① 引擎解析通过 ≠ 合成界面里点得出来 —— **没有在游戏里跑过**,UI 可见性/`timedAction` 表现要在游戏里确认;② 与实验室配方联动的实际玩法(12 张够不够、画架配方能不能出)属第三方模组的地盘,我们只补纸;③ 流体扣减的机制依据见 14.11(扣 `amount`,不是抽干整锅)。
 
+### 14.16 造纸甲:纸张→护甲那条缺口,以及为什么用原版那两件护甲做产出(2026-10-19)
+
+**需求面**(来源:小红书评论,分析见 `docs/xhs/需求分析-2026-10-19.md`):id `6acf63ad000000000702761c`(2026-10-14)「传单可以制作护甲吧, 不过实验室模组缺少造纸的模组,纸张只能搜索」+ 同向补充 id `6acf640e0000000011035d1c`「书本之类的好像都能做护甲」。前半句已由 1.7.2 的造纸解决(纸张不再只能搜刮),要补的是"纸张参与做护甲"这半句。
+
+**事实面(原版有什么、缺什么)**,读的是游戏安装目录 `Contents/Java/media/scripts`:
+
+```bash
+G="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app"
+S="$G/Contents/Java/media/scripts"
+# ① 原版有两条"期刊护甲"配方
+grep -n 'craftRecipe Make.*MagazineArmor' "$S/generated/recipes/recipes_tailoring_armor.txt"
+#   :351 MakeBodyMagazineArmor     = item 8 tags[base:magazine] + item 4 [Base.DuctTape] -> Base.Cuirass_Magazine
+#   :372 MakeForearmMagazineArmor  = item 1 tags[base:magazine] + item 2 [Base.DuctTape] -> Base.VambraceMagazine_Left
+# ② 期刊口径 = tags[base:magazine]。全物品定义里 141 条 Tags 行带它(报纸、画册都在内)
+grep -rc 'Tags.*base:magazine' "$S/generated/items/" | awk -F: '{s+=$2} END{print s}'
+# ③ 传单 Base.Flier 不在其中 —— 它只带 base:fastread;base:picture
+grep -n -A9 '^\s*item Flier$' "$S/generated/items/literature.txt"
+# ④ 纸张做护甲的配方:0 条(纸张全树只出现在物品定义 + 爆竹陷阱配方的一个输入)
+grep -rn 'SheetPaper2' "$S" | wc -l   # 2
+```
+
+三个物品的关键数值(同一份物品定义里读到的):期刊 `Weight = 0.5`、纸张 `Weight = 0.1`、`Base.Cuirass_Magazine`(杂志胸甲)`Weight = 4.0` 且带 `BiteDefense = 80` / `ScratchDefense = 90` / `base:breakwhenwet`;`Base.VambraceMagazine_Left`(杂志护臂 (左))`Weight = 0.6` 且 `ConditionMax = 1`(一件就碎)。**8 本期刊 = 0.5 × 8 = 4.0,与杂志胸甲自身重量恰好相等** —— 原版这条配方是按质量配平的。
+
+**形状决策**:新增两条配方,**产出直接用原版那两件护甲**,不新增物品、不新增图标:
+- `Bin2MakePaperArmorBody` = 12 纸张 + 4 管道胶带 → 1 杂志胸甲(缝纫 1 级,任意表面,100 秒)
+- `Bin2MakePaperArmorForearm` = 4 纸张 + 2 管道胶带 → 1 杂志护臂 (左)(手持即可做,100 秒)
+
+为什么不改原版那两条、也不新建"纸甲"物品:① 改原版配方要把 `MakeBodyMagazineArmor` 整条重定义去覆盖,而我们一直避免替换原版内容;② 新建物品要美术图标与服装定义(`ClothingItem`/贴图),这条需求撑不起;③ 产出复用原版护甲 ⇒ 玩家拿到的行为完全可预期(包括沾水即毁、护臂一件就碎这两个"纸的代价")。
+
+**用量怎么定**:胸甲 12 张 = **正好一次造纸的产量**(`Bin2MakePaper` 出 12 张),让"1 木板 → 12 张纸 → 1 件护甲"一次闭环,不必为一件甲反复造纸;护臂 4 张。**12 张只有 1.2 重量,比原版 8 本期刊的 4.0 轻得多** —— 这是取舍不是物理:纸张路径省重量,代价是多花 1 木板 + 1 升水 + 120 秒去造纸,且产物本身脆。游戏不校验配方质量,所以这里写清是设计选择。
+
+**校验(本机跑过)**:
+
+```
+### Bin2MakePaperArmorBody : OK  fullType=Bin2Recipe.Bin2MakePaperArmorBody time=100 category=Tailoring tags=[AnySurfaceCraft]
+    IN  [Item] item 12 [Base.SheetPaper2] flags[Prop2]   keep=false
+    IN  [Item] item 4 [Base.DuctTape] flags[Prop1]       keep=false
+    OUT [Item] item 1 Base.Cuirass_Magazine
+### Bin2MakePaperArmorForearm : OK  fullType=Bin2Recipe.Bin2MakePaperArmorForearm time=100 category=Tailoring tags=[InHandCraft]
+    IN  [Item] item 4 [Base.SheetPaper2] flags[Prop2]    keep=false
+    IN  [Item] item 2 [Base.DuctTape] flags[Prop1]       keep=false
+    OUT [Item] item 1 Base.VambraceMagazine_Left
+ALL RECIPES PARSED      # 15 条全 OK,exit 0
+```
+
+另两条:15 条配方 / `Recipes.json` 缺键 0、多余键 0;新配方引用的 4 个物品 ID(`SheetPaper2` / `DuctTape` / `Cuirass_Magazine` / `VambraceMagazine_Left`)各有且只有 1 处定义。
+
+**版本落点 = 1.7.3**:动手前读远端,1.7.2 已于 2026-10-14 19:52:42 发布(`time_updated=1791978762`、`file_size=198614`)⇒ 已发布的版本号必须跳(与 14.15 那次"未发布就能吞"相反)。
+
+**边界(没验的部分)**:① 只过了引擎解析,**没有在游戏里做过一件**——合成面板里能不能点出来、`timedAction = CraftArmourPiece` 的表现(动作/音效)要进游戏确认;② 护甲产出的耐久/沾水表现沿用原版物品定义,我们没改,但也没实测过;③ 传单(`Base.Flier`)仍然不能做护甲 —— 它没有 `base:magazine` 标签,要让它能做得改原版物品定义(本轮不做,已记在需求分析里)。
+
 ---
 
 ## 15. 参考链接(真实引用地址)
