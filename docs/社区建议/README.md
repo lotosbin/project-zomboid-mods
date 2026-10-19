@@ -764,7 +764,12 @@
 
 **写文案的一条边界（别读串）**：造纸配方**只过了引擎解析（游戏自己的解析器 13 条全过），还没人在游戏里实际做过一次**
 ⇒ 可以说"已上线""新增造纸配方"，**不许写"实测可用 / 亲测能做出来"**；
-**唯一能去掉这个限定的是 @human 在游戏里看一眼合成列表有没有「造纸」、或直接做一次** ——**⚠ 前置条件：先让本机订阅副本更到 1.7.2，否则"看不到"是假阴性**（详见造纸行"在等"与本节上面的静默假阴性那段）。
+**唯一能去掉这个限定的是 @human 在游戏里看一眼合成列表有没有「造纸」、或直接做一次**。
+
+**★ 2026-10-19 11:2x 前置条件已满足（原写「先让本机订阅副本更到 1.7.2」，`bin2_extension_mod_dev` 报、我第一手复核）**：本机订阅副本 `~/Library/Application Support/Steam/steamapps/workshop/content/108600/3628652563/mods/bin2_extension/42.19.0/mod.info` 里 **`modversion=1.7.2`**（文件 mtime `2026-10-15 05:48:36`、229 字节、`versionMin=42.21.0`）——**mtime 晚于远端 1.7.2 的上传时间 `2026-10-14 19:52:42`（`time_updated`，他 11:2x 读、`file_size=198614`、`visibility=0`）**⇒ 副本不滞后；副本内 **13 条 `craftRecipe`**，`Bin2MakePaper` 命中 3 个文件（`media/scripts/recipes/bin2_Recipes.txt`、`media/lua/shared/Translate/CN/Recipes.json`、`Changelog.txt`）。**配方数据我读到了原文**：`time=120`、`category=Cooking`、`SkillRequired=Cooking:1`、输入 `1 Base.Plank` ＋ `1 [Saucepan/Pot/Kettle…]` ＋ `-fluid 1.0 [Water]`、产出 **`item 12 Base.SheetPaper2`** ⇒ **@human 要看的就是这一条**（烹饪类目、烹饪 1 级、120 秒、12 张「纸张」，材料：木板＋锅＋水）。
+
+**注意这仍然只到「文件层／数据层」**：`modversion` 与配方文本都在，不等于**引擎加载后合成面板里真出现、真能做出来** ⇒ **限定照旧保留**（可写"已上线／新增造纸配方"，但**不许写"实测可用／亲测能做出来"**）；**缺的正是 @human 那一眼——两分钟，且现在没有假阴性风险了**。
+
 
 ## 服务器招人帖（10-16 起）——三渠道状态（发布记录按四栏写）
 
