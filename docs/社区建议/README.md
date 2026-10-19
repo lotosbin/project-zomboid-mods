@@ -834,7 +834,7 @@
 > 实话：这几条还没人在游戏里真做过一件，你做了发现不对回来说一声。
 
 > **[B · 小红书 · 回 10-14 造纸+传单那条]**
-> 造纸这条做了，1.7.2 在线上了：1 块木板 + 1 个锅具（保留）+ 1 升水 → 12 张纸，烹饪 1 级、120 秒。你提的另一半——传单也参与做护甲——这条我们不做，原因是房主定了「不做单机向的模组」这个范围，不是技术做不到。另外 1.7.3 今天加了用纸做护甲两条（纸胸甲 / 纸护臂），算是把"纸张只能搜刮"这件事补上了。
+> 造纸这条做了，1.7.2 在线上了：1 块木板 + 1 件锅具（平底煮锅/蒸煮锅/水壶都行，任一件、保留不消耗）+ 1 升水 → 12 张纸，烹饪 1 级、120 秒。你提的另一半——传单也参与做护甲——这条我们不做，原因是房主定了「不做单机向的模组」这个范围，不是技术做不到。另外 1.7.3 今天加了用纸做护甲两条（纸胸甲 / 纸护臂），算是把"纸张只能搜刮"这件事补上了。
 
 > **[C · QQ 频道 · 回 10-13 耙头那条]（2026-10-19 14:28 更正物品名，原版我写错三个）**
 > 耙头做了，1.7.1 起就在线上：配方「锻造耙头」= 4 根**钢条 (1/4)**（或铁条 (1/4)）+ 5 个**木炭** + 一把**铁匠锤/圆头锤**（保留）+ 一把**夹钳**（保留）+ **金属加工冲头**（保留）→ 耙头，需锻造 7 级。补充一句：用的是冲头不是凿，早前有一版说明写成了凿，1.7.1 之前已订正。
@@ -842,7 +842,7 @@
 > **★ 命名规矩（14:28 立，@bin2_extension_mod_dev 指出、我复核）：回执里点名物品，必须按 `Translate/CN/ItemName.json` 反查中文名，不许照配方里的 tag 直译。** 我原稿把 `base:barstockquarter` 直译成"钢坯"、`base:smithinghammer` 直译成"锻锤"、`base:tongs` 写成"钳子"——**读起来都像对的，但游戏里没有这三个名字**（实测：`Base.SteelBarQuarter`＝钢条 (1/4)、`Base.IronBarQuarter`＝铁条 (1/4)、`Base.SmithingHammer`＝铁匠锤、`Base.BallPeenHammer`＝圆头锤、`Base.Tongs`＝夹钳、`Base.MetalworkingPunch`＝金属加工冲头、`Base.Charcoal`＝木炭、`Base.SheetPaper2`＝纸张、`Base.Pillow`＝枕头、`Base.Sponge`＝海绵）。玩家照着找不到 ⇒ **tag 名不是玩家看到的物品名**，这跟"工具替你命名的字段先问名字哪来的"是同一族错。
 
 **核稿记录（我 14:28 逐句复核）**：[A] 的窗户玻璃段依据 `recipes_glassmaking.txt:135` ＋ `Translate/CN/Tooltip.json:595`「用于建造窗户.」；**"车玻璃确实做不了"这句已按我的意见改为"不是配方能加的、得动车辆修理逻辑、暂时没在做"**——原先那句超出证据（原版能否换车窗既不能证实也不能证伪）；[C] 的输入我核了配方本体 `bin2_Recipes.txt:224`（`4×barstockquarter + 5×charcoal + smithinghammer + tongs + metalworkingpunch`），**是冲头不是凿**；[B] 的传单理由署 **@human 2026-10-14 19:41 的决定**，不署技术侧。
-> **物品名反查补完（我 14:29 查 `Translate/CN/ItemName.json`，回应"发之前再扫一遍"）**：[A] 的「剪刀或锋利刀」确属**意译**，实际是两个 tag——`base:scissors` ＝ 剪刀（`Base.Scissors`）／剪刀 (粗制)（`ScissorsForged`）／多功能工具（`Multitool`）；`base:sharpknife` ＝ 各类刀具（猎刀 `HuntingKnife`／厨房刀 `KitchenKnife`／粗制刀 `CrudeKnife` 等）。[B] 的「锅具」＝ `Base.Saucepan` **平底煮锅** ／ `Base.Pot` **蒸煮锅** ／ `Base.Kettle` **水壶**（配方里写作 `[Base.Saucepan;Base.SaucepanCopper;Base.Pot;Base.PotForged;Base.Kettle;Base.Kettle_Copper]`）。⇒ **这两处用"剪刀/刀具""锅具"这类集合说法是对的，不必点名到具体物品**（点名反而可能漏掉变体，例如漏了「剪刀 (粗制)」或铜制锅具）。**规矩细化：集合类输入用集合说法；单件输入才点名，且点名必须取自 `ItemName.json`。**
+> **物品名反查补完（我 14:29 查 `Translate/CN/ItemName.json`，回应"发之前再扫一遍"）**：[A] 的「剪刀或锋利刀」确属**意译**，实际是两个 tag——`base:scissors` ＝ 剪刀（`Base.Scissors`）／剪刀 (粗制)（`ScissorsForged`）／多功能工具（`Multitool`）；`base:sharpknife` ＝ 各类刀具（猎刀 `HuntingKnife`／厨房刀 `KitchenKnife`／粗制刀 `CrudeKnife` 等）。[B] 的「锅具」＝ `Base.Saucepan` **平底煮锅** ／ `Base.Pot` **蒸煮锅** ／ `Base.Kettle` **水壶**（配方里写作 `[Base.Saucepan;Base.SaucepanCopper;Base.Pot;Base.PotForged;Base.Kettle;Base.Kettle_Copper]`）。⇒ **这两处用"剪刀/刀具"的集合说法是对的，不必枚举**（点了反而会漏：剪刀组实测 5 件——剪刀／剪刀 (粗制)／安全剪刀／医用剪刀／多功能工具；刀组 29 件，常见厨房刀／猎刀／简易匕首／燧石匕首／瑞士军刀／水果刀）。**但「锅具」这个说法要换成「平底煮锅/蒸煮锅/水壶都行」**——游戏里没有叫"锅"的物品，只写"锅具"玩家会去找一件不存在的东西（`Base.Saucepan`＝平底煮锅／`SaucepanCopper`＝铜平底煮锅／`Base.Pot`＝蒸煮锅／`PotForged`＝粗制蒸煮锅／`Base.Kettle`＝水壶／`Kettle_Copper`＝铜制水壶；附 `Base.Plank`＝木板、`Base.SheetPaper2`＝纸张）。**规矩细化：集合类输入用集合说法；单件输入才点名，且点名必须取自 `ItemName.json`。**
 
 
 **发送方式（我按坑 7 拦）**：`--send` 至今**零次**在真实笔记上跑过 ⇒ **首选 @human 手机 App 手动粘**；次选先在**自己的笔记**下发无害测试评论验证"发得出去"，**但验不了"发到别人笔记下"的权限路径**，所以正式回执仍走人工；**禁止**把给玩家的正式回执当成 `--send` 的首次真实运行。**实发后由渠道把「渠道/时刻/原文摘录」贴回，我填「玩家侧回执」列。**
