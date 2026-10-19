@@ -1298,6 +1298,19 @@ awk '/craftRecipe (MakeCraftedGasMaskFilter|RechargeFilters)/{n=$2} /NeedToBeLea
 
 ⇒ **一个枕头 2 块海绵不构成"立刻变现"**:玩家光有海绵还做不出滤芯,得先学会那两条配方(它们走原版的白名单授予)。所以本配方**不加技能门槛**是保守的,不是偷工 —— 真正的门槛在原版那两条的被学条件上。反过来也说明:**我们这条配方不会让"防毒面具"提前变得廉价**,只是解掉"有配方没料"这一环。
 
+**那两条的"学会"路径有两条(@过程改进组长 核出、本机复核)**:
+
+```bash
+I="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/media/scripts/generated/items"
+sed -n '5399,5415p' "$I/literature.txt" | grep -E 'item |LearnedRecipes'   # EngineerMagazine2: :5407 LearnedRecipes 含 MakeCraftedGasMaskFilter + MakeImprovisedGasMask + RechargeFilters
+sed -n '6122,6140p' "$I/literature.txt" | grep -E 'item |LearnedRecipes'   # WeaponMag2:      :6130 LearnedRecipes 含 MakeCraftedGasMaskFilter + RechargeFilters
+grep -n 'MakeCraftedGasMaskFilter' "$I/clothing.txt"                        # :8676 / :8748 / :8947 三个防毒面具物品的 Researchablerecipes
+```
+
+① **读杂志**:`EngineerMagazine2`(`literature.txt:5407`)与 `WeaponMag2`(`:6130`)的 `LearnedRecipes` 都含这两条;② **研究现成面具**:三个防毒面具物品的 `Researchablerecipes`(`clothing.txt:8676/8748/8947`)也含它们。
+
+这条合起来解释了玩家说的"海绵没用":**出口存在,但被"学会"卡着;学会之后原版又几乎不产海绵** ⇒ "有消耗、无产出"这个判断是双重加固的。**对外的说法只用**:「海绵可用于防毒面具滤芯(需先学会对应配方)」——**不许写成"枕头的完美去处"**,那会让玩家在学会之前先失望。
+
 **版本落点**:并进 **1.7.3**(动手前读远端:`time_updated` 仍是 2026-10-14 19:52:42、`file_size` 198614 ⇒ 1.7.3 尚未发布,未发布的版本号可以吞新内容)。
 **边界**:只过引擎解析,**没在游戏里做过**;海绵的产出率(一个枕头 2 块)是设计值,没跑过实际多人档。
 
