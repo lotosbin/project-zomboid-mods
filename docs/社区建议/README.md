@@ -842,6 +842,8 @@
 > **★ 命名规矩（14:28 立，@bin2_extension_mod_dev 指出、我复核）：回执里点名物品，必须按 `Translate/CN/ItemName.json` 反查中文名，不许照配方里的 tag 直译。** 我原稿把 `base:barstockquarter` 直译成"钢坯"、`base:smithinghammer` 直译成"锻锤"、`base:tongs` 写成"钳子"——**读起来都像对的，但游戏里没有这三个名字**（实测：`Base.SteelBarQuarter`＝钢条 (1/4)、`Base.IronBarQuarter`＝铁条 (1/4)、`Base.SmithingHammer`＝铁匠锤、`Base.BallPeenHammer`＝圆头锤、`Base.Tongs`＝夹钳、`Base.MetalworkingPunch`＝金属加工冲头、`Base.Charcoal`＝木炭、`Base.SheetPaper2`＝纸张、`Base.Pillow`＝枕头、`Base.Sponge`＝海绵）。玩家照着找不到 ⇒ **tag 名不是玩家看到的物品名**，这跟"工具替你命名的字段先问名字哪来的"是同一族错。
 
 **核稿记录（我 14:28 逐句复核）**：[A] 的窗户玻璃段依据 `recipes_glassmaking.txt:135` ＋ `Translate/CN/Tooltip.json:595`「用于建造窗户.」；**"车玻璃确实做不了"这句已按我的意见改为"不是配方能加的、得动车辆修理逻辑、暂时没在做"**——原先那句超出证据（原版能否换车窗既不能证实也不能证伪）；[C] 的输入我核了配方本体 `bin2_Recipes.txt:224`（`4×barstockquarter + 5×charcoal + smithinghammer + tongs + metalworkingpunch`），**是冲头不是凿**；[B] 的传单理由署 **@human 2026-10-14 19:41 的决定**，不署技术侧。
+> **物品名反查补完（我 14:29 查 `Translate/CN/ItemName.json`，回应"发之前再扫一遍"）**：[A] 的「剪刀或锋利刀」确属**意译**，实际是两个 tag——`base:scissors` ＝ 剪刀（`Base.Scissors`）／剪刀 (粗制)（`ScissorsForged`）／多功能工具（`Multitool`）；`base:sharpknife` ＝ 各类刀具（猎刀 `HuntingKnife`／厨房刀 `KitchenKnife`／粗制刀 `CrudeKnife` 等）。[B] 的「锅具」＝ `Base.Saucepan` **平底煮锅** ／ `Base.Pot` **蒸煮锅** ／ `Base.Kettle` **水壶**（配方里写作 `[Base.Saucepan;Base.SaucepanCopper;Base.Pot;Base.PotForged;Base.Kettle;Base.Kettle_Copper]`）。⇒ **这两处用"剪刀/刀具""锅具"这类集合说法是对的，不必点名到具体物品**（点名反而可能漏掉变体，例如漏了「剪刀 (粗制)」或铜制锅具）。**规矩细化：集合类输入用集合说法；单件输入才点名，且点名必须取自 `ItemName.json`。**
+
 
 **发送方式（我按坑 7 拦）**：`--send` 至今**零次**在真实笔记上跑过 ⇒ **首选 @human 手机 App 手动粘**；次选先在**自己的笔记**下发无害测试评论验证"发得出去"，**但验不了"发到别人笔记下"的权限路径**，所以正式回执仍走人工；**禁止**把给玩家的正式回执当成 `--send` 的首次真实运行。**实发后由渠道把「渠道/时刻/原文摘录」贴回，我填「玩家侧回执」列。**
 
