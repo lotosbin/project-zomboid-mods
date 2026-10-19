@@ -5,7 +5,7 @@
 -- 环境由 run.js + mock_env.lua 准备好：
 --   * MOCK        —— 引擎桩 / 依赖 mock / 调用记录 / 时间推进 / 断言框架
 --   * Bin2NPCExtension / Bin2NPCExtensionCore / ProjectALife / ProjectALifeJimmy / OrangeTradingMod*
---     —— 被测的 20 个文件（公共层 15 + 本口味 5）跑完后的产物
+--     —— 被测的 21 个文件（公共层 16 + 本口味 5）跑完后的产物
 --
 -- 返回失败条数（run.js 用它当退出码：0 = ALL PASS）。
 -- ===========================================================================
@@ -23,7 +23,7 @@ local Jimmy = Config.Jimmy
 local Net = Config.Net
 
 -- 用例总数：runTest 会把它当断言前缀用，新增用例时同步改这一个数字
-local TOTAL = 46
+local TOTAL = 48
 local failures = 0
 local passed = 0
 
@@ -125,8 +125,8 @@ local SOURCE_KEYS = Config.__sourceKeys or {}
 -- ===========================================================================
 -- 1. 加载
 -- ===========================================================================
-runTest(1, "loader: 20 files (public layer 15 + flavour 5), expected globals only, require is idempotent", function()
-    M.assert_eq(Config.__loadedCount, 20, "loaded file count")
+runTest(1, "loader: 21 files (public layer 16 + flavour 5), expected globals only, require is idempotent", function()
+    M.assert_eq(Config.__loadedCount, 21, "loaded file count")
     M.assert_eq(Config.MODULE, "Bin2NPCExtension", "Config.MODULE")
     M.assert_eq(Bin2NPCExtension, Config, "Bin2NPCExtension is the Config table")
     M.assert_truthy(type(Config.Text.get) == "function", "Config.Text.get")
@@ -138,7 +138,7 @@ runTest(1, "loader: 20 files (public layer 15 + flavour 5), expected globals onl
 
     -- 公共层把它自己按依赖顺序绑到了本口味的命名空间上（Namespace.bind）
     for _, name in ipairs({ "Text", "Contracts", "Store", "Economy", "Alife", "Jimmy",
-        "Service", "Maintain", "Net", "ServerBootstrap", "ClientBootstrap" }) do
+        "Service", "Maintain", "Net", "Context", "Sidebar", "ServerBootstrap", "ClientBootstrap" }) do
         M.assert_truthy(type(Config[name]) == "table", "public-layer module bound: " .. name)
     end
     M.assert_truthy(type(Config.SPEC) == "table" and Config.SPEC.module == Config.MODULE,
@@ -179,13 +179,13 @@ runTest(1, "loader: 20 files (public layer 15 + flavour 5), expected globals onl
     M.assert_truthy(type(coreContracts) == "function", "公共层模块导出的是工厂函数")
     M.assert_truthy(require("Bin2NPCExtensionCore/Contracts") == coreContracts,
         "a second require returns the very same factory (package.loaded hit)")
-    -- 19 个模块名 / 20 个文件（client 与 server 两个 Bootstrap 同名）
-    M.assert_eq(#Config.__requireNames, 19, "19 distinct require names for 20 files")
-    M.assert_eq(#Config.__coreModules, 15, "15 modules in the public layer")
+    -- 20 个模块名 / 21 个文件（client 与 server 两个 Bootstrap 同名）
+    M.assert_eq(#Config.__requireNames, 20, "20 distinct require names for 21 files")
+    M.assert_eq(#Config.__coreModules, 16, "16 modules in the public layer")
     M.assert_eq(Config.MONEY_KIND, "upstream", "this flavour pays through the upstream economy mod")
     M.assert_truthy(type(Config.UI_HINT) == "string" and Config.UI_HINT ~= "",
         "the flavour ships a diagnostic hint for the client entry")
-    -- 自动加载已经把 20 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
+    -- 自动加载已经把 21 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
     -- 这一条同时守住两件事：文件只执行一次（引擎的真实语义），以及没有写错的模块名。
     local reloaded = {}
     for _, name in ipairs(Config.__requireNames) do
@@ -1256,7 +1256,7 @@ runTest(20, "translations: every literal key exists in CN and EN, and both langu
     for _ in pairs(CN_KEYS) do cnCount = cnCount + 1 end
     for _ in pairs(EN_KEYS) do enCount = enCount + 1 end
     M.assert_eq(cnCount, enCount, "CN/EN key counts differ")
-    M.assert_eq(cnCount, 92, "expected 92 translated keys in IG_UI.json")
+    M.assert_eq(cnCount, 94, "expected 94 translated keys in IG_UI.json (2 = the right-click menu)")
     M.assert_eq(CN_KEYS.Prefix ~= nil, false, "no stray 'Prefix' key")
     M.assert_eq(CN_KEYS.PageTitle, true, "PageTitle exists")
     M.assert_eq(CN_KEYS.EntryButton, true, "EntryButton exists")
@@ -2363,6 +2363,120 @@ runTest(46, "public sidebar: a second initialise() on the same panel rebuilds ex
     -- 补装过之后 prerender 不许再补一个（幂等）
     panel:prerender()
     M.assert_eq(countIcons(panel, spec), 1, "prerender() does not add a duplicate on top")
+end)
+
+-- ===========================================================================
+-- 47-48. 世界右键菜单里的「收编」（公共层 Context）
+--    玩家原话：「招募中立 NPC 放到右键菜单中，现在 NPC 跑太快来不及招募」——
+--    面板那条路（开→扫描→找人→选中→收编）太慢，人早出了服务端半径。
+-- ===========================================================================
+local function clickSquare(x, y, z)
+    local object = M.worldObject(x, y, z)
+    return object
+end
+
+runTest(47, "right-click: one NPC near the click gets a hire entry, clicking it hires with the sandbox default mode", function()
+    resetWorld({ balance = 10000 })
+    local entry = Bin2NPCExtension.Context
+    M.assert_truthy(type(entry) == "table", "public layer exposed Context")
+    M.assert_truthy(entry.install() == entry, "install() is idempotent and returns the module")
+    M.assert_eq(M.handler_count("OnFillWorldObjectContextMenu"), 1,
+        "exactly one OnFillWorldObjectContextMenu handler (no double wiring)")
+
+    -- 一个中立 NPC 站在点击的那一格
+    local uid = M.addActor({ uid = "palife:ctx:1", x = 102, y = 100 })
+    local menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(102, 100) })
+    M.assert_eq(#menu.options, 1, "one entry for the NPC next to the click")
+    -- 翻译没接上时是裸键（与面板那条路的回退规则一致）
+    M.assert_eq(menu.options[1].name, "ContextRecruit", "label falls back to the bare key")
+    local shell = Alife.shell(uid)
+    M.assert_truthy(menu.options[1].param10 == shell,
+        "the entry carries the NPC shell in param10 (first-person menus filter on it)")
+
+    -- 中文接上之后是玩家真正看到的那句话
+    M.useCnTranslations()
+    menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(102, 100) })
+    M.assert_eq(menu.options[1].name, "收编 " .. Alife.name(Alife.record(uid)),
+        "the CN label is '收编 <名字>'")
+    M.state.translations = nil
+
+    -- 点它：走的是面板同一条 HireExisting（服务端校验、结果走 Net.notify）
+    local before = M.balance()
+    local sign = Config.signPrice()
+    menu.options[1].onSelect(menu.options[1].target)
+    M.assert_eq(M.balance(), before - sign, "the sign price was taken")
+    local contract = Contracts.get(Store.node(M.player, false), uid)
+    M.assert_truthy(contract ~= nil, "a contract exists after the click")
+    M.assert_eq(contract and contract.mode, Config.defaultMode(),
+        "the post comes from the sandbox DefaultMode (same as the panel's hire button)")
+    M.assert_eq(contract and contract.status, "active", "the contract is active")
+
+    -- 同一个人不再出现在菜单里（已经有契约了）
+    menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(102, 100) })
+    M.assert_eq(#menu.options, 0, "an NPC we already employ is not offered again")
+
+    -- 半径跟着沙盒的 RecruitRadius 走（面板扫描与服务端校验用的是同一个值）
+    resetWorld({ balance = 10000 })
+    M.setSandbox("RecruitRadius", 2)
+    M.addActor({ uid = "palife:ctx:far", x = 105, y = 100 })
+    menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(102, 100) })
+    M.assert_eq(#menu.options, 0, "3 squares away with RecruitRadius=2 -> no entry")
+    M.setSandbox("RecruitRadius", 4)
+    menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(102, 100) })
+    M.assert_eq(#menu.options, 1, "widening the sandbox radius brings him back")
+
+    -- 空地上右键、分屏的 player 1、沙盒关掉：都不加条目
+    resetWorld({ balance = 10000 })
+    menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(100, 100) })
+    M.assert_eq(#menu.options, 0, "an empty square adds nothing")
+    local near = M.addActor({ uid = "palife:ctx:2", x = 101, y = 100 })
+    menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 1, menu, { clickSquare(101, 100) })
+    M.assert_eq(#menu.options, 0, "player 1 (split screen) is left alone: only player 0")
+    M.setSandbox("Enabled", false)
+    menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(101, 100) })
+    M.assert_eq(#menu.options, 0, "a disabled mod adds no entry")
+    M.setSandbox("Enabled", true)
+    M.assert_truthy(near ~= nil, "the actor helper still works")
+end)
+
+runTest(48, "right-click: several NPCs collapse into one submenu (nearest first, capped), filled once per menu", function()
+    resetWorld({ balance = 10000 })
+    local entry = Bin2NPCExtension.Context
+    M.addActor({ uid = "palife:ctx:a", x = 101, y = 100 })   -- 1 格
+    M.addActor({ uid = "palife:ctx:b", x = 102, y = 100 })   -- 2 格
+    M.addActor({ uid = "palife:ctx:c", x = 100, y = 101 })   -- 1 格
+    local menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(100, 100) })
+    M.assert_eq(#menu.options, 1, "one root entry when there are several people")
+    M.assert_eq(menu.options[1].name, "ContextRecruitMenu", "the submenu title comes from its own key")
+    local sub = menu.options[1].subOption
+    M.assert_truthy(type(sub) == "table", "the root entry opens a submenu")
+    M.assert_eq(#sub.options, 3, "one line per nearby NPC")
+    M.assert_contains(sub.options[1].name, "(1 m)", "distance is spelled out (nearest first)")
+    M.assert_contains(sub.options[2].name, "(1 m)", "…ties keep the panel's order (uid asc)")
+    M.assert_contains(sub.options[3].name, "(2 m)", "…and the two-square one comes last")
+    M.assert_truthy(Contracts.get(Store.node(M.player, false), "palife:ctx:a") == nil,
+        "opening the menu is read-only: nobody is hired by looking")
+
+    -- 同一张菜单不会被填第二遍（上游经济模组与 YeseMarket 都包过 createMenu）
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(100, 100) })
+    M.assert_eq(#menu.options, 1, "a second fill of the same menu adds nothing")
+
+    -- 人多时按上限截断（默认 4）：不把菜单铺成一整屏
+    resetWorld({ balance = 10000 })
+    for index = 1, 6 do M.addActor({ uid = "palife:ctx:many:" .. index, x = 100, y = 100 }) end
+    menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { clickSquare(100, 100) })
+    M.assert_eq(#menu.options[1].subOption.options, entry.maxRows, "the submenu is capped at maxRows")
+    M.assert_eq(entry.maxRows, 4, "maxRows is 4")
 end)
 
 -- ===========================================================================

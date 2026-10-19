@@ -91,5 +91,7 @@
     "IGUI_Bin2NPCExtensionYese_ReasonUpstream": "%1 (upstream code)",
     "IGUI_Bin2NPCExtensionYese_CampName": "Mercenary Camp",
     "IGUI_Bin2NPCExtensionYese_FlowHire": "NPC hire",
-    "IGUI_Bin2NPCExtensionYese_FlowRefund": "NPC hire refund"
+    "IGUI_Bin2NPCExtensionYese_FlowRefund": "NPC hire refund",
+    "IGUI_Bin2NPCExtensionYese_ContextRecruit": "Recruit %1",
+    "IGUI_Bin2NPCExtensionYese_ContextRecruitMenu": "[bin2] NPC recruitment"
 }

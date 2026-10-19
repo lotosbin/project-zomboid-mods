@@ -50,6 +50,12 @@ local Core = Bin2NPCExtensionCore
 --     （新口味要的 Cash.lua 在旧公共层里不存在 → 会静默变成"没有经济模组"，正是最坏的降级），
 --     所以仍然按接口变更处理：+1。
 -- 3 = 2 + 原版左侧竖排图标栏的入口模块（NS.Sidebar，Sidebar.lua）。
+--     v0.5.2 又加了 NS.Context（世界右键菜单里的「收编」）**但没有再 +1**，这是有意的：
+--     判断标准不是"NS 上有没有新字段"，而是"**口味**会不会引用它"。
+--     Sidebar 是口味自己 `Config.Sidebar.install(spec)` 调的 —— 老公共层没有这个字段，
+--     新版口味会在运行期静默丢掉入口（连原来那个一起），所以必须让 coreApi 提前拦住。
+--     Context 则完全由公共层的 ClientBootstrap 自己调用，口味一行都没提它：老公共层 + 新口味、
+--     新公共层 + 老口味，两种半更新都能正常跑，没有需要拦的降级路径。
 --     同样是"加字段"，为什么还要 +1：**不升**的话，老公共层（没有 Sidebar 字段）会让新版口味
 --     照常加载，而口味只在 install() 里索引 `Config.Sidebar` —— 那是走 ClientBootstrap
 --     pcall 的运行时调用，失败只剩一行 WARN、入口静默消失（连口味原来那个入口也一起没了）。
@@ -199,6 +205,8 @@ function Core.bind(NS)
     NS.Service = require("Bin2NPCExtensionCore/Service")(NS)
     NS.Maintain = require("Bin2NPCExtensionCore/Maintain")(NS)
     NS.Net = require("Bin2NPCExtensionCore/Net")(NS)
+    -- 世界右键菜单里的「收编」（手写模块；只加监听器，不包 createMenu）
+    NS.Context = require("Bin2NPCExtensionCore/Context")(NS)
     -- 原版左侧竖排图标栏的入口（手写模块；纯原版口味与挂在经济模组里的口味都用得上）
     NS.Sidebar = require("Bin2NPCExtensionCore/Sidebar")(NS)
     NS.ServerBootstrap = require("Bin2NPCExtensionCore/ServerBootstrap")(NS)

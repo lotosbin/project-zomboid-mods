@@ -172,13 +172,17 @@ local function factory(NS)
         遍历 Watchdog.bindings（只有"真的有实体在场"的 actor 才会在里面），
         逐一过滤：生命周期、距离、已被占用、已是 Jeem 居民/驻军/商人。
         返回的是**纯数据**，可以直接丢给客户端渲染。
+
+        `origin` 可省，省了就是玩家脚下（面板「扫描附近」那条路）。世界右键菜单传的是
+        **点击的那一格**（`Alife.position(square)`）：玩家点的是哪里，就按哪里算距离 ——
+        两条入口因此共用同一套过滤规则，不会各自长出第二份名单。
     ]]
-    function Alife.candidates(player, radius, isTaken)
+    function Alife.candidates(player, radius, isTaken, origin)
         local rows = {}
         local wd = watchdog()
         local reg = registry()
         if wd == nil or type(wd.bindings) ~= "table" or reg == nil then return rows end
-        local origin = Alife.position(player)
+        origin = origin or Alife.position(player)
         if origin == nil then return rows end
         local limit = math.max(1, tonumber(radius) or 6)
 

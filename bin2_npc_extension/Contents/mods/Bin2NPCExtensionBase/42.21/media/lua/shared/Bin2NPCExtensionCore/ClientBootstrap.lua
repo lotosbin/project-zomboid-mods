@@ -134,6 +134,14 @@ local function factory(NS)
         local Net = Config.Net
         if Net ~= nil and type(Net.install) == "function" then Net.install() end
 
+        --[[
+            世界右键菜单里的「收编」（Context 同样由 Profile 在 shared 层实例化）。
+            玩家原话：「招募中立 NPC 放到右键菜单中，现在 NPC 跑太快来不及招募」——
+            面板开→扫描→找人→选中→收编这一串太慢，NPC 早走远了。
+        ]]
+        local Context = Config.Context
+        if Context ~= nil and type(Context.install) == "function" then Context.install() end
+
         if Events ~= nil then
             if Events.OnGameStart ~= nil then Events.OnGameStart.Add(onGameStart) end
             if Events.OnTick ~= nil then Events.OnTick.Add(onTick) end

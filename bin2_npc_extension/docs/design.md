@@ -5,7 +5,7 @@
 > 依赖：公共层零依赖；三个口味都要 `ProjectALifeNPCs`（需要）与 `ProjectALifeJimmy`（可选）；
 > 橙子口味另需 `OrangeCommunityEconomy`，YeseMarket 口味另需 `YeseMarket`，
 > **原版钞票口味（§13）不需要任何经济模组**
-> 版本：0.5.1（2026-10-18）｜ 工坊 id：3813914438（已发布，public）
+> 版本：0.5.2（2026-10-19）｜ 工坊 id：3813914438（已发布，public）
 > 状态：橙子口味已进游戏跑通基础流程；**YeseMarket 与 原版钞票 口味尚未进游戏验证**；
 > 完整清单（`docs/test-plan.md`）未跑完
 
@@ -522,8 +522,8 @@ follow   → Alife.orderFollow(player, uid, quiet)
 
 | 进公共层（`Bin2NPCExtensionBase/media/lua/shared/Bin2NPCExtensionCore/`） | 留口味 |
 | --- | --- |
-| `Config` `Text` `Contracts` `Store` `Economy` `Alife` `Jimmy` `Service` `Maintain` `Net` `Sidebar` `ServerBootstrap` `ClientBootstrap` | `Profile`（身份 spec） |
-| 手写的 `Namespace`（`Core.API` / `namespace(spec)` / `bind(NS)`）与 `Cash` / `Sidebar`（不由 `extract_base.py` 产出） | `ui/Entry`（怎么挂进对方界面）+ `ui/Page`（用对方原语画的列表）+ Vanilla 的 `ui/Icon`（一张 spec）/ `ui/Panel`（原版 ISUI 窗口） |
+| `Config` `Text` `Contracts` `Store` `Economy` `Alife` `Jimmy` `Service` `Maintain` `Net` `Context` `Sidebar` `ServerBootstrap` `ClientBootstrap` | `Profile`（身份 spec） |
+| 手写的 `Namespace`（`Core.API` / `namespace(spec)` / `bind(NS)`）与 `Cash` / `Context` / `Sidebar`（不由 `extract_base.py` 产出） | `ui/Entry`（怎么挂进对方界面）+ `ui/Page`（用对方原语画的列表）+ Vanilla 的 `ui/Icon`（一张 spec）/ `ui/Panel`（原版 ISUI 窗口） |
 | —— | `mod.info` / `Translate/*.json` / `sandbox-options.txt` / `poster.png` |
 
 判断标准只有一条：**这段代码里有没有出现"口味身份"**。身份 = mod id、ModData 表名、
@@ -540,12 +540,12 @@ follow   → Alife.orderFollow(player, uid, quiet)
 local Core = require "Bin2NPCExtensionCore/Namespace"
 local NS = Core.namespace({ module = "Bin2NPCExtension", coreApi = 1, tag = "…",
     economyGlobal = "OrangeTradingMod", … })
-Core.bind(NS)            -- 按依赖顺序把 13 个模块实例化成 NS 上的字段
+Core.bind(NS)            -- 按依赖顺序把 16 个模块实例化成 NS 上的字段
 Bin2NPCExtension = NS
 ```
 
 * `Core.bind` 的顺序（Config → Text → Contracts → Store → Economy → Alife → Jimmy →
-  Service → Maintain → Net → Sidebar → ServerBootstrap → ClientBootstrap）是**有意义的**：
+  Service → Maintain → Net → Context → Sidebar → ServerBootstrap → ClientBootstrap）是**有意义的**：
   `Jimmy` 在实例化时就 `local Alife = Config.Alife` 抓住了兄弟模块的引用。
   顺序只有一处真相（`Namespace.lua`），口味不用重复声明。
 * 事件注册（`Events.OnClientCommand` / `OnServerCommand` / `OnTick` / `OnKeyPressed`）
@@ -950,7 +950,7 @@ defaults = { SignPrice = 50, SpawnPrice = 200, DailyWage = 5 },
 | 分屏 player 1 真的看不到按钮列 | 源码级结论（按钮列只给 player 0 建） | 2 人分屏，看 2P 屏幕左侧是否只有两只手 |
 | YeseMarket 交易站图标的**开关行为** | **完全未进游戏验证**（离线断言只覆盖到 mock 的 `Open` / `UIShell:close` 形状） | 进游戏点一下那个图标：交易站窗口应当开/关，图标在 On/Off 之间切换，`console.txt` 里没有缺图告警（§13.4.1） |
 | 原版钞票口味的侧边栏入口改走公共层后是否依旧 | 离线套件 50 条全绿（`tools/test-vanilla`），实机未复测 | 进游戏看图标还在、点一下还能开关招募窗口 |
-| 离线测试套件 | ✅ 三套都跑绿：`tools/test`（45）、`tools/test-yese`（45）、`tools/test-vanilla`（50） | `./tools/<suite>/run_lua_test.sh --quick` |
+| 离线测试套件 | ✅ 三套都跑绿：`tools/test`（48）、`tools/test-yese`（48）、`tools/test-vanilla`（51） | `./tools/<suite>/run_lua_test.sh --quick` |
 
 ### 13.9 沉淀的判断
 
@@ -965,3 +965,69 @@ defaults = { SignPrice = 50, SpawnPrice = 200, DailyWage = 5 },
    摘掉了 —— 数钱会漏、改钱会错，而且单机下完全看不出来（发包是 no-op，错了也不报错）。
 5. **生成的资产放版本目录是对的，但要拿引擎自己的目录字段证明**（`ChooseGameInfo$Mod.mediaFile`），
    不能靠"看起来应该能找到"。
+
+## 14. 世界右键菜单里的「收编」（v0.5.2）
+
+### 14.1 需求与它真正的约束
+
+玩家原话：**「招募中立 NPC 放到右键菜单中，现在 NPC 跑太快来不及招募」**。
+
+上一版收编只有一条路：`Ctrl+Alt+N` 开面板 → 切「收编」页签 → 点「扫描附近」→ 在候选卡片里找到
+那个人 → 选中 → 点收编。NPC 在走，等这一串动作做完，他可能已经出了服务端的
+`RecruitRadius`（默认 6 格），于是只拿到一句「太远了」。所以这条需求的重点不是"多一个入口"，
+而是**把"选人"这件事压到一个动作里**：右键 → 点名字。
+
+### 14.2 钩子：只加监听器，不包 `createMenu`
+
+| 事实 | 出处 |
+| --- | --- |
+| `Events.OnFillWorldObjectContextMenu(playerNum, context, worldObjects, test)` 是填世界右键菜单的钩子 | 引擎 `lua/client/ISUI/ISWorldObjectContextMenu.lua`；本仓库 `docs/research/economy-integration-hooks.md` 的「零冲突钩子」表 |
+| 上游经济模组与 YeseMarket 的 UI 宿主**都包过** `ISWorldObjectContextMenu.createMenu` | `docs/research/yese-integration-hooks.md`「双方都包了 createMenu」 |
+| Jeem 自己的「邀请入住 <小队>」用的就是"右键点在人旁边 + 半径 2" | `ProjectALifeJimmy/Features/Residents/Menu.lua`：`Menu.radius = 2`、`squareOf()` 取 `worldObjects[1]:getSquare()` |
+| 第一人称模组会按"光标下的对象"过滤菜单条目 | Jeem 的 `Services/Menu.lua` `Menu.tie()`：把 NPC 的 shell 塞进 `param10`（本项目没有任何地方读这个槽） |
+
+结论：**只 `Add` 一个 `OnFillWorldObjectContextMenu` 监听器**。包 `createMenu` 是两边都已经在做的事，
+再去包一层就是叠套娃（每次右键多一层 pcall 与包装器身份判断），而我们没有任何需要"修改别人的菜单"
+的理由 —— 只是往里加一条自己的。
+
+### 14.3 距离原点：点击的那一格，不是玩家脚下
+
+`Context.fill` 取 `worldObjects[1]:getSquare()`（取不到退回玩家脚下），再把这个格子的位置作为
+**候选名单的距离原点**传给 `Alife.candidates(player, radius, isTaken, origin)`（v0.5.2 给它加了第 4 个
+可选参数）。
+
+为什么值得改公共层的这个函数，而不是在 `Context` 里另写一套过滤：候选名单的规则有六条
+（生命周期、已有契约、别人雇走、已是 Jeem 居民、前哨驻军、来访商人、敌对），写在两个地方就一定会分叉。
+现在**右键菜单里能点的人 ≡ 面板里能收编的人**，差别只有"距离从哪算"。
+
+半径用沙盒的 `RecruitRadius`（面板「扫描附近」与服务端 `withinReach` 用的是同一个值），
+所以"菜单里出现了他"就意味着"点下去服务端会接受距离"。
+
+### 14.4 菜单条目本身的几个决定
+
+* **位置**：插在 Project A-Life 自己的 `[A-LIFE] …` 条目**之后**（`insertOptionAfter`，没有就
+  `addOption`）。右键菜单在我们之前已经有一长串原版条目，追加在最下面等于每次都要滚到底。
+  做法与 Jeem 的 `Menu.addPersonOption` 相同。
+* **一人一条 vs 子菜单**：只有一个人时直接一条 `收编 <名字>`；人多了收进 `[bin2] NPC 招募` 子菜单
+  （每人一条、带**整数米**距离、最多 `Context.maxRows = 4` 条）。点在人堆里时菜单不会铺满一屏。
+* **只填一次**：`context.bin2ContextFilled`。两边 UI 宿主都包过 `createMenu`，一旦有人在**同一张**
+  菜单表上再触发一遍事件，就会出现两份一模一样的子菜单。
+* **只服务 player 0**：与面板/热键/侧边栏图标一致；`Net.send` 取的就是 player 0，
+  不挡的话分屏 1P 点这条会以 0P 的身份发命令。
+* **只读**：填菜单时不扣钱、不发命令、不改契约（引擎会多次填充菜单）。真正的动作在点击回调里，
+  走的是与面板**完全相同**的 `Net.send("HireExisting", { uid, mode = Config.defaultMode() }, true)` ——
+  金额、名额、距离、敌对全部在服务端校验，结果照旧由 `Net.notify` 用"招募操作已完成 / 失败原因"提示。
+
+### 14.5 文案在口味侧
+
+公共层只说键名：`ContextRecruit`（`收编 %1`）、`ContextRecruitMenu`（`[bin2] NPC 招募`），
+三个口味各自的 `Translate/<CN,EN>/IG_UI.json` 提供文案（`IGUI_<口味>_ContextRecruit`）。
+翻译缺了会像面板那样退回裸键，而不是显示一句英文。
+
+### 14.6 未证实清单
+
+| 事项 | 状态 | 验证方法 |
+| --- | --- | --- |
+| 右键条目在真实游戏里的位置与点击行为 | **完全未进游戏验证**（离线只覆盖到 mock 的菜单形状） | 进游戏对着一个中立 NPC 右键：`[A-LIFE] …` 下面应当有「收编 <名字>」，点一下扣钱、人开始跟随（`docs/test-plan.md` Y18） |
+| Viewpoint 这类第一人称模组的过滤是否留下我们这条 | 只按 Jeem 的配方塞了 `param10`，未实测 | 开 Viewpoint 进第一人称瞄准状态，对着 NPC 右键看条目在不在 |
+| 上游经济模组与 YeseMarket 的 `createMenu` 包装器会不会把同一份菜单触发两次 | 已用 `context.bin2ContextFilled` 挡住，未实测 | 开着经济模组反复右键，确认只出现一份子菜单 |

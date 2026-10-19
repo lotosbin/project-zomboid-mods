@@ -361,8 +361,62 @@ for _, name in ipairs({
     "OnTick", "EveryOneMinute", "EveryTenMinutes", "OnGameStart", "OnServerStarted",
     "OnClientCommand", "OnServerCommand", "OnKeyPressed", "OnKeyStartPressed",
     "OnPlayerDeath", "OnZombieDead", "OnLoad", "OnInitGlobalModData",
+    -- 世界右键菜单（公共层 Context 挂的钩子）
+    "OnFillWorldObjectContextMenu",
 }) do
     Events[name] = newEvent()
+end
+
+-- ---------------------------------------------------------------- 世界右键菜单
+--[[
+    引擎的右键菜单对象只用到四件事：addOption / insertOptionAfter / addSubMenu / options。
+    这里照真实形状造一个最小实现（`ISContextMenu` 本身由 PZ 的 lua/client/ISUI/ISContextMenu.lua
+    提供，公共层的 Context 只读 `ISContextMenu.getNew`）。
+]]
+M.newContext = function(parent)
+    local menu = { options = {}, parent = parent }
+    function menu:addOption(name, target, onSelect, ...)
+        local option = {
+            name = name, target = target, onSelect = onSelect,
+            params = { ... }, subOption = nil, menu = self,
+        }
+        self.options[#self.options + 1] = option
+        return option
+    end
+    function menu:insertOptionAfter(afterName, name, target, onSelect, ...)
+        local option = {
+            name = name, target = target, onSelect = onSelect,
+            params = { ... }, subOption = nil, menu = self,
+        }
+        local at = #self.options
+        for index, existing in ipairs(self.options) do
+            if existing.name == afterName then at = index break end
+        end
+        table.insert(self.options, at + 1, option)
+        return option
+    end
+    function menu:addSubMenu(option, submenu)
+        option.subOption = submenu
+        submenu.parent = self
+    end
+    return menu
+end
+
+ISContextMenu = {
+    getNew = function(_, parent) return M.newContext(parent) end,
+}
+
+--- 光标下的那个对象（`getSquare()` 返回带 getX/getY/getZ 的格子，与真实 IsoObject 同形）
+M.worldObject = function(x, y, z)
+    local square = { x = x, y = y, z = z or 0 }
+    function square:getX() return self.x end
+    function square:getY() return self.y end
+    function square:getZ() return self.z end
+    local object = {}
+    function object:getSquare() return square end
+    function object:getX() return square.x end
+    function object:getY() return square.y end
+    return object, square
 end
 
 --- 手动触发一次事件；返回 handler 数量与第一个错误

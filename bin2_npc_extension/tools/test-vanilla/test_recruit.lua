@@ -7,7 +7,7 @@
 --   * MOCK        —— 引擎桩 / A-Life + Jeem + **原版物品栏 + 原版 ISUI/侧边栏** mock /
 --                    调用记录 / 时间推进 / 断言框架
 --   * Bin2NPCExtensionVanilla / Bin2NPCExtensionCore / ProjectALife / ProjectALifeJimmy
---     —— 被测的 19 个文件（公共层 14 + 本口味 5）跑完后的产物
+--     —— 被测的 21 个文件（公共层 16 + 本口味 5）跑完后的产物
 --   * Config.__iconFiles / __sandboxDefaults —— run.js 从**磁盘与 sandbox-options.txt**
 --     静态校验/解析出来的真值（图标 5 档 × 2 态、沙盒 14 个选项的默认值）
 --
@@ -43,7 +43,7 @@ local Icon = Config.Entry
 local WindowClass = Panel.Window
 
 -- 用例总数：runTest 会把它当断言前缀用，新增用例时同步改这一个数字
-local TOTAL = 50
+local TOTAL = 51
 local failures = 0
 local passed = 0
 
@@ -200,8 +200,8 @@ end
 -- A. 装载与身份
 -- ===========================================================================
 runTest(1, "loader: 20 files (public 15 + flavour 5), 19 require names, no file read twice, expected globals", function()
-    M.assert_eq(Config.__loadedCount, 20, "loaded file count")
-    M.assert_eq(Config.__moduleFileCount, 20, "module file count")
+    M.assert_eq(Config.__loadedCount, 21, "loaded file count")
+    M.assert_eq(Config.__moduleFileCount, 21, "module file count")
     M.assert_eq(Config.MODULE, "Bin2NPCExtensionVanilla", "Config.MODULE")
     M.assert_eq(Bin2NPCExtensionVanilla, Config, "the global is the namespace table")
     M.assert_truthy(type(Config.SPEC) == "table" and Config.SPEC.module == Config.MODULE,
@@ -214,8 +214,8 @@ runTest(1, "loader: 20 files (public 15 + flavour 5), 19 require names, no file 
     end
     M.assert_truthy(type(Config.RecruitPanel) == "table", "client ui/Panel ran")
     M.assert_truthy(type(Config.Entry) == "table", "client ui/Icon ran")
-    M.assert_eq(#Config.__requireNames, 19, "19 distinct require names for 20 files")
-    M.assert_eq(#Config.__coreModules, 15, "15 modules in the public layer")
+    M.assert_eq(#Config.__requireNames, 20, "20 distinct require names for 21 files")
+    M.assert_eq(#Config.__coreModules, 16, "16 modules in the public layer")
 
     -- 自动加载已经把 20 个文件都跑完了，所以**没有任何** require 需要让 searcher 去读盘。
     -- 这一条同时守住两件事：文件只执行一次（引擎的真实语义），以及没有写错的模块名。
@@ -302,7 +302,7 @@ end)
 
 runTest(3, "profile: spec identity (MODULE / VERSION / coreApi=3 / money=cash / TAG / TABLE / prefixes)", function()
     M.assert_eq(Config.MODULE, "Bin2NPCExtensionVanilla", "MODULE")
-    M.assert_eq(Config.VERSION, "0.5.1", "VERSION")
+    M.assert_eq(Config.VERSION, "0.5.2", "VERSION")
     M.assert_eq(Config.SPEC.coreApi, 3, "spec.coreApi")
     M.assert_eq(Core.API, 3, "Core.API")
     M.assert_eq(Config.SPEC.money, "cash", "spec.money")
@@ -1233,8 +1233,8 @@ runTest(48, "translations: every scanned key exists in CN and EN, and both langu
     local cnCount, enCount = 0, 0
     for _ in pairs(CN_KEYS) do cnCount = cnCount + 1 end
     for _ in pairs(EN_KEYS) do enCount = enCount + 1 end
-    M.assert_eq(cnCount, 94, "IG_UI.json ships 94 keys (the file is the source of truth)")
-    M.assert_eq(enCount, 94, "…in both languages")
+    M.assert_eq(cnCount, 96, "IG_UI.json ships 96 keys (the file is the source of truth)")
+    M.assert_eq(enCount, 96, "…in both languages")
 
     --[[
         扫描器的两条硬性要求：
@@ -1313,6 +1313,35 @@ runTest(50, "window: the panel shows the sandbox prices and the real note balanc
     M.assert_truthy(window.renderCalls >= 1, "render() ran end to end")
     M.assert_eq(window.title, Config.Text.get("PageTitle"), "the window title uses the flavour's key")
     window:close()
+end)
+
+-- ===========================================================================
+-- 51. 世界右键菜单里的「收编」（公共层 Context，本口味用原版钞票结算）
+-- ===========================================================================
+runTest(51, "right-click: the entry hires the NPC next to the click, paid in cash notes", function()
+    resetWorld()
+    local entry = Bin2NPCExtensionVanilla.Context
+    M.assert_truthy(type(entry) == "table", "public layer exposed Context")
+    entry.install()
+    M.assert_eq(M.handler_count("OnFillWorldObjectContextMenu"), 1, "one handler, no double wiring")
+
+    local uid = M.addActor({ uid = "palife:ctx:cash", x = 101, y = 100 })
+    local menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { M.worldObject(101, 100) })
+    M.assert_eq(#menu.options, 1, "the NPC next to the click is offered")
+    M.assert_eq(menu.options[1].name, "ContextRecruit", "label falls back to the bare key without translations")
+
+    M.giveNotes(math.ceil(Config.signPrice()))        -- 原版钞票结算：1 张 = 1 元，按沙盒價给足
+    local before = M.moneyValue()
+    menu.options[1].onSelect(menu.options[1].target)
+    M.assert_eq(M.moneyValue(), before - Config.signPrice(), "the sign price was paid")
+    local contract = Contracts.get(Store.node(M.player, false), uid)
+    M.assert_truthy(contract ~= nil, "a contract exists after the click")
+    M.assert_eq(contract and contract.mode, Config.defaultMode(), "the post comes from the sandbox default")
+
+    menu = M.newContext()
+    M.trigger("OnFillWorldObjectContextMenu", 0, menu, { M.worldObject(101, 100) })
+    M.assert_eq(#menu.options, 0, "an NPC we already employ is not offered again")
 end)
 
 -- ===========================================================================

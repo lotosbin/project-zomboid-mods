@@ -92,5 +92,7 @@
     "IGUI_Bin2NPCExtensionVanilla_WarnDisabled": "This mod is disabled in the sandbox options.",
     "IGUI_Bin2NPCExtensionVanilla_WarnNoAlife": "Project A-Life not found (or not started yet): hiring is unavailable for now.",
     "IGUI_Bin2NPCExtensionVanilla_WarnNoEconomy": "Cash payment is unavailable right now: hiring is disabled.",
-    "IGUI_Bin2NPCExtensionVanilla_WarnNoJeem": "Jeem Extension not found: only Follow and Guard posts are available."
+    "IGUI_Bin2NPCExtensionVanilla_WarnNoJeem": "Jeem Extension not found: only Follow and Guard posts are available.",
+    "IGUI_Bin2NPCExtensionVanilla_ContextRecruit": "Recruit %1",
+    "IGUI_Bin2NPCExtensionVanilla_ContextRecruitMenu": "[bin2] NPC recruitment"
 }

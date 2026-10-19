@@ -80,11 +80,11 @@ const SHARED = 'media/lua/shared';
 const SERVER = 'media/lua/server';
 const CLIENT = 'media/lua/client';
 
-// 公共层的 14 个文件（按 Namespace.bind 的依赖顺序）——它们全是 shared 层的不纯函数式工厂，
+// 公共层的 16 个文件（按 Namespace.bind 的依赖顺序）——它们全是 shared 层的不纯函数式工厂，
 // 加载时只定义工厂、不产生副作用，所以放 shared 是安全的（多人客户端也会加载，但什么也不做）。
 const CORE_MODULES = [
     'Namespace', 'Config', 'Text', 'Contracts', 'Store', 'Economy', 'Cash', 'Alife', 'Jimmy',
-    'Service', 'Maintain', 'Net', 'Sidebar', 'ServerBootstrap', 'ClientBootstrap',
+    'Service', 'Maintain', 'Net', 'Context', 'Sidebar', 'ServerBootstrap', 'ClientBootstrap',
 ];
 
 // 本口味自己的 5 个 Lua 文件。加载顺序 = 引擎真实的层顺序：

@@ -16,7 +16,9 @@
 直接花原版钞票。三个口味共用同一份招募内核（见 §1.5），钱从哪来由每个口味自己决定
 （`docs/design.md` §13.2）：
 
-* **收编**（便宜）：把你身边已有的 A-Life NPC 用社区货币签下来，成为你的雇员；
+* **收编**（便宜）：把你身边已有的 A-Life NPC 用社区货币签下来，成为你的雇员。
+  两条路：开面板（Ctrl+Alt+N → 「收编」页签 → 扫描附近 → 选人）；或者**直接对着 NPC 右键 →「收编 <名字>」**
+  （v0.5.2，NPC 在走的时候这条更快，见 `docs/design.md` §14）；
 * **中介派遣**（贵）：直接在招募面板下单，由 A-Life 在你身边**生成**一名新的友好 NPC 交给你；
 * **雇员岗位**：跟随（A-Life 原生 follow）／守卫／居民（交给 Jeem Extension 的居民系统）。
   名册页的岗位按钮是"选中 → 点「应用岗位」"两步；契约上的岗位只是**缓存**，
@@ -53,9 +55,9 @@ native 也没有这个能力），每个物品一次** —— 详见该节的反
 | mod id | 角色 | 钱从哪来 | 入口 | 备注 |
 | --- | --- | --- | --- | --- |
 | `Bin2NPCExtensionBase` | **公共层** | —— | —— | 由口味 `require=` 自动启用，不用手勾 |
-| `Bin2NPCExtension` | 口味 | 橙子社区经济（`OrangeCommunityEconomy`，3777900792） | 首页「NPC 招募」按钮 + Ctrl+Alt+N | 已进游戏跑过基础流程 |
-| `Bin2NPCExtensionYese` | 口味 | YeseMarket（3735641567） | **导航栏插一行**「NPC Recruit」+ **原版左侧图标栏最下面**的交易站图标 + Ctrl+Alt+N | **尚未进游戏验证**（含交易站图标的开关行为） |
-| `Bin2NPCExtensionVanilla` | 口味 | **原版物品 `Base.Money`**（不需要任何经济模组） | **原版左侧图标栏最下方**的 NPC 图标 + Ctrl+Alt+N | **尚未进游戏验证** |
+| `Bin2NPCExtension` | 口味 | 橙子社区经济（`OrangeCommunityEconomy`，3777900792） | 首页「NPC 招募」按钮 + Ctrl+Alt+N + **世界右键「收编 <名字>」** | 已进游戏跑过基础流程 |
+| `Bin2NPCExtensionYese` | 口味 | YeseMarket（3735641567） | **导航栏插一行**「NPC Recruit」+ **原版左侧图标栏最下面**的交易站图标 + Ctrl+Alt+N + **世界右键「收编 <名字>」** | **尚未进游戏验证**（含交易站图标的开关行为） |
+| `Bin2NPCExtensionVanilla` | 口味 | **原版物品 `Base.Money`**（不需要任何经济模组） | **原版左侧图标栏最下方**的 NPC 图标 + Ctrl+Alt+N + **世界右键「收编 <名字>」** | **尚未进游戏验证** |
 
 三个口味**共用同一份招募内核**（A-Life / Jeem 适配、契约、维护循环、命令路由都在公共层，
 只有一份代码），差别只剩三样：一张 `Profile.lua` 里的身份 spec、口味自己的 UI 容器
@@ -100,7 +102,7 @@ bin2_npc_extension/
 │   ├── modinfo_probe/                              用游戏自己的解析器验 mod.info 与贴图路径（Java，无需 Steam）
 │   ├── test/                                       橙子口味的离线逻辑测试（46 条；公共层模块的通用断言也在这里）
 │   ├── test-yese/                                  YeseMarket 口味的同名套件（生成物，46 条 + 变体专有断言）
-│   └── test-vanilla/                               原版钞票口味的同名套件（50 条断言，50/50 通过）
+│   └── test-vanilla/                               原版钞票口味的同名套件（51 条断言，51/51 通过）
 └── Contents/mods/
     ├── Bin2NPCExtensionBase/42.21/                 ← 公共层（共享逻辑，只有这一份）
     │   ├── mod.info / poster.png
@@ -128,8 +130,9 @@ bin2_npc_extension/
                 ├── server/Bin2NPCExtensionVanilla/Bootstrap.lua     装服务端接线
                 └── client/Bin2NPCExtensionVanilla/Bootstrap.lua + ui/{Icon,Panel}.lua
 ```
-> 公共层 `media/lua/shared/Bin2NPCExtensionCore/` 除 13 个工厂模块外还有两个**手写**文件：
-> `Cash.lua`（原版钞票收钱实现）与 `Sidebar.lua`（往原版左侧图标栏追加图标的挂接，两个口味共用）；
+> 公共层 `media/lua/shared/Bin2NPCExtensionCore/` 除 13 个工厂模块外还有三个**手写**文件：
+> `Cash.lua`（原版钞票收钱实现）、`Context.lua`（世界右键菜单里的「收编」）与
+> `Sidebar.lua`（往原版左侧图标栏追加图标的挂接，三个口味共用）；
 > `poster.png` 与 YeseMarket 那 10 张 `Trade_*.png` 是**独立产物**（`tools/make_images.py` /
 > `tools/make_icons.py`），不由 `fork_variant.py` 复制 —— 它们在生成器的 `GENERATED_ELSEWHERE` 里登记。
 
@@ -172,21 +175,21 @@ bin2_npc_extension/
 
 | 手段 | 结果（2026-10-12） |
 | --- | --- |
-| Lua 语法检查（**四个**模组，30 个文件） | `files=30 failed=0`（含测试脚本共 36 个文件） |
-| 离线逻辑测试 —— 橙子口味（mock A-Life / Jeem / 橙子经济，46 条断言） | `46/46 passed` → `ALL PASS`（含公共层侧边栏模块的 6 条、居民岗位清命令的 5 条断言） |
-| 离线逻辑测试 —— YeseMarket 口味（同 46 条 + 变体自己的导航行/交易站图标断言，生成物） | `46/46 passed` → `ALL PASS` |
-| 离线逻辑测试 —— 原版钞票口味（`tools/test-vanilla/`） | `50/50 passed, 0 failed` / `ALL PASS`（钱的原版物品栏 mock + 侧边栏挂接 + 窗口命令） |
+| Lua 语法检查（**四个**模组，30 个文件） | `files=30 failed=0`（含测试脚本共 37 个文件） |
+| 离线逻辑测试 —— 橙子口味（mock A-Life / Jeem / 橙子经济，48 条断言） | `48/48 passed` → `ALL PASS`（含公共层侧边栏模块的 6 条、居民岗位清命令的 5 条、右键收编的 2 条断言） |
+| 离线逻辑测试 —— YeseMarket 口味（同 48 条 + 变体自己的导航行/交易站图标断言，生成物） | `48/48 passed` → `ALL PASS` |
+| 离线逻辑测试 —— 原版钞票口味（`tools/test-vanilla/`） | `51/51 passed, 0 failed` / `ALL PASS`（钱的原版物品栏 mock + 侧边栏挂接 + 窗口命令 + 右键收编） |
 | 公共层隔离守卫 | `公共层零身份 + 3 个口味互不撞车：OK`（含 `Core.API = 3`、`money=cash, upstream`） |
 | 变体与生成器一致性 | `变体与生成器一致（mod 11 文件 / test 5 文件）` |
-| 抽取等价性复核 | `公共层 12 个文件：9 个与机械搬移结果逐字一致，3 个是登记过的手改基线`（`Jimmy`/`Service`/`Maintain` 的居民岗位修复；合计改动 379 行。手写的 `Namespace` / `Cash` / `Sidebar` 不在那 12 个里） |
+| 抽取等价性复核 | `公共层 12 个文件：7 个与机械搬移结果逐字一致，5 个是登记过的手改基线`（`Jimmy`/`Service`/`Maintain` 的居民岗位修复 + `Alife`/`ClientBootstrap` 的右键入口；合计改动 379 行。手写的 `Namespace` / `Cash` / `Context` / `Sidebar` 不在那 12 个里） |
 | 侧边栏图标资产 | `图标齐全且尺寸正确（2 套 x 5 档 x 2 态 = 20 张）`（48x36 … 128x96 RGBA） |
 | mod.info（游戏自己的解析器） | **四个模组** `ALL MOD.INFO PARSED`，三条 `require=Bin2NPCExtensionBase[ok]` |
 | 贴图路径（游戏自己的解析器） | `ALL PATHS RESOLVED`：**20 张**侧边栏图（Vanilla 的 `NPC_*` + YeseMarket 的 `Trade_*`）全部由 `media.version`（`<mod>/42.21/media`）解析 |
-| 工坊探针（游戏自己的解析器） | `readWorkshopTxt=true`、tags 全在白名单、`validatePreviewImage=OK`、简介 7816 字节 / 提交 7841 字节（上限 8000；v0.5.0 加交易站说明后曾涨到 8608 超限，两轮精简后回到限内） |
+| 工坊探针（游戏自己的解析器） | `readWorkshopTxt=true`、tags 全在白名单、`validatePreviewImage=OK`、简介 7875 字节 / 提交 7900 字节（上限 8000；v0.5.0 加交易站说明后曾涨到 8608 超限，几轮精简后回到限内） |
 | 仓库级 `check_all.sh` | `ALL CHECKS PASSED (18 item(s))` |
 
 > **本表只写实测过的数字。** 原版钞票口味的游戏内行为（`docs/test-plan.md` V1~V12）
-> **一条都没跑过**（离线套件 50/50 只覆盖逻辑，覆盖不了观感与实机 API）——
+> **一条都没跑过**（离线套件 51/51 只覆盖逻辑，覆盖不了观感与实机 API）——
 > 有疑问的地方写"未证实 + 验证方法"，不要用推断填空。
 
 离线测试抓出并修掉了 4 个真缺陷（关闭闸门缺失、周期重下丢 `quiet`、退款不写流水、
@@ -196,6 +199,10 @@ bin2_npc_extension/
 A-Life 的 `follow`/`hold`（那是持久意图），而契约变成居民后 8 秒重下不再跑、没有东西会再清它；
 另外 `residentEntry`/`canManage` 把"问不到"和"不是居民"混在一起，会把居民岗位自动降级成跟随。
 两条都修了，详见 `docs/design.md` §11.9。**热键不是原因**：本模组只注册了 `Ctrl+Alt+N` 一个键。
+
+v0.5.2 起，**在世界里对着 A-Life NPC 右键就能收编**（「收编 <名字>」→ 走与面板完全相同的服务端收编）：
+玩家反馈"NPC 跑太快来不及招募"，而开面板→扫描→找人→选中→收编这一串确实比人走得慢。
+半径、名单、金额全部沿用已有规则（候选名单复用 `Alife.candidates`），详见 `docs/design.md` §14。
 
 ```bash
 # Lua 语法检查（本机无 lua 解释器，用仓库自带 fengari）

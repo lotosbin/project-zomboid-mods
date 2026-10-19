@@ -4137,3 +4137,88 @@ thread:1f95b1ef 说「**根据游戏内容和常识合理设计配方**」⇒ �
 - **内容层证据（比时间戳硬）**：本机订阅副本已被 Steam 拉到新版 —— `workshop/content/108600/3628652563/mods/bin2_extension/42.19.0/mod.info` `modversion=1.7.3`、配方 **16 条**、`mod.info` mtime `14:06:40`（上传后约 94 秒）。⇒ 线上包确实是"16 条"那份，不是只改了版本号。
 
 **口径**：到这一步能说"已上线／线上是 1.7.3／16 条配方"，**不能**说"实测可用"——**仍然没有人在游戏里真做过一件**。@human 那一看（烹饪类目「造纸」、裁缝类目「拆枕头取海绵」、缝纫类目「制作纸胸甲」/「制作纸护臂 (左)」）仍是唯一能把限定摘掉的读数。
+
+
+## 2026-10-19 · 新增：世界里对着 NPC 右键就能「收编」（v0.5.2）
+
+**需求原话**：*「招募中立 NPC 放到右键菜单中，现在 NPC 跑太快来不及招募」*。
+
+先承认一件事：上一版收编只有一条路 —— `Ctrl+Alt+N` 开面板 → 切「收编」页签 → 点「扫描附近」
+→ 在候选卡片里找到那个人 → 选中 → 点收编。NPC 在走，这一串做完他可能已经出了服务端的
+`RecruitRadius`（默认 6 格），于是只拿到一句「太远了」。所以这条需求的实质不是"多一个入口"，
+而是**把"选人"压成一个动作**。
+
+### 钩子怎么选：只加监听器，不包 `createMenu`
+
+`Events.OnFillWorldObjectContextMenu(playerNum, context, worldObjects, test)` 是填世界右键菜单的钩子
+（本仓库 `docs/research/economy-integration-hooks.md` 的「零冲突钩子」表已经写过）。关键在于：
+**橙子经济与 YeseMarket 的 UI 宿主都包过 `ISWorldObjectContextMenu.createMenu`**
+（`docs/research/yese-integration-hooks.md`「双方都包了 createMenu」）。我们没有任何"修改别人菜单"的
+需求 —— 只是往里加一条自己的 —— 所以再包一层就是纯叠套娃（每次右键多一层 pcall 与包装器身份判断）。
+
+先例直接抄 Jeem：`ProjectALifeJimmy/Features/Residents/Menu.lua` 的
+`Menu.radius = 2` + `squareOf(player, worldObjects)` 取 `worldObjects[1]:getSquare()`，
+就是"站在人旁边右键 → 邀请入住"。它还有两个值得抄的细节：
+
+* `Menu.addPersonOption` 把条目**插在 `[A-LIFE] …` 之后**（先找最后一个以 `[A-LIFE]` 开头的条目，
+  用 `insertOptionAfter`）。右键菜单里原版条目已经一长串，追加在最下面等于每次都要滚到底。
+* `Menu.tie(option, object)` 给第一人称模组（Viewpoint 这类按"光标下的对象"过滤条目的）
+  把 NPC 的 shell 塞进 `param10`。不塞的话，人家那种菜单会把我们这条筛掉，而玩家完全看不出原因。
+
+### 距离原点：点击的那一格，而不是玩家脚下
+
+`Alife.candidates(player, radius, isTaken)` 原来是按玩家位置算距离的（面板「扫描附近」那条路）。
+右键时"点的是哪一格"才是玩家心里的原点，所以给它加了第 4 个可选参数 `origin`，
+`Context` 传 `Alife.position(clickedSquare)`。
+
+为什么值得动公共层这个函数、而不是在右键模块里另写一套过滤：候选名单的规则有六条
+（生命周期 / 已有契约 / 别人雇走 / 已是 Jeem 居民 / 前哨驻军 / 来访商人 / 敌对），
+写在两处就一定会分叉。现在**右键菜单里能点的人 ≡ 面板里能收编的人**，差别只有"距离从哪算"。
+半径直接用沙盒的 `RecruitRadius` —— 面板扫描与服务端 `withinReach` 用的就是同一个值，
+所以"菜单里出现了他"就意味着"点下去服务端会接受距离"。
+
+### 菜单条目本身
+
+* 一个人 → 直接一条「收编 <名字>」；人多 → `[bin2] NPC 招募` 子菜单（每人一条、带整数米距离、
+  上限 `maxRows = 4`）。点在人堆里时菜单不会铺满一屏。
+* 只填一次（`context.bin2ContextFilled`）：两边 UI 宿主都包过 `createMenu`，一旦有人在**同一张**
+  菜单表上再触发一遍事件，就会出现两份一模一样的子菜单。
+* 只服务 player 0：与面板/热键/侧边栏图标一致；`Net.send` 取的就是 player 0，
+  不挡的话分屏 1P 点这条会以 0P 的身份发命令。
+* 填菜单时**只读**（引擎会多次填充），真正的动作在点击回调里，走的是与面板**完全相同**的
+  `Net.send("HireExisting", { uid, mode = Config.defaultMode() }, true)` ——
+  金额、名额、距离、敌对全部仍在服务端校验，结果照旧由 `Net.notify` 提示。
+
+### 放哪、要不要升 `Core.API`
+
+新模块 `Context.lua` 是**手写公共层文件**（和 `Namespace` / `Cash` / `Sidebar` 同类，不在
+`extract_base.py` 的机械搬移清单里），由 `ClientBootstrap.install()` 挂上去 —— 三个口味一行都不用改。
+
+**没有升 `Core.API`（仍是 3）**，这是有意的：升版本号的判据不是"NS 上有没有新字段"，而是
+"**口味**会不会引用它"。`Sidebar` 是口味自己 `Config.Sidebar.install(spec)` 调的，老公共层没有这个
+字段就会让新版口味在运行期静默丢掉入口（连原来那个一起），所以必须提前拦住；`Context` 则完全由
+公共层自己调用，老公共层 + 新口味、新公共层 + 老口味两种半更新都能正常跑，没有需要拦的降级路径。
+这段判断写进了 `Namespace.lua` 的 `Core.API` 注释里，免得下次有人凭"加字段就 +1"机械照做。
+
+文案仍在口味侧（`IGUI_<口味>_ContextRecruit` = 「收编 %1」、`…_ContextRecruitMenu` = 「[bin2] NPC 招募」），
+公共层只说键名 —— `check_base.py` 在这轮里抓了我一次：`Context.lua` 的注释里写了
+"YeseMarket"，被判定成口味身份泄漏，改成了"两边 UI 宿主"。
+
+### 离线覆盖
+
+mock 里补了 `Events.OnFillWorldObjectContextMenu`、`ISContextMenu.getNew`、右键菜单对象
+（`addOption` / `insertOptionAfter` / `addSubMenu` / `options`）与"光标下的对象"。新增三条用例：
+
+* 橙子（47）：点在人旁 → 条目出现且带着 shell（`param10`）；点它按 `DefaultMode` 收编、
+  按 `SignPrice` 扣钱、契约成立；同一个人不会再出现；半径跟着沙盒走（`RecruitRadius=2` 时 3 格外的
+  看不见，调大又回来）；空地 / 分屏 1P / 沙盒关掉 都不加条目。
+* 橙子（48）：三个人 → 一个子菜单，最近的在最前、带 `(1 m)` 距离、上限 4 条；同一张菜单填第二遍
+  不会多一条；打开菜单本身不改任何状态。
+* 原版钞票（51）：同样的入口，钱从原版钞票扣。
+
+三套：橙子 **48/48**、YeseMarket **48/48**、原版钞票 **51/51**；语法 37 文件 0 失败、
+公共层零身份 OK、抽取等价性 7 逐字 + 5 手改基线、游戏解析器探针两段全过、仓库级 18 个物品全过
+（简介 7875/7900 字节 —— 加这条更新记录又涨了 60 字节，按规矩先删可推断的细节再跑探针）。
+
+**没验证的**：游戏内观感（条目在真实菜单里的位置、点下去的动作、Viewpoint 第一人称下会不会被筛掉）
+—— 已写成 `docs/test-plan.md` 的 **Y18**。

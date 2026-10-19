@@ -95,9 +95,9 @@ FILE_PATCHES = {
     ],
     # 变体套件里 IG_UI.json 多了一条 IconTooltip，键数断言要跟着走
     "test_recruit.lua": [
-        ('    M.assert_eq(cnCount, 92, "expected 92 translated keys in IG_UI.json")',
-         '    -- 92 = 橙子口味的键数；+1 是本变体自己的 IconTooltip（原版侧边栏图标的悬停提示）\n'
-         '    M.assert_eq(cnCount, 93, "expected 93 translated keys in IG_UI.json")'),
+        ('    M.assert_eq(cnCount, 94, "expected 94 translated keys in IG_UI.json (2 = the right-click menu)")',
+         '    -- 94 = 橙子口味的键数；+1 是本变体自己的 IconTooltip（原版侧边栏图标的悬停提示）\n'
+         '    M.assert_eq(cnCount, 95, "expected 95 translated keys in IG_UI.json")'),
     ],
 }
 

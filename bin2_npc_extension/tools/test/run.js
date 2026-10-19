@@ -65,11 +65,11 @@ const SHARED = 'media/lua/shared';
 const SERVER = 'media/lua/server';
 const CLIENT = 'media/lua/client';
 
-// 公共层的 15 个文件（按 Namespace.bind 的依赖顺序）——它们全是 shared 层的不纯函数式工厂，
+// 公共层的 16 个文件（按 Namespace.bind 的依赖顺序）——它们全是 shared 层的不纯函数式工厂，
 // 加载时只定义工厂、不产生副作用，所以放 shared 是安全的（多人客户端也会加载，但什么也不做）。
 const CORE_MODULES = [
     'Namespace', 'Config', 'Text', 'Contracts', 'Store', 'Economy', 'Cash', 'Alife', 'Jimmy',
-    'Service', 'Maintain', 'Net', 'Sidebar', 'ServerBootstrap', 'ClientBootstrap',
+    'Service', 'Maintain', 'Net', 'Context', 'Sidebar', 'ServerBootstrap', 'ClientBootstrap',
 ];
 
 // 本口味自己的 5 个 Lua 文件。加载顺序 = 引擎真实的层顺序：
@@ -102,7 +102,7 @@ const MOD_FILES = [
     })),
 ];
 
-// 去重后的模块名（本口味里 client/Bootstrap 与 server/Bootstrap 同名，共 18 个名字 19 个文件）
+// 去重后的模块名（本口味里 client/Bootstrap 与 server/Bootstrap 同名，共 20 个名字 21 个文件）
 const REQUIRE_NAMES = [...new Set(MOD_FILES.map((file) => file.module))];
 
 // 语言包
@@ -114,7 +114,7 @@ const TRANSLATION_FILE = 'IG_UI.json';
 const TRANSLATION_SOURCES = [
     { root: MOD_VERSION_DIR, rel: `${CLIENT}/Bin2NPCExtension/ui/Page.lua` },
     { root: MOD_VERSION_DIR, rel: `${CLIENT}/Bin2NPCExtension/ui/Entry.lua` },
-    ...['Text', 'Net', 'Jimmy', 'Economy', 'Service', 'Maintain', 'Alife', 'ClientBootstrap']
+    ...['Text', 'Net', 'Context', 'Jimmy', 'Economy', 'Service', 'Maintain', 'Alife', 'ClientBootstrap']
         .map((name) => ({ root: BASE_VERSION_DIR, rel: `${SHARED}/Bin2NPCExtensionCore/${name}.lua` })),
 ];
 

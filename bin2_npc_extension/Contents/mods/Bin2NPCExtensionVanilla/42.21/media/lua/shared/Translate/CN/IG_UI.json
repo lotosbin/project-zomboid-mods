@@ -92,5 +92,7 @@
     "IGUI_Bin2NPCExtensionVanilla_WarnDisabled": "本模组已被沙盒选项关闭。",
     "IGUI_Bin2NPCExtensionVanilla_WarnNoAlife": "未检测到 Project A-Life（或它还没启动）：暂时无法招募。",
     "IGUI_Bin2NPCExtensionVanilla_WarnNoEconomy": "钞票结算暂时不可用：招募功能不可用。",
-    "IGUI_Bin2NPCExtensionVanilla_WarnNoJeem": "未检测到 Jeem Extension：只有「跟随」「守卫」两种岗位。"
+    "IGUI_Bin2NPCExtensionVanilla_WarnNoJeem": "未检测到 Jeem Extension：只有「跟随」「守卫」两种岗位。",
+    "IGUI_Bin2NPCExtensionVanilla_ContextRecruit": "收编 %1",
+    "IGUI_Bin2NPCExtensionVanilla_ContextRecruitMenu": "[bin2] NPC 招募"
 }

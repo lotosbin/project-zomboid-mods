@@ -91,5 +91,7 @@
     "IGUI_Bin2NPCExtensionYese_ReasonUpstream": "%1（上游返回）",
     "IGUI_Bin2NPCExtensionYese_CampName": "佣兵营地",
     "IGUI_Bin2NPCExtensionYese_FlowHire": "雇佣 NPC",
-    "IGUI_Bin2NPCExtensionYese_FlowRefund": "雇佣退款"
+    "IGUI_Bin2NPCExtensionYese_FlowRefund": "雇佣退款",
+    "IGUI_Bin2NPCExtensionYese_ContextRecruit": "收编 %1",
+    "IGUI_Bin2NPCExtensionYese_ContextRecruitMenu": "[bin2] NPC 招募"
 }
