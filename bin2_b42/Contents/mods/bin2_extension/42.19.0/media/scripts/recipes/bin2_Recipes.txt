@@ -325,4 +325,39 @@ module Bin2Recipe
             item 1 Base.VambraceMagazine_Left,
         }
     }
+    /* 拆枕头取海绵: 补原版"有消耗、无产出"的海绵 (需求与设计按 @human 2026-10-19 11:27:46
+       「根据游戏内容和常识合理设计配方」,材料不用等玩家给方向)。
+       需求出处: 小红书评论 id 6ad5453f000000000a0230c5 (2026-10-19 06:16:32)「是否可以加个能
+       做海绵…因为原版的海绵多人档里完全不够用」;分析见 docs/xhs/需求分析-2026-10-19.md。
+       事实面 (2026-10-19 读游戏安装目录 media/scripts):
+       - Base.Sponge 有物品定义 (generated/items/normal.txt:3597, 0.1 重量, Tags
+         base:cleanstains;base:isfirefuel;base:isfiretinder), 防毒面具两条配方在吃它
+         (generated/recipes/recipes_gasmasks.txt:109 MakeGasmaskFilterCrafted / :132 RechargeFilters),
+         而全树 0 条产出配方。
+       - 海绵的来源只有搜刮: 采集侧仅 Foraging/Categories/Junk.lua:201 的 Junk 分类 + 世界杂物
+         (StoryClutter_Definitions) 的低概率刷新 => 多人档分不过来, 玩家说的不是运气差。
+       形状 (常识 + 游戏内已有的东西, 不新增任何物品/图标): 枕芯就是海绵/纤维填充,
+       把枕头裁开取海绵。
+       - 门槛: 要剪刀或锋利刀 (原版拆布/裁剪同款 tags[base:scissors;base:sharpknife], 保留 + 会磨损)。
+       - 产量 2: 1 个枕头 (1.0 重量) 出 2 块海绵 (各 0.1) —— 一块够一条防毒面具滤芯
+         (两条配方各吃 1 块), 所以一个枕头 = 两份滤芯的量; 枕头是卧室常见物, 不构成稀缺泵。
+       - 安全: 不是燃料泵 —— 枕头自身带 base:isfirefuel + FireFuelRatio 0.25, 而海绵只带
+         base:isfirefuel 标签、没有比率字段, 拆开只会掉燃料值, 不会变多。
+       不加 NeedToBeLearn, 理由同本文件其它配方 (原版靠白名单授予, 模组配方名不在名单里)。 */
+    craftRecipe Bin2MakeSponge
+    {
+        time = 30,
+        timedAction = Making,
+        Tags = InHandCraft;CanBeDoneFromFloor,
+        category = Cooking,
+        inputs
+        {
+            item 1 [Base.Pillow],
+            item 1 tags[base:scissors;base:sharpknife] mode:keep flags[MayDegradeLight],
+        }
+        outputs
+        {
+            item 2 Base.Sponge,
+        }
+    }
 }

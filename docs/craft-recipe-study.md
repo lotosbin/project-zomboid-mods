@@ -1244,6 +1244,42 @@ ALL RECIPES PARSED      # 15 条全 OK,exit 0
 
 **边界(没验的部分)**:① 只过了引擎解析,**没有在游戏里做过一件**——合成面板里能不能点出来、`timedAction = CraftArmourPiece` 的表现(动作/音效)要进游戏确认;② 护甲产出的耐久/沾水表现沿用原版物品定义,我们没改,但也没实测过;③ 传单(`Base.Flier`)仍然不能做护甲 —— 它没有 `base:magazine` 标签,要让它能做得改原版物品定义(本轮不做,已记在需求分析里)。
 
+### 14.17 拆枕头取海绵:又一个"有消耗、无产出"(`Base.Sponge`),以及材料方向为什么不用等玩家(2026-10-19)
+
+**需求面**:小红书评论 id `6ad5453f000000000a0230c5`(2026-10-19 06:16:32)「是否可以加个能做海绵 并且稍微提高一下门槛或者可自定义材料倍数呢 因为原版的海绵多人档里完全不够用…」。@human 2026-10-19 11:27:46 追加口径:**「根据游戏内容和常识合理设计配方」** —— 材料方向由技术侧定,不必再等玩家回话。
+
+**事实面(读游戏安装目录 `media/scripts`)**:
+
+```bash
+S="$HOME/Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/media/scripts"
+grep -n -A10 '^\s*item Sponge$' "$S/generated/items/normal.txt"      # :3597  0.1 重量, tags base:cleanstains;base:isfirefuel;base:isfiretinder
+grep -rn 'Base\.Sponge' "$S/generated/recipes/"                       # 2 处, 都是"吃": recipes_gasmasks.txt:109 / :132
+grep -rn 'item [0-9]* Base\.Sponge' "$S/generated/recipes/"           # 0 处 => 全树没有任何配方产出海绵
+```
+
+两条消耗方分别造/充填防毒面具滤芯(`MakeGasmaskFilterCrafted` / `RechargeFilters`),**各吃 1 块海绵**;而产出侧只有低概率采集(`Foraging/Categories/Junk.lua:201` 的 Junk 分类)与世界杂物刷新 ⇒ 玩家说的"多人档完全不够用"是机制事实,不是运气。
+
+**形状(常识 + 游戏内已有的东西,不新增物品/图标)**:枕芯本就是海绵/纤维填充 —— **把枕头裁开取海绵**。
+- `Bin2MakeSponge`「拆枕头取海绵」= 1 `Base.Pillow` + 1 `tags[base:scissors;base:sharpknife]`(保留,`MayDegradeLight`)→ **2 `Base.Sponge`**,手持即可做,30 秒。
+- 门槛就是那把刀/剪刀(原版裁布同款 tags);产量 2 = 一个枕头正好两条滤芯的量;枕头是卧室常见物(1.0 重量),不构成稀缺泵。
+- **不是燃料泵**:枕头自带 `base:isfirefuel;base:isfiretinder` + `FireFuelRatio 0.25`,而海绵只有 `base:isfirefuel` 标签、**没有比率字段** ⇒ 拆开只掉燃料值,不会变多。
+- 不加 `NeedToBeLearn`(理由同 14.15/14.16)。
+
+**校验(本机跑过)**:
+
+```
+### Bin2MakeSponge : OK  fullType=Bin2Recipe.Bin2MakeSponge time=30 category=Cooking tags=[InHandCraft, CanBeDoneFromFloor]
+    IN  [Item] item 1 [Base.Pillow]                                  keep=false
+    IN  [Item] item 1 tags[base:scissors;base:sharpknife] mode:keep flags[MayDegradeLight]   keep=true
+    OUT [Item] item 2 Base.Sponge
+ALL RECIPES PARSED      # 16 条全 OK, exit 0
+```
+
+另两条:16 条配方 / `Recipes.json` 缺键 0、多余键 0;`Base.Sponge` 与 `Base.Pillow` 各有且只有 1 处物品定义。
+
+**版本落点**:并进 **1.7.3**(动手前读远端:`time_updated` 仍是 2026-10-14 19:52:42、`file_size` 198614 ⇒ 1.7.3 尚未发布,未发布的版本号可以吞新内容)。
+**边界**:只过引擎解析,**没在游戏里做过**;海绵的产出率(一个枕头 2 块)是设计值,没跑过实际多人档。
+
 ---
 
 ## 15. 参考链接(真实引用地址)
